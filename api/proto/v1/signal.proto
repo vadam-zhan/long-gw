@@ -1,0 +1,138 @@
+syntax = "proto3";
+
+package gateway.v1;
+
+option go_package = "github.com/vadam-zhan/long-gw/proto/v1;gateway";
+
+import "v1/gateway.proto";
+
+// 所有信令采用统一的 Protobuf 结构定义，天然适配 gRPC 流；TCP 场景下封装为 TLV 格式，WebSocket 场景下封装为二进制消息，实现一套语义三协议通用。
+
+// 信令类型枚举（对应不同接口）
+enum SignalType {
+    SIGNAL_TYPE_UNSPECIFIED = 0;
+    // 核心控制信令
+    // 心跳信令，用于检测连接是否存活
+    SIGNAL_TYPE_HEARTBEAT_PING = 1;
+    SIGNAL_TYPE_HEARTBEAT_PONG = 2;
+    // 鉴权信令
+    SIGNAL_TYPE_AUTH_REQUEST = 3;
+    SIGNAL_TYPE_AUTH_RESPONSE = 4;
+    // 消息确认
+    SIGNAL_TYPE_MESSAGE_ACK = 5;
+
+    // 主动登出
+    SIGNAL_TYPE_LOGOUT_REQUEST = 7;
+    SIGNAL_TYPE_LOGOUT_RESPONSE = 8;
+
+    // 扩展控制信令
+    SIGNAL_TYPE_SUBSCRIBE_REQUEST = 9; // 主题订阅请求
+    SIGNAL_TYPE_SUBSCRIBE_RESPONSE = 10;
+    SIGNAL_TYPE_UNSUBSCRIBE_REQUEST = 11; // 主题取消订阅请求
+    SIGNAL_TYPE_UNSUBSCRIBE_RESPONSE = 12;
+
+    // 业务透传
+    SIGNAL_TYPE_BUSINESS_UP = 100; // 业务上行消息
+    SIGNAL_TYPE_BUSINESS_DOWN = 101; // 业务下行消息
+}
+
+message ClientSignal {
+    SignalType signal_type = 1; // 信令类型（接口标识）
+    string request_id = 2; // 全链路追踪ID，必填
+    uint64 sequence_id = 3; // 单连接内单调递增序列号，防重放
+    oneof payload {
+        HeartbeatPing heartbeat_ping = 10;
+        HeartbeatPong heartbeat_pong = 11;
+        AuthRequest auth_request = 12;
+        AuthResponse auth_response = 13;
+        LogoutRequest logout_request = 14;
+        LogoutResponse logout_response = 15;
+        SubscribeRequest subscribe_request = 16;
+        SubscribeResponse subscribe_response = 17;
+        UnsubscribeRequest unsubscribe_request = 18;
+        UnsubscribeResponse unsubscribe_response = 19;
+
+        MessageAck message_ack = 99;
+        BusinessUp business_up = 100;
+        BusinessDown business_down = 101;
+    }
+}
+
+// 客户端按服务端指定的间隔发送心跳，维持连接存活
+message HeartbeatPing {
+    uint64 client_timestamp = 1; // 客户端发送时间戳（毫秒），用于延迟计算
+}
+
+// 服务端响应心跳，返回客户端的延迟时间
+message HeartbeatPong {
+    uint64 server_timestamp = 1; // 服务端响应时间戳（毫秒）
+    uint64 client_timestamp = 2; // 回传客户端发送时间戳（毫秒），用于客户端校准
+}
+
+// Auth 鉴权，连接建立后，客户端必须在5s内发起鉴权，未鉴权连接禁止收发业务信息，超时直接关闭
+message AuthRequest {
+    string token = 1; // 业务侧签发的鉴权token，网关校验合法性
+    string user_id = 2; // 业务侧唯一标识
+    string device_id = 3; // 设备ID
+    string platform = 4; // 客户端平台，如 web、iOS、Android等
+    optional string client_version = 5; // 客户端版本号，用于兼容升级
+    optional uint32 heartbeat_interval = 6; // 客户端期望的心跳间隔（单位秒），最终以服务端返回的为准
+}
+
+message AuthResponse {
+    uint32 code = 1; // 响应，0 = 鉴权成功，非0 失败
+    string msg = 2; // 状态描述
+    bool result = 3; // 鉴权结果，true = 鉴权成功，false = 鉴权失败
+    uint32 heartbeat_internal = 4; // 服务端强制的心跳间隔（单位秒，默认 30s）
+    optional uint64 connection_expire = 5; // 连接过期时间戳（单位秒），连接在该时间后自动断开
+    optional uint32 max_packet_size = 6; // 服务端支持的最大数据包大小（字节），超过该大小的数据包将被拒绝
+}
+
+// 客户端收到 Qos >= 1 的下行消息后，向网关上报ACK，完成可靠投递，网关收到 ACK 后，停止重试
+message MessageAck {
+    repeated string ack_msg_id = 1; // 已收到的消息ID列表，支持批量ACK减少流量
+    map<string, string> ack_result = 2; // 已收到的消息ID及其处理结果，true = 处理成功，false = 处理失败
+}
+// 无单独响应，网关收到ACK后直接终止重试
+
+message LogoutRequest {
+    uint32 reason = 1; // 登出原因，1 = 用户主动登出，2 = 切换账号，3 = 其他
+}
+
+message LogoutResponse {
+    uint32 code = 1; // 响应，0 = 登出成功，非0 失败
+    string msg = 2; // 状态描述
+}
+
+// 主题订阅 / 取消订阅接口；这些需要业务侧进行处理，记录每个 userId 订阅了哪些 topic；todo ，这里后面需要好好设计一下
+// 适用场景：群聊、直播间、行情推送等 Pub/Sub 场景，客户端订阅主题后，网关自动转发该主题的消息。
+message SubscribeRequest {
+    string topic = 1; // 订阅的主题
+    uint32 qos = 2; // 订阅质量等级，0 = 至多一次，1 = 至少一次，2 = 只有一次
+}
+
+message SubscribeResponse {
+    uint32 code = 1; // 响应，0 = 订阅成功，非0 失败
+    string msg = 2; // 状态描述
+}
+
+message UnsubscribeRequest {
+    string topic = 1; // 取消订阅的主题
+}
+
+message UnsubscribeResponse {
+    uint32 code = 1; // 响应，0 = 取消订阅成功，非0 失败
+    string msg = 2; // 状态描述
+}
+
+message BusinessUp {
+    string msg_id = 1; // 业务消息唯一ID
+    BusinessType type = 2; // 业务消息类型
+    bytes body = 3; // 业务消息体，网关不解析，直接透传
+}
+
+message BusinessDown {
+    string msg_id = 1; // 业务消息唯一ID
+    BusinessType type = 2; // 业务消息类型
+    bytes body = 3; // 业务消息体，网关不解析，直接透传
+}

@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package gateway.v1;
+
+option go_package = "github.com/vadam-zhan/long-gw/proto/v1;gateway";
+
+// 多个业务方: IM、直播、消息中心等，用于管理多个业务方的 worker 池
+enum BusinessType {
+    BusinessType_UNSPECIFIED = 0;
+    BusinessType_IM = 1; // IM 业务
+    BusinessType_LIVE = 2; // 直播业务
+    BusinessType_MESSAGE = 3; // 消息中心业务
+}
+
+// 下行推送，主要包括 单播推送和组播推送
+enum DownStreamPushType {
+    DownStreamPushType_UNSPECIFIED = 0;
+    DownStreamPushType_SINGLE = 1; // 单播推送
+    DownStreamPushType_GROUP = 2; // 组播推送
+}
+
+// 长连接状态，用于管理长连接的生命周期
+enum ConnState {
+    ConnState_UNSPECIFIED = 0; // 未初始化
+    ConnState_CONNECTING = 1; // 连接中
+    ConnState_CONNECTED = 2; // 已连接
+    ConnState_DISCONNECTED = 3; // 已断开
+    ConnState_AUTHENTICATED = 4; // 已认证
+    ConnState_AUTHENTICATION_FAILED = 5; // 认证失败
+}
+
+message PushMessageReq {
+    string receiver = 1; // 接收者 ID
+    bytes payload = 2; // 业务载荷
+    DownStreamPushType push_type = 3; // 推送类型
+    BusinessType business_type = 4; // 业务类型
+}
+
+message PushMessageResp {
+    bool success = 1; // 是否成功
+    string message = 2; // 错误信息
+}
+
+service Gateway {
+    rpc PushMessage(PushMessageReq) returns (PushMessageResp);
+}

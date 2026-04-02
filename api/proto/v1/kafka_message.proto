@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package gateway.v1;
+
+option go_package = "github.com/vadam-zhan/long-gw/proto/v1;gateway";
+
+import "v1/gateway.proto";
+import "v1/signal.proto";
+
+// KafkaMessageType defines the direction and purpose of Kafka messages
+enum KafkaMessageType {
+    KAFKA_MSG_UNSPECIFIED = 0;
+    // Upstream: gateway -> backend (client message forwarded)
+    KAFKA_MSG_UPSTREAM = 1;
+    // Downstream: backend -> gateway (response to be delivered to client)
+    KAFKA_MSG_DOWNSTREAM = 2;
+}
+
+// UpstreamKafkaMessage is sent from gateway to backend
+message UpstreamKafkaMessage {
+    string correlation_id = 1;      // UUID for request/response matching
+    string conn_id = 2;            // Connection identifier (for routing back)
+    string user_id = 3;            // Client user ID
+    string device_id = 4;          // Client device ID
+    SignalType original_type = 5;  // Original client message type
+    bytes payload = 6;             // Original message body
+    int64 timestamp = 7;          // Unix timestamp (ms)
+    BusinessType business_type = 8; // 消息属于哪个业务
+}
+
+// DownstreamKafkaMessage is sent from backend to gateway
+message DownstreamKafkaMessage {
+    string correlation_id = 1;     // Matches the upstream correlation_id
+    string conn_id = 2;           // Target connection (gateway uses to route)
+    string user_id = 3;           // Target user ID (for validation)
+    string device_id = 4;         // Target device ID (for validation)
+    SignalType target_type = 5;       // Message type to send to client
+    bytes payload = 6;             // Response body for client
+    int64 timestamp = 7;          // Unix timestamp (ms)
+    BusinessType business_type = 8; // 消息属于哪个业务
+}

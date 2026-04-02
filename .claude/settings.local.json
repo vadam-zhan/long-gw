@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go build:*)",
+      "Bash(go clean:*)",
+      "Bash(go get:*)",
+      "Bash(ls -la /Users/mac/Project/backend-projects/long-gw/config* 2>&1)",
+      "Bash(go mod:*)",
+      "Bash(go vet:*)",
+      "Bash(which protoc:*)",
+      "Bash(go doc:*)",
+      "Bash(make build:*)",
+      "Bash(helm lint:*)",
+      "Bash(helm template:*)",
+      "Bash(make -n helm-lint 2>&1)",
+      "Bash(make helm-lint:*)"
+    ]
+  }
+}

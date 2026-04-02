@@ -1,0 +1,48 @@
+gateway:
+  addr: ":8089"
+  read_buf_size: 4096
+  write_buf_size: 4096
+  upstream_worker_num: 50
+  downstream_worker_num: 50
+  max_conn_num: 1000000
+
+redis:
+  # addr: "host.docker.internal:6379"
+  addr: "localhost:6379"
+  password: ""
+  db: 0
+  pool_size: 100
+  route_ttl: 120
+
+# 上行配置（Gateway -> Backend）
+upstream:
+  kind: "kafka" # kafka 或 grpc
+  kafka:
+    brokers:
+      # - "host.docker.internal:9092"
+      # - "kafka:29092"
+      - "localhost:9092"
+    business_topics:
+      im:
+        upstream_topic: "gateway-im-upstream"
+        downstream: "gateway-im-downstream"
+      # live:
+      #   upstream_topic: "gateway-live-upstream"
+      #   downstream: "gateway-live-downstream"
+      # message:
+      #   upstream_topic: "gateway-message-upstream"
+      #   downstream: "gateway-message-downstream"
+  grpc:
+    business_config:
+      im:
+        grpc_addr: "localhost:8090"
+      live:
+        grpc_addr: "localhost:8091"
+
+auth:
+  addr: ":8081"
+
+log:
+  level: "info"
+  format: "json"
+  file: ""
