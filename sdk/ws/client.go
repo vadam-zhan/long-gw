@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	gateway "github.com/vadam-zhan/long-gw/api/proto/v1"
+	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
 	"github.com/vadam-zhan/long-gw/sdk"
 	"google.golang.org/protobuf/proto"
 

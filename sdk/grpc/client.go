@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	gateway "github.com/vadam-zhan/long-gw/api/proto/v1"
+	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
 	"github.com/vadam-zhan/long-gw/sdk"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -19,15 +19,15 @@ type PushType = gateway.DownStreamPushType
 const (
 	PushTypeUnspecified PushType = gateway.DownStreamPushType_DownStreamPushType_UNSPECIFIED
 	PushTypeSingle      PushType = gateway.DownStreamPushType_DownStreamPushType_SINGLE
-	PushTypeGroup      PushType = gateway.DownStreamPushType_DownStreamPushType_GROUP
+	PushTypeGroup       PushType = gateway.DownStreamPushType_DownStreamPushType_GROUP
 )
 
 // PushRequest 推送请求
 type PushRequest struct {
-	Receiver     string              // 接收者 ID (userID)
-	Payload      []byte             // 业务载荷
-	PushType     PushType           // 推送类型 (单播/组播)
-	BusinessType sdk.BusinessType   // 业务类型
+	Receiver     string           // 接收者 ID (userID)
+	Payload      []byte           // 业务载荷
+	PushType     PushType         // 推送类型 (单播/组播)
+	BusinessType sdk.BusinessType // 业务类型
 }
 
 // PushResponse 推送响应
@@ -38,9 +38,9 @@ type PushResponse struct {
 
 // ClientOptions gRPC客户端配置
 type ClientOptions struct {
-	Addr          string        // gRPC服务器地址 (host:port)
-	Timeout       time.Duration // 调用超时 (默认 5s)
-	DialOptions   []grpc.DialOption
+	Addr        string        // gRPC服务器地址 (host:port)
+	Timeout     time.Duration // 调用超时 (默认 5s)
+	DialOptions []grpc.DialOption
 }
 
 // Option 配置选项函数

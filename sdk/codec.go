@@ -3,7 +3,7 @@ package sdk
 import (
 	"time"
 
-	gateway "github.com/vadam-zhan/long-gw/api/proto/v1"
+	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
 )
 
 // EncodeHeartbeatPing 编码心跳请求

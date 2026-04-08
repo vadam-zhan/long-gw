@@ -3,7 +3,7 @@ package sdk
 import (
 	"time"
 
-	gateway "github.com/vadam-zhan/long-gw/api/proto/v1"
+	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
 )
 
 // ===============================
@@ -15,8 +15,8 @@ type BusinessType int32
 
 const (
 	BusinessTypeUnknown BusinessType = 0
-	BusinessTypeIM     BusinessType = 1
-	BusinessTypeLIVE   BusinessType = 2
+	BusinessTypeIM      BusinessType = 1
+	BusinessTypeLIVE    BusinessType = 2
 	BusinessTypeMESSAGE BusinessType = 3
 )
 
@@ -67,20 +67,20 @@ func BusinessTypeFromProto(p gateway.BusinessType) BusinessType {
 type SignalType int32
 
 const (
-	SignalTypeUnknown            SignalType = 0
-	SignalTypeHeartbeatPing      SignalType = 1
-	SignalTypeHeartbeatPong      SignalType = 2
-	SignalTypeAuthRequest        SignalType = 3
-	SignalTypeAuthResponse       SignalType = 4
-	SignalTypeMessageAck         SignalType = 5
-	SignalTypeLogoutRequest      SignalType = 7
-	SignalTypeLogoutResponse     SignalType = 8
-	SignalTypeSubscribeRequest   SignalType = 9
-	SignalTypeSubscribeResponse  SignalType = 10
-	SignalTypeUnsubscribeRequest SignalType = 11
+	SignalTypeUnknown             SignalType = 0
+	SignalTypeHeartbeatPing       SignalType = 1
+	SignalTypeHeartbeatPong       SignalType = 2
+	SignalTypeAuthRequest         SignalType = 3
+	SignalTypeAuthResponse        SignalType = 4
+	SignalTypeMessageAck          SignalType = 5
+	SignalTypeLogoutRequest       SignalType = 7
+	SignalTypeLogoutResponse      SignalType = 8
+	SignalTypeSubscribeRequest    SignalType = 9
+	SignalTypeSubscribeResponse   SignalType = 10
+	SignalTypeUnsubscribeRequest  SignalType = 11
 	SignalTypeUnsubscribeResponse SignalType = 12
-	SignalTypeBusinessUp         SignalType = 100
-	SignalTypeBusinessDown       SignalType = 101
+	SignalTypeBusinessUp          SignalType = 100
+	SignalTypeBusinessDown        SignalType = 101
 )
 
 func (t SignalType) String() string {
@@ -190,12 +190,12 @@ func SignalTypeFromProto(p gateway.SignalType) SignalType {
 type ConnState int32
 
 const (
-	ConnStateUnspecified           ConnState = 0
-	ConnStateConnecting            ConnState = 1
-	ConnStateConnected             ConnState = 2
-	ConnStateAuthenticated         ConnState = 3
-	ConnStateDisconnected          ConnState = 4
-	ConnStateAuthenticationFailed  ConnState = 5
+	ConnStateUnspecified          ConnState = 0
+	ConnStateConnecting           ConnState = 1
+	ConnStateConnected            ConnState = 2
+	ConnStateAuthenticated        ConnState = 3
+	ConnStateDisconnected         ConnState = 4
+	ConnStateAuthenticationFailed ConnState = 5
 )
 
 func (s ConnState) String() string {

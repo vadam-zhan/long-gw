@@ -1,0 +1,183 @@
+# Default values for gateway chart.
+
+replicaCount: 2
+
+image:
+  repository: gateway
+  tag: latest
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+service:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+    - name: grpc
+      port: 8081
+      targetPort: 8081
+      protocol: TCP
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+  hosts:
+    - host: gateway.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# Gateway configuration
+gateway:
+  addr: ":8080"
+  upstreamWorkerNum: 100
+  downstreamWorkerNum: 100
+  maxConnNum: 1000000
+  readBufSize: 4096
+  writeBufSize: 4096
+
+# Redis configuration
+redis:
+  enabled: true
+  addr: "redis-master.default.svc:6379"
+  password: ""
+  db: 0
+  poolSize: 100
+  routeTTL: 120
+
+# Kafka configuration
+kafka:
+  enabled: true
+  brokers:
+    - "kafka.default.svc:9092"
+  consumer:
+    groupId: "gateway-consumer"
+  businessTopics:
+    im:
+      upstreamTopic: "gateway-im-upstream"
+      downstreamTopic: "gateway-im-downstream"
+    live:
+      upstreamTopic: "gateway-live-upstream"
+      downstreamTopic: "gateway-live-downstream"
+    message:
+      upstreamTopic: "gateway-message-upstream"
+      downstreamTopic: "gateway-message-downstream"
+
+# Upstream configuration (Gateway -> Backend)
+upstream:
+  kind: "kafka"  # kafka or grpc
+  kafka:
+    enabled: true
+  grpc:
+    enabled: false
+    businessConfig:
+      im:
+        grpcAddr: "im-backend.default.svc:8090"
+      live:
+        grpcAddr: "live-backend.default.svc:8091"
+
+# Downstream configuration (Backend -> Gateway)
+downstream:
+  kind: "kafka"  # kafka or grpc
+  kafka:
+    enabled: true
+  grpc:
+    enabled: false
+
+# Auth service configuration
+auth:
+  enabled: false
+  addr: "auth.default.svc:8081"
+
+# Log configuration
+log:
+  level: "info"
+  format: "json"
+  file: ""
+
+# Resources configuration
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: gateway
+          topologyKey: kubernetes.io/hostname
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+  # maxUnavailable: 1
+
+# Autoscaling
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Startup probe
+startupProbe:
+  enabled: true
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 30
+
+# Liveness probe
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 15
+  periodSeconds: 20
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# Readiness probe
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+# Pod annotations
+podAnnotations: {}
+
+# Service account
+serviceAccount:
+  create: true
+  name: gateway
+  annotations: {}
+
+# ConfigMap configuration
+configMap:
+  create: true
+  # Custom config.yaml content can be provided here
+  # This will override the default configuration

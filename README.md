@@ -1,223 +1,194 @@
 # long-gw
 
-长连接接入层网关，支持单节点百万级长连接。
+高性能长连接接入层网关，支持单节点百万级长连接。
+
+## 项目架构
+
+```
+long-gw/              # Go Workspace 根目录
+├── auth/             # 控制层服务 (Gin HTTP)
+├── business/         # 业务后端服务 (独立部署)
+├── gateway/          # 接入层服务 (长连接核心)
+├── sdk/              # 统一客户端SDK
+└── common-protocol/ # 公共协议定义 (Proto)
+```
 
 ## 技术栈
 
-- **语言**: Go
-- **框架**: Gin (HTTP控制层)、net/http、google.golang.org/grpc
+- **语言**: Go 1.25+
+- **HTTP框架**: Gin
 - **协议**: TCP、WebSocket、gRPC、QUIC
 - **消息队列**: Kafka
-- **缓存/路由**: Redis Cluster
+- **缓存/路由**: Redis
 
-## 项目目录
-
-```
-gateway/          # 接入层服务（核心长连接服务）
-auth/             # auth 控制层服务
-sdk/              # 客户端SDK（go-sdk）
-cmd/              # 入口命令
-internal/         # 内部包
-  ├── config/     # 配置
-  ├── protocol/   # 协议处理
-  ├── router/     # 路由中心
-  └── ...
-```
-
-## 架构设计
-
-整体架构由四部分组成：
+## 服务交互架构
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        客户端                                   │
-│  ┌─────────────┐                                                │
-│  │  统一SDK    │ ← 业务SDK请求                                  │
-│  └──────┬──────┘                                                │
-└─────────┼───────────────────────────────────────────────────────┘
-          │ 控制层API获取token/接入点
-┌─────────▼───────────────────────────────────────────────────────┐
-│                        控制层 (Gin HTTP)                         │
-│  - Token生成与验证                                               │
-│  - 接入点下发                                                    │
-│  - 流量控制                                                      │
-└─────────┬───────────────────────────────────────────────────────┘
-          │ gRPC
-┌─────────▼───────────────────────────────────────────────────────┐
-│                        接入层 (长连接核心)                        │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐             │
-│  │ Connection层 │  │  Session层  │  │ LocalRouter │             │
-│  │ (协议封装)   │  │ (业务逻辑)  │  │ (本地路由)  │             │
-│  └─────────────┘  └─────────────┘  └─────────────┘             │
-└─────────┬───────────────────────────────────────────────────────┘
-          │ gRPC / Kafka
-┌─────────▼───────────────────────────────────────────────────────┐
-│                        路由层 (Redis Cluster)                    │
-│  - 用户→节点映射                                                 │
-│  - 设备→节点映射                                                 │
-│  - 节点列表管理                                                  │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              客户端 (SDK)                                   │
+│  ┌─────────────────────────────────────────────────────────────────────┐  │
+│  │                          统一SDK                                     │  │
+│  │  · TCP / WebSocket / gRPC 多协议支持                                 │  │
+│  │  · 自动重连、心跳维护                                                │  │
+│  │  · 消息加密、压缩                                                   │  │
+│  └─────────────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    │ HTTP (获取Token/接入点)
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              控制层 (Auth)                                  │
+│  · Token 生成与验证                                                       │
+│  · 接入点下发                                                             │
+│  · 流量控制                                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    │ gRPC (建立长连接)
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              接入层 (Gateway)                               │
+│                                                                             │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐     │
+│  │  TCP接入    │  │ WebSocket   │  │  gRPC接入   │  │  QUIC接入   │     │
+│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘     │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐  │
+│  │                         Session 层                                    │  │
+│  │  · 连接管理 (Connection)                                              │  │
+│  │  · 本地路由 (LocalRouter)                                             │  │
+│  │  · 双Goroutine模型 (readLoop/writeLoop)                              │  │
+│  └─────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐  │
+│  │                       Worker Pool                                    │  │
+│  │  · 上行Worker池 (处理客户端→服务端消息)                                │  │
+│  │  · 下行Worker池 (处理服务端→客户端消息)                                │  │
+│  └─────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐  │
+│  │                       Kafka Producer/Consumer                        │  │
+│  │  · 上行: 消息 → Kafka (upstream topic)                               │  │
+│  │  · 下行: 订阅 Kafka (downstream topic) → 推送客户端                  │  │
+│  └─────────────────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    │ Kafka
+                    ┌───────────────┴───────────────┐
+                    │                               │
+                    ▼                               ▼
+┌─────────────────────────────────┐  ┌─────────────────────────────────────┐
+│         业务后端 (Business)      │  │           分布式路由 (Redis)          │
+│                                 │  │                                     │
+│  · 消费 upstream 消息            │  │  · 用户 → 节点映射                   │
+│  · 业务逻辑处理                  │  │  · 设备 → 节点映射                   │
+│  · 生产 downstream 消息           │  │  · 集群节点管理                      │
+│  · HTTP API (推送/批量推送)      │  │                                     │
+└─────────────────────────────────┘  └─────────────────────────────────────┘
 ```
 
-### 1. 统一长连接SDK（客户端）
+## 数据流
 
-- 请求控制层获取token、接入点、接入协议
-- 与接入层建立并维护长连接，支持断线重连
-- 转发业务SDK请求到服务端
-- 接收服务端下行数据并转发给业务SDK
-
-### 2. 控制层
-
-- 生产和验证设备合法性token
-- 根据客户端属性下发接入点
-- 流量控制策略
-
-### 3. 接入层（核心）
-
-**Connection层**：封装不同通讯协议差异，提供统一接口
-- TCP: go net包
-- WebSocket: gorilla/websocket
-- gRPC: net/http + google.golang.org/grpc
-- QUIC: quic-go
-
-**Session层**：长连接业务逻辑，维护连接状态机
-- 连接管理：连接ID ↔ 连接信息映射
-- 组管理：组ID ↔ 连接信息映射
-- 上行转发：业务请求 → Kafka/后端服务
-- 下行推送：接收推送请求 → 写入连接
-
-### 4. 路由层
-
-- 设备标识 ↔ 连接标识映射（Redis存储）
-- 集群节点注册与发现
-
-## 核心流程
+### 上行消息 (Client → Business)
 
 ```
-1. 建连: SDK → 控制层获取token/接入点 → 接入层建立长连接
-2. 维持: SDK定时心跳(间隔30s) → 刷新路由TTL
-3. 上行: 业务SDK → SDK → 接入层 → Kafka → 业务后端
-4. 下行: 业务后端 → 路由层查询节点 → gRPC调用接入层 → SDK → 业务SDK
+SDK → Gateway → Kafka(upstream topic) → Business消费 → 业务处理
 ```
 
-## 关键设计
+### 下行消息 (Business → Client)
 
-### 协议封装
-
-```go
-// Message 统一应用层消息
-type Message struct {
-    MsgID   string // 消息ID
-    Type    uint8  // 0x01心跳 0x02上行 0x03下行
-    Body    []byte
-    UserID  string // 鉴权后赋值
-}
-
-// Conn 长连接抽象接口
-type Conn interface {
-    ReadMessage() (*Message, error)
-    WriteMessage(*Message) error
-    Close() error
-    RemoteAddr() string
-    SetUserID(string)
-    GetUserID() string
-}
-
-// ProtocolHandler 协议处理器
-type ProtocolHandler interface {
-    Accept(rawConn interface{}) (Conn, error)
-    Name() string
-}
 ```
+Business → Kafka(downstream topic) → Gateway订阅 → 路由查找 → SDK → 客户端
+```
+
+## 消息队列 Topic 映射
+
+| 业务类型 | Upstream Topic | Downstream Topic |
+|---------|----------------|------------------|
+| im | gateway-im-upstream | gateway-im-downstream |
+| live | gateway-live-upstream | gateway-live-downstream |
+| message | gateway-message-upstream | gateway-message-downstream |
+
+## 服务启动
+
+```bash
+# 启动 Auth 控制层服务
+cd auth && go run main.go
+
+# 启动 Gateway 接入层服务
+cd gateway && go run main.go
+
+# 启动 Business 业务后端服务
+cd business && make build && ./bin/business
+```
+
+## 项目详情
+
+### SDK (`sdk/`)
+
+统一客户端SDK，支持多种协议：
+- `tcp/client.go` - TCP长连接客户端
+- `ws/client.go` - WebSocket客户端
+- `grpc/client.go` - gRPC客户端
+
+### Auth (`auth/`)
+
+控制层服务，Gin HTTP服务：
+- Token管理
+- 接入点下发
+- 流量控制
+
+### Gateway (`gateway/`)
+
+接入层核心服务：
+- 多协议接入 (TCP/WebSocket/gRPC/QUIC)
+- Session管理
+- 本地路由
+- Kafka消息生产和消费
+- Worker池处理
+
+### Business (`business/`)
+
+业务后端服务：
+- 独立部署
+- Kafka消费者（消费上行消息）
+- Kafka生产者（发送下行消息）
+- HTTP API (推送/批量推送)
+
+### Common Protocol (`common-protocol/`)
+
+Protobuf协议定义：
+- `kafka_message.proto` - Kafka消息格式
+- `gateway.proto` - 网关协议
+- `signal.proto` - 信令定义
+
+## 核心设计
 
 ### 双Goroutine模型
 
-每个连接启动独立的readLoop和writeLoop：
-- readLoop: 读取数据、解析协议、分发消息
-- writeLoop: 从WriteCh读取数据、协议封装、写入
-- 严格分离读写，解决TCP并发写安全问题
+每个连接独立的读写分离：
+- `readLoop`: 读取数据、解析协议、分发消息
+- `writeLoop`: 从通道读取数据、协议封装、写入
 
-Worker池设计：
-- 上行Worker池：处理上行请求
-- 下行Worker池：处理下行推送
-- 可按业务划分多个Worker池
+### Worker池
 
-### 本地路由中心
+- 上行Worker池：处理客户端→服务端消息
+- 下行Worker池：处理服务端→客户端消息
 
-```go
-type Connection struct {
-    UserID     string
-    DeviceID   string
-    WriteCh    chan []byte
-    LastActive time.Time
-    mu         sync.RWMutex
-}
+### 分布式路由
 
-type LocalRouter struct {
-    mu              sync.RWMutex
-    userIDToConns   map[string][]*Connection   // 用户→连接(多端)
-    deviceIDToConn  map[string]*Connection     // 设备→连接(单端)
-    hotUserCache    sync.Map                   // 热点用户缓存
-}
-```
+Redis存储：
+| Key | Value | TTL |
+|-----|-------|-----|
+| gateway:user:{userID} | 节点gRPC地址 | 120s |
+| gateway:device:{deviceID} | 节点gRPC地址 | 120s |
 
-功能：
-- 注册连接：上线/鉴权后调用，清理旧连接
-- 注销连接：下线/关闭时调用
-- 查询连接：下行推送时调用
-- 超时清理：定期清理LastActive超时的连接
+## 关键参数
 
-### 分布式路由中心
-
-Redis存储结构：
-
-| Key格式 | Value | TTL | 说明 |
-|---------|-------|-----|------|
-| gateway:user:{userID} | 节点gRPC地址 | 120s | 用户路由 |
-| gateway:device:{deviceID} | 节点gRPC地址 | 120s | 设备路由 |
-| gateway:nodes | 节点地址集合 | - | 集群管理 |
-
-```go
-type DistributedRouter struct {
-    redisClient  *redis.ClusterClient
-    gatewayAddr  string // 当前节点gRPC地址
-}
-```
-
-注册/刷新/注销与心跳绑定。
-
-### 关键参数
-
-| 参数 | 值 | 说明 |
-|------|-----|------|
-| 心跳间隔 | 30s | 客户端定时发送 |
-| 心跳超时 | 90s | 3次心跳未响应则断开 |
-| 路由TTL | 120s | 3次超时+缓冲 |
-| 多端登录上限 | 5-10个 | 单用户最大在线设备数 |
-| 单节点容量 | 100万连接 | 设计目标 |
-
-### 高可用设计
-
-- 接入层：无状态节点，水平扩展
-- Redis：3主3从+哨兵
-- Kafka：多分区多副本
-- 优雅关闭：接收关闭信号后停止接收新连接，处理完存量后退出
-
-## 消息队列
-
-- **上行**: 接入层 → Kafka → 业务后端订阅消费
-- **下行**: 业务后端 → Kafka → 接入层订阅 → 推送至客户端
-- **gRPC推送**: 支持业务后端直接gRPC调用接入层推送
-
-## 监控指标
-
-- 连接数（总在线、单节点）
-- 消息量（上行/下行QPS）
-- 心跳成功率
-- 响应延迟P99
-- Kafka消费延迟
-
-## 注意点
-完整生命周期管控：鉴权、心跳保活、路由注册、优雅关闭、异常兜底全链路覆盖
-生产级安全兜底：panic 捕获、超时控制、资源防泄漏、限流防护
-日志框架，使用 slog，需封装一下，底层可以基于 zap
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| gateway.addr | :8080 | 接入层监听地址 |
+| auth.addr | :8081 | 控制层监听地址 |
+| business.addr | :8082 | 业务服务监听地址 |
+| kafka.brokers | localhost:9092 | Kafka集群 |
+| redis.addr | localhost:6379 | Redis地址 |
+| route.ttl | 120s | 路由过期时间 |

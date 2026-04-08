@@ -1,0 +1,27 @@
+# Business Service Configuration
+
+# HTTP Server
+business:
+  addr: ":8082"
+
+# Kafka Configuration
+kafka:
+  brokers:
+    - "localhost:9092"
+  # 业务类型 -> Topic 映射
+  business_topics:
+    im:
+      upstream_topic: "gateway-im-upstream"
+      downstream_topic: "gateway-im-downstream"
+    # live:
+    #   upstream_topic: "gateway-live-upstream"
+    #   downstream_topic: "gateway-live-downstream"
+    # message:
+    #   upstream_topic: "gateway-message-upstream"
+    #   downstream_topic: "gateway-message-downstream"
+
+# Log Configuration
+log:
+  level: "info"
+  format: "json"
+  file: ""

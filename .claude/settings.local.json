@@ -13,7 +13,17 @@
       "Bash(helm lint:*)",
       "Bash(helm template:*)",
       "Bash(make -n helm-lint 2>&1)",
-      "Bash(make helm-lint:*)"
+      "Bash(make helm-lint:*)",
+      "Bash(ls -la /Users/mac/Project/backend-projects/long-gw/*.mod /Users/mac/Project/backend-projects/long-gw/*.work 2>/dev/null || echo \"no mod/work files in root\")",
+      "Bash(go work:*)",
+      "Bash(go env:*)",
+      "Bash(cd /Users/mac/Project/backend-projects/long-gw && go work sync && go list ./... 2>&1)",
+      "Bash(ls /Users/mac/Project/backend-projects/long-gw/*.md 2>/dev/null || echo \"no md files in root\")",
+      "Bash(go list:*)",
+      "Bash(tree -L 3 /Users/mac/Project/backend-projects/long-gw/business/ 2>/dev/null || find /Users/mac/Project/backend-projects/long-gw/business -type f -name \"*.go\" | head -20)",
+      "Bash(head -1 /Users/mac/Project/backend-projects/long-gw/business/internal/*.go)",
+      "Bash(cp config.yaml.example config.yaml && go run main.go --config config.yaml 2>&1)",
+      "Bash(go run:*)"
     ]
   }
 }
