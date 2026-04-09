@@ -2,7 +2,11 @@ module github.com/vadam-zhan/long-gw/auth
 
 go 1.25.0
 
-require github.com/gin-gonic/gin v1.12.0
+require (
+	github.com/gin-gonic/gin v1.12.0
+	github.com/spf13/viper v1.21.0
+	go.uber.org/zap v1.27.1
+)
 
 require (
 	github.com/bytedance/gopkg v0.1.3 // indirect

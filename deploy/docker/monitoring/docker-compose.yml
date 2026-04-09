@@ -1,0 +1,53 @@
+services:
+  # Prometheus 服务
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    container_name: prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      # 挂载本地 Prometheus 配置文件
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      # 持久化 Prometheus 数据（可选，防止重启丢失数据）
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.enable-lifecycle" # 支持热重载配置
+    networks:
+      - common-net
+
+  # Grafana 服务
+  grafana:
+    image: grafana/grafana:12.3.5
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      # 持久化 Grafana 数据（仪表盘、数据源配置等）
+      - grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin # 默认用户名
+      - GF_SECURITY_ADMIN_PASSWORD=admin123 # 默认密码（请修改）
+      - GF_USERS_ALLOW_SIGN_UP=false # 禁止用户注册
+    depends_on:
+      - prometheus
+    networks:
+      - common-net
+
+# 数据卷（持久化数据），默认是放在 /var/lib/docker/volumes/xxx/_data 下
+volumes:
+  prometheus_data:
+  grafana_data:
+
+# 自定义网络
+# networks:
+#   monitoring:
+#     driver: bridge
+
+# 所有项目都加这段
+networks:
+  common-net:
+    external: true

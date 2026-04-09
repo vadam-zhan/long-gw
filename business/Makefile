@@ -3,7 +3,7 @@
 # Build variables
 BINARY_NAME=business
 BUILD_DIR=bin
-DOCKER_IMAGE=business:latest
+DOCKER_IMAGE=ducksoso/vadam-zhan/business:v1.0.0
 
 ## build: Build the binary
 build:

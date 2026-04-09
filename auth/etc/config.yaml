@@ -1,0 +1,7 @@
+server:
+  addr: ":8081"
+
+log:
+  level: "info"
+  format: "json"
+  file: ""

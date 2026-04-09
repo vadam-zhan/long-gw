@@ -1,0 +1,31 @@
+services:
+  # Auth 服务
+  auth:
+    image: ducksoso/vadam-zhan/auth:v1.0.0
+    container_name: auth
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    volumes:
+      # 挂载本地 Prometheus 配置文件
+      - ./auth/config.yaml:/app/config.yaml
+    networks:
+      - common-net
+
+  # business 服务
+  business:
+    image: ducksoso/vadam-zhan/business:v1.0.0
+    container_name: business
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    volumes:
+      # 挂载本地 Prometheus 配置文件
+      - ./business/config.yaml:/app/config.yaml
+    networks:
+      - common-net
+
+# 所有项目都加这段
+networks:
+  common-net:
+    external: true

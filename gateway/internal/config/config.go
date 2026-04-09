@@ -18,12 +18,26 @@ type Config struct {
 
 // GatewayConfig 网关配置
 type GatewayConfig struct {
-	Addr                string `json:"addr" mapstructure:"addr"`
-	UpstreamWorkerNum   int    `json:"upstream_worker_num" mapstructure:"upstream_worker_num"`
-	DownstreamWorkerNum int    `json:"downstream_worker_num" mapstructure:"downstream_worker_num"`
-	MaxConnNum          uint64 `json:"max_conn_num" mapstructure:"max_conn_num"`
-	ReadBufSize         int    `json:"read_buf_size" mapstructure:"read_buf_size"`
-	WriteBufSize        int    `json:"write_buf_size" mapstructure:"write_buf_size"`
+	Addr                string        `json:"addr" mapstructure:"addr"`
+	UpstreamWorkerNum   int           `json:"upstream_worker_num" mapstructure:"upstream_worker_num"`
+	DownstreamWorkerNum int           `json:"downstream_worker_num" mapstructure:"downstream_worker_num"`
+	MaxConnNum          uint64        `json:"max_conn_num" mapstructure:"max_conn_num"`
+	ReadBufSize         int           `json:"read_buf_size" mapstructure:"read_buf_size"`
+	WriteBufSize        int           `json:"write_buf_size" mapstructure:"write_buf_size"`
+	Profile             ProfileConfig `json:"profile" mapstructure:"profile"`
+	Metrics             MetricsConfig `json:"metrics" mapstructure:"metrics"`
+}
+
+// ProfileConfig pprof配置
+type ProfileConfig struct {
+	Enabled bool   `json:"enabled" mapstructure:"enabled"`
+	Addr    string `json:"addr" mapstructure:"addr"`
+}
+
+// MetricsConfig Prometheus指标配置
+type MetricsConfig struct {
+	Enabled bool   `json:"enabled" mapstructure:"enabled"`
+	Addr    string `json:"addr" mapstructure:"addr"`
 }
 
 // RedisConfig Redis配置
@@ -81,12 +95,6 @@ type LogConfig struct {
 }
 
 // Load 加载配置
-// 支持的配置源优先级（从高到低）：
-// 1. 命令行flag指定的配置文件
-// 2. .env 文件（如果存在）
-// 3. config.yaml 文件（如果存在）
-// 4. 环境变量 (LONG_GW_前缀)
-// 5. 默认值
 func Load(cfgPath string) (*Config, error) {
 	v := viper.New()
 	// 设置环境变量前缀
@@ -94,9 +102,6 @@ func Load(cfgPath string) (*Config, error) {
 	// 将环境变量中的下划线转换为点号，支持嵌套配置
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
-
-	// 添加默认配置
-	setDefaults(v)
 
 	// 如果指定了配置文件路径，优先使用
 	if cfgPath != "" {
@@ -122,50 +127,4 @@ func Load(cfgPath string) (*Config, error) {
 	}
 
 	return &cfg, nil
-}
-
-// setDefaults 设置默认配置
-func setDefaults(v *viper.Viper) {
-	// Gateway默认值
-	v.SetDefault("gateway.addr", ":8080")
-	v.SetDefault("gateway.upstream_worker_num", 50)
-	v.SetDefault("gateway.downstream_worker_num", 50)
-	v.SetDefault("gateway.max_conn_num", 1000000)
-	v.SetDefault("gateway.read_buf_size", 4096)
-	v.SetDefault("gateway.write_buf_size", 4096)
-
-	// Redis默认值
-	v.SetDefault("redis.addr", "localhost:6379")
-	v.SetDefault("redis.password", "")
-	v.SetDefault("redis.db", 0)
-	v.SetDefault("redis.pool_size", 100)
-	v.SetDefault("redis.route_ttl", 120)
-
-	// Kafka默认值
-	v.SetDefault("kafka.brokers", []string{"localhost:9092"})
-	v.SetDefault("kafka.business_topics", map[string]any{
-		"im": map[string]any{
-			"upstream_kind":  "kafka",
-			"upstream_topic": "gateway-im-upstream",
-			"downstream":     "gateway-im-downstream",
-		},
-		"live": map[string]any{
-			"upstream_kind":  "kafka",
-			"upstream_topic": "gateway-live-upstream",
-			"downstream":     "gateway-live-downstream",
-		},
-		"message": map[string]any{
-			"upstream_kind":  "kafka",
-			"upstream_topic": "gateway-message-upstream",
-			"downstream":     "gateway-message-downstream",
-		},
-	})
-
-	// Auth默认值
-	v.SetDefault("auth.addr", ":8081")
-
-	// Log默认值
-	v.SetDefault("log.level", "info")
-	v.SetDefault("log.format", "json")
-	v.SetDefault("log.file", "")
 }

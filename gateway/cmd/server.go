@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/soheilhy/cmux"
+	"github.com/vadam-zhan/long-gw/gateway/internal/metrics"
 	"github.com/vadam-zhan/long-gw/gateway/internal/session"
 	"github.com/vadam-zhan/long-gw/gateway/internal/svc"
 )
@@ -19,6 +20,8 @@ type GatewayServer struct {
 	sessions []*session.Session
 
 	svc *svc.ServiceContext
+
+	metricsCollector *metrics.Collector
 }
 
 // Addr returns the listen address

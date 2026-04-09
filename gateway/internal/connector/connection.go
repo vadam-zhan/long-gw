@@ -172,6 +172,9 @@ func (c *Connection) ReadLoop() {
 			}
 
 			// 使用 handler 处理消息
+			logger.Info("readLoop received message",
+				zap.Any("msgID", msg),
+				zap.String("remote", c.tp.RemoteAddr()))
 			if err := connection.GlobalHandlerRegistry.HandleMessage(c, msg); err != nil {
 				logger.Error("handleMessage message failed",
 					zap.Error(err),
@@ -206,6 +209,7 @@ func (c *Connection) WriteLoop() {
 			if !ok {
 				return
 			}
+			logger.Info("writeLoop write msg", zap.Any("msg", msg))
 			data, err := msglogic.Encode(msg)
 			if err != nil {
 				logger.Warn("encode message failed",

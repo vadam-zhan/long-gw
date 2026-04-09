@@ -275,6 +275,7 @@ type ConnectHandler func(state ConnState, err error)
 // ClientOptions 客户端配置
 type ClientOptions struct {
 	Addr              string        // 服务器地址 (host:port)
+	AuthServerAddr    string        // Auth服务地址 (host:port)
 	ConnectTimeout    time.Duration // 连接超时 (默认 10s)
 	ReadTimeout       time.Duration // 读取超时 (默认 30s)
 	WriteTimeout      time.Duration // 写入超时 (默认 5s)
@@ -353,12 +354,28 @@ func WithDebug(debug bool) Option {
 	}
 }
 
+// WithAuthServerAddr 设置Auth服务地址
+func WithAuthServerAddr(addr string) Option {
+	return func(o *ClientOptions) {
+		o.AuthServerAddr = addr
+	}
+}
+
+// TokenResponse Auth服务生成的Token响应
+type TokenResponse struct {
+	Token     string `json:"token"`     // Token
+	Gateway   string `json:"gateway"`   // 网关地址
+	Protocol  string `json:"protocol"`  // 协议类型
+	Heartbeat int    `json:"heartbeat"` // 心跳间隔(秒)
+	ExpireAt  int64  `json:"expire_at"` // 过期时间戳
+}
+
 func defaultOptions() *ClientOptions {
 	return &ClientOptions{
 		ConnectTimeout:    10 * time.Second,
-		ReadTimeout:       30 * time.Second,
+		ReadTimeout:       50 * time.Second,
 		WriteTimeout:      5 * time.Second,
-		HeartbeatInterval: 30 * time.Second,
+		HeartbeatInterval: 20 * time.Second,
 		AuthTimeout:       10 * time.Second,
 	}
 }

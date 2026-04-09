@@ -88,7 +88,7 @@ func Encode(msg *types.Message) (*gateway.ClientSignal, error) {
 				Code:              0,
 				Msg:               "ok",
 				Result:            true,
-				HeartbeatInternal: 30,
+				HeartbeatInternal: 20,
 			},
 		}
 

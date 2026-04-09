@@ -4,7 +4,7 @@
 BINARY_NAME=gateway
 IMAGE_NAME=gateway
 IMAGE_TAG?=latest
-IMAGE_REGISTRY?=ghcr.io/vadam-zhan
+IMAGE_REGISTRY?=ducksoso/vadam-zhan
 DOCKERFILE=Dockerfile
 HELMChart=deploy/helm/gateway
 

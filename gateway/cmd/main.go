@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/vadam-zhan/long-gw/gateway/internal/config"
 	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
+	"github.com/vadam-zhan/long-gw/gateway/internal/logic/connection"
 	"go.uber.org/zap"
 )
 
@@ -35,6 +36,11 @@ var rootCmd = &cobra.Command{
 			logger.Info("redis config",
 				zap.String("addr", cfg.Redis.Addr))
 		}
+
+		// 初始化AuthHandler
+		connection.InitAuthHandler(cfg.Auth.Addr)
+		logger.Info("auth handler initialized",
+			zap.String("auth_addr", cfg.Auth.Addr))
 
 		// 创建并启动网关
 		gw := NewGatewayServer(cfg)

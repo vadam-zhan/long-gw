@@ -1,0 +1,20 @@
+global:
+  scrape_interval: 15s # 全局拉取间隔
+  evaluation_interval: 15s
+
+scrape_configs:
+  # 1. 监控 Prometheus 自身
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # 2. 监控你的 Go 应用
+  # 注意：如果 Go 应用也在 Docker 中，将 targets 改为 "容器名:端口"
+  - job_name: "gateway"
+    scrape_interval: 5s
+    static_configs:
+      # host.docker.internal 是 Docker 访问宿主机的特殊 DNS
+      - targets: ["host.docker.internal:9091"]
+        labels:
+          env: "development"
+          service: "gateway"

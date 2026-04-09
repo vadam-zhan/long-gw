@@ -121,10 +121,10 @@ func (c *Consumer) Stop() error {
 	if c.cancel != nil {
 		c.cancel()
 	}
-	c.wg.Wait()
 	for _, r := range c.readerMap {
 		r.Close()
 	}
+	c.wg.Wait()
 	logger.Info("kafka consumer stopped")
 	return nil
 }

@@ -6,6 +6,12 @@ gateway:
   max_conn_num: 1000000      # 最大连接数
   read_buf_size: 4096         # 读缓冲区大小
   write_buf_size: 4096        # 写缓冲区大小
+  profile:
+    enabled: false            # pprof开关
+    addr: ":8088"             # pprof监听地址
+  metrics:
+    enabled: false           # Prometheus监控开关
+    addr: ":9090"             # metrics监听地址
 
 redis:
   addr: "localhost:6379"     # Redis地址

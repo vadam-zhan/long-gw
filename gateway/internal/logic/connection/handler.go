@@ -44,11 +44,14 @@ func NewHandlerRegistry() *HandlerRegistry {
 	return &HandlerRegistry{
 		handlers: map[gateway.SignalType]MsgHandler{
 			gateway.SignalType_SIGNAL_TYPE_HEARTBEAT_PING: &HeartbeatHandler{},
-			gateway.SignalType_SIGNAL_TYPE_AUTH_REQUEST:   &AuthHandler{},
 			gateway.SignalType_SIGNAL_TYPE_BUSINESS_UP:    &UpstreamHandler{},
 			// 其他消息类型默认走 UpstreamHandler
 		},
 	}
+}
+
+func (r *HandlerRegistry) Register(msgType gateway.SignalType, handler MsgHandler) {
+	r.handlers[msgType] = handler
 }
 
 func (r *HandlerRegistry) Get(msgType gateway.SignalType) MsgHandler {

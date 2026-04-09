@@ -14,6 +14,8 @@ github.com/gorilla/websocket v1.5.3 h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aN
 github.com/gorilla/websocket v1.5.3/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/vadam-zhan/long-gw/common-protocol v0.0.0-20260408094015-e58501a532de h1:TCtSk6ojcIJ80pjm/t1KwJyIRbrhVg+kct4emQKj0uE=
 github.com/vadam-zhan/long-gw/common-protocol v0.0.0-20260408094015-e58501a532de/go.mod h1:fHbj398Z1BKTWqlmYk+1SRcGydu5E5EsxloKiuwUbqk=
+github.com/vadam-zhan/long-gw/common-protocol v0.0.0-20260408123842-f8905f109e59 h1:KCRTsWHx1mS+l1CkrQ7mqww+AbUVwYKrYdSunIR19sU=
+github.com/vadam-zhan/long-gw/common-protocol v0.0.0-20260408123842-f8905f109e59/go.mod h1:vA8bayYvjO5SLvteQBHsc9FQn+O6CCDpxFISbax3twE=
 go.opentelemetry.io/auto/sdk v1.2.1 h1:jXsnJ4Lmnqd11kwkBV2LgLoFMZKizbCi5fNZ/ipaZ64=
 go.opentelemetry.io/auto/sdk v1.2.1/go.mod h1:KRTj+aOaElaLi+wW1kO/DZRXwkF4C5xPbEe3ZiIhN7Y=
 go.opentelemetry.io/otel v1.39.0 h1:8yPrr/S0ND9QEfTfdP9V+SiwT4E0G7Y5MO7p85nis48=

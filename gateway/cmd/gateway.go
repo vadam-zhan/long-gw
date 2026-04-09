@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"sync"
@@ -14,6 +15,7 @@ import (
 	"github.com/vadam-zhan/long-gw/gateway/internal/connector/transport"
 	gatewaygrpc "github.com/vadam-zhan/long-gw/gateway/internal/handler/gatewaygrpc"
 	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
+	"github.com/vadam-zhan/long-gw/gateway/internal/metrics"
 	"github.com/vadam-zhan/long-gw/gateway/internal/session"
 	"github.com/vadam-zhan/long-gw/gateway/internal/svc"
 
@@ -89,6 +91,25 @@ func (s *GatewayServer) Start() error {
 
 	// 启动后台任务
 	s.cleanTimeoutLoop()
+
+	// 启动 pprof 服务器
+	if s.svc.Config.Gateway.Profile.Enabled {
+		wg.Add(1)
+		wg.Go(func() {
+			defer wg.Done()
+			logger.Info("pprof server started", zap.String("addr", s.svc.Config.Gateway.Profile.Addr))
+			if err := http.ListenAndServe(s.svc.Config.Gateway.Profile.Addr, nil); err != nil {
+				logger.Error("pprof serve failed", zap.Error(err))
+			}
+		})
+	}
+
+	// 启动 Prometheus metrics 服务器
+	if s.svc.Config.Gateway.Metrics.Enabled {
+		s.metricsCollector = metrics.NewCollector(s.svc.Config.Gateway.Metrics.Addr)
+		s.metricsCollector.Start(s.ctx)
+	}
+
 	// 等待系统信号
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
@@ -149,6 +170,10 @@ func (s *GatewayServer) cleanTimeoutLoop() {
 // Stop 优雅关闭网关服务
 func (s *GatewayServer) Stop() {
 	s.cancel()
+	// 关闭 metrics 收集器
+	if s.metricsCollector != nil {
+		s.metricsCollector.Stop()
+	}
 	// 关闭 session
 	for _, sess := range s.sessions {
 		sess.Close()

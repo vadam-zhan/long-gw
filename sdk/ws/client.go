@@ -247,7 +247,7 @@ func (c *Client) handleSignal(signal *gateway.ClientSignal) {
 
 		if resp != nil && resp.Result {
 			c.SetState(sdk.ConnStateAuthenticated)
-			c.StartHeartbeat(time.Duration(resp.HeartbeatInterval) * time.Second)
+			c.StartHeartbeat(resp.HeartbeatInterval, c)
 			if c.Opts.ConnectHandler != nil {
 				c.Opts.ConnectHandler(sdk.ConnStateAuthenticated, nil)
 			}

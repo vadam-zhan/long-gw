@@ -45,9 +45,6 @@ func Load(cfgPath string) (*Config, error) {
 	v.SetEnvPrefix("LONG_GW")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
-
-	setDefaults(v)
-
 	if cfgPath != "" {
 		v.SetConfigFile(cfgPath)
 		if err := v.ReadInConfig(); err != nil {
@@ -69,28 +66,4 @@ func Load(cfgPath string) (*Config, error) {
 	}
 
 	return &cfg, nil
-}
-
-func setDefaults(v *viper.Viper) {
-	v.SetDefault("business.addr", ":8082")
-
-	v.SetDefault("kafka.brokers", []string{"localhost:9092"})
-	v.SetDefault("kafka.business_topics", map[string]any{
-		"im": map[string]any{
-			"upstream_topic":   "gateway-im-upstream",
-			"downstream_topic": "gateway-im-downstream",
-		},
-		"live": map[string]any{
-			"upstream_topic":   "gateway-live-upstream",
-			"downstream_topic": "gateway-live-downstream",
-		},
-		"message": map[string]any{
-			"upstream_topic":   "gateway-message-upstream",
-			"downstream_topic": "gateway-message-downstream",
-		},
-	})
-
-	v.SetDefault("log.level", "info")
-	v.SetDefault("log.format", "json")
-	v.SetDefault("log.file", "")
 }

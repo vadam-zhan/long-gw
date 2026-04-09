@@ -68,9 +68,9 @@ type BaseClient struct {
 
 	sequenceID atomic.Uint64
 
-	heartbeatMu      sync.Mutex
-	heartbeatTicker  *time.Ticker
-	heartbeatStop    chan struct{}
+	heartbeatMu     sync.Mutex
+	heartbeatTicker *time.Ticker
+	heartbeatStop   chan struct{}
 
 	msgCh chan *Message
 
@@ -214,21 +214,22 @@ func (c *BaseClient) NotifyPendingResponse(requestID string, msg *Message) {
 	}
 }
 
+// Heartbeater 心跳发送接口
+type Heartbeater interface {
+	SendHeartbeat()
+}
+
 // StartHeartbeat 启动心跳
-func (c *BaseClient) StartHeartbeat(interval time.Duration) {
+func (c *BaseClient) StartHeartbeat(interval uint32, hb Heartbeater) {
 	c.heartbeatMu.Lock()
 	defer c.heartbeatMu.Unlock()
 
-	if c.heartbeatTicker != nil {
-		return
-	}
-
-	c.heartbeatTicker = time.NewTicker(interval)
+	c.heartbeatTicker = time.NewTicker(time.Duration(interval) * time.Second)
 	go func() {
 		for {
 			select {
 			case <-c.heartbeatTicker.C:
-				c.SendHeartbeat()
+				hb.SendHeartbeat()
 			case <-c.heartbeatStop:
 				return
 			case <-c.ctx.Done():
@@ -247,11 +248,6 @@ func (c *BaseClient) StopHeartbeat() {
 		c.heartbeatTicker.Stop()
 		c.heartbeatTicker = nil
 	}
-}
-
-// SendHeartbeat 发送心跳（子类实现）
-func (c *BaseClient) SendHeartbeat() {
-	// 子类实现
 }
 
 // Close 关闭客户端

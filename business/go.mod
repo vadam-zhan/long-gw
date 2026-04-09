@@ -7,12 +7,11 @@ require (
 	github.com/golang/protobuf v1.5.4
 	github.com/segmentio/kafka-go v0.4.50
 	github.com/spf13/viper v1.21.0
-	github.com/vadam-zhan/long-gw/common-protocol v0.0.0
 	go.uber.org/zap v1.27.1
 	google.golang.org/protobuf v1.36.11
 )
 
-replace github.com/vadam-zhan/long-gw/common-protocol => ../common-protocol
+// replace github.com/vadam-zhan/long-gw/common-protocol => ../common-protocol
 
 require (
 	github.com/bytedance/gopkg v0.1.3 // indirect
@@ -50,6 +49,7 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.1 // indirect
+	github.com/vadam-zhan/long-gw/common-protocol v0.0.0-20260408123842-f8905f109e59 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.5.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect

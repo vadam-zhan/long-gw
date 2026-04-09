@@ -5,6 +5,12 @@ gateway:
   upstream_worker_num: 50
   downstream_worker_num: 50
   max_conn_num: 1000000
+  profile:
+    enabled: false
+    addr: ":8088"
+  metrics:
+    enabled: true
+    addr: ":9091"
 
 redis:
   # addr: "host.docker.internal:6379"
@@ -40,7 +46,7 @@ upstream:
         grpc_addr: "localhost:8091"
 
 auth:
-  addr: ":8081"
+  addr: "localhost:8081"
 
 log:
   level: "info"

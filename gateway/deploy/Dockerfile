@@ -3,11 +3,14 @@
 # ================================================
 FROM golang:1.25-alpine AS builder
 
+# Set Go proxy
+ENV GOPROXY=https://goproxy.cn,direct
+
 # Install build dependencies
 RUN apk add --no-cache git ca-certificates tzdata
 
 COPY . /build
-RUN cd /build && go mod tidy && go build -ldflags="-w -s" -o ./bin/gateway main.go
+RUN cd /build && go mod tidy && CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o ./bin/gateway main.go
 
 # ================================================
 # Stage 2: Final image
@@ -29,18 +32,11 @@ COPY  --from=builder /build/etc/config.yaml /app/config.yaml
 # Change ownership
 RUN chown -R appuser:appgroup /app
 
-# Switch to non-root user
 USER appuser
-
-# Expose ports
-EXPOSE 8080 8081
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/v1/admin/health || exit 1
 
 # Default command
 # ENTRYPOINT ["/app/gateway"]
 # CMD ["gateway", "--config", "/app/config.yaml"]
 #
+
 CMD ["/app/gateway", "--config", "/app/config.yaml"]
