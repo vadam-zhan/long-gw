@@ -1,8 +1,9 @@
 # Gateway 分层重构设计方案
 
 **日期**: 2026-04-10
-**状态**: 已批准
+**状态**: 设计完成，待实施
 **目标**: 分离传输层、连接层、业务层，让 Session 只负责协调
+**版本**: v2.0（详细 Worker 层设计）
 
 ---
 
@@ -379,7 +380,86 @@ func (s *Session) Start() error {
 
 ## 6. Worker 层设计
 
-### 6.1 WorkerManager 结构
+### 6.0 消息流概览
+
+```
+┌────────────────────────────────────────────────────────────────────────────────┐
+│                                  上行消息流                                       │
+│                                                                                │
+│   Client → Transport → Connection.ReadLoop → Handler → UpstreamHandler         │
+│                                                    │                           │
+│                                                    ▼                           │
+│                                           UpstreamSubmitter                     │
+│                                                    │                           │
+│                                                    ▼                           │
+│                                            WorkerPool.UpstreamCh                │
+│                                                    │                           │
+│                                                    ▼                           │
+│                                          UpstreamWorker (goroutine)             │
+│                                                    │                           │
+│                                                    ▼                           │
+│                                          UpstreamSender.Send()                  │
+│                                                    │                           │
+│                                                    ▼                           │
+│                                         Kafka (upstream topic)                  │
+│                                                    │                           │
+│                                                    ▼                           │
+│                                         Business Service                        │
+└────────────────────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────────────┐
+│                                  下行消息流                                       │
+│                                                                                │
+│   Business Service → Kafka (downstream topic)                                 │
+│                            │                                                   │
+│                            ▼                                                   │
+│                 KafkaConsumer.FetchMessage()                                   │
+│                            │                                                   │
+│                            ▼                                                   │
+│               DownstreamConsumerManager (分发到对应 bizType)                   │
+│                            │                                                   │
+│                            ▼                                                   │
+│                     WorkerPool.DownstreamCh                                    │
+│                            │                                                   │
+│                            ▼                                                   │
+│                 DownstreamWorker (goroutine)                                   │
+│                            │                                                   │
+│                            ▼                                                   │
+│                      DownstreamRouter.Route()                                  │
+│                            │                                                   │
+│                            ▼                                                   │
+│              Connection.WriteCh ←────────────────────────────                  │
+│                            │                                                   │
+│                            ▼                                                   │
+│                 Connection.WriteLoop → Transport.Write                          │
+│                            │                                                   │
+│                            ▼                                                   │
+│                            Client                                              │
+└────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 6.1 核心数据结构
+
+```go
+// UpstreamJob 上行任务（从 Connection 到 Kafka）
+type UpstreamJob struct {
+    Msg      *types.Message       // 解析后的内部消息
+    ConnID   string               // 连接 ID，用于追踪
+    UserID   string               // 用户 ID
+    DeviceID string               // 设备 ID
+    BizType  gateway.BusinessType // 业务类型
+    Ctx      context.Context      // 上下文，用于超时控制
+}
+
+// DownstreamJob 下行任务（从 Kafka 到 Connection）
+type DownstreamJob struct {
+    Msg         *gateway.DownstreamKafkaMessage // Kafka 消息
+    BizType     gateway.BusinessType             // 业务类型
+    Offset      int64                            // Kafka offset，用于提交
+}
+```
+
+### 6.2 WorkerManager 结构
 
 ```go
 // WorkerManager 统一管理所有业务类型的 Worker
@@ -420,7 +500,330 @@ func NewWorkerManager(cfg *config.Config, dr router.DistributedRouterInterface) 
 }
 ```
 
-### 6.2 DownstreamRouter 结构
+### 6.2 WorkerPool 详细设计
+
+```go
+// WorkerPool 核心结构
+type WorkerPool struct {
+    bizType gateway.BusinessType
+
+    // 上行相关
+    upstreamCh     chan UpstreamJob    // 上行任务通道
+    upstreamSender UpstreamSender      // 发送器（Kafka/gRPC）
+
+    // 下行相关
+    downstreamCh       chan DownstreamJob // 下行任务通道
+    downstreamRouter    DownstreamRouter   // 下行路由
+
+    // 生命周期
+    ctx    context.Context
+    cancel context.CancelFunc
+    wg     sync.WaitGroup
+}
+
+// NewWorkerPool 创建 WorkerPool
+func NewWorkerPool(
+    cfg *config.Config,
+    bizType gateway.BusinessType,
+    sender UpstreamSender,
+    router DownstreamRouter,
+) *WorkerPool {
+    ctx, cancel := context.WithCancel(context.Background())
+
+    pool := &WorkerPool{
+        bizType:          bizType,
+        upstreamCh:       make(chan UpstreamJob, cfg.Gateway.UpstreamWorkerNum*10),
+        downstreamCh:     make(chan DownstreamJob, cfg.Gateway.DownstreamWorkerNum*10),
+        upstreamSender:   sender,
+        downstreamRouter: router,
+        ctx:              ctx,
+        cancel:           cancel,
+    }
+
+    // 启动 Worker
+    pool.start()
+
+    return pool
+}
+```
+
+### 6.3 Worker 启动流程
+
+```go
+func (p *WorkerPool) start() {
+    // 上行 Worker：数量 = channel容量 / 10
+    upstreamWorkerNum := cap(p.upstreamCh) / 10
+    for i := 0; i < upstreamWorkerNum; i++ {
+        p.wg.Add(1)
+        go p.upstreamWorker(i)
+    }
+
+    // 下行 Worker：数量 = channel容量 / 10
+    downstreamWorkerNum := cap(p.downstreamCh) / 10
+    for i := 0; i < downstreamWorkerNum; i++ {
+        p.wg.Add(1)
+        go p.downstreamWorker(i)
+    }
+}
+
+// upstreamWorker 处理上行任务
+func (p *WorkerPool) upstreamWorker(id int) {
+    defer p.wg.Done()
+
+    for {
+        select {
+        case <-p.ctx.Done():
+            return
+        case job, ok := <-p.upstreamCh:
+            if !ok {
+                return
+            }
+            p.processUpstream(job)
+        }
+    }
+}
+
+// downstreamWorker 处理下行任务
+func (p *WorkerPool) downstreamWorker(id int) {
+    defer p.wg.Done()
+
+    for {
+        select {
+        case <-p.ctx.Done():
+            return
+        case job, ok := <-p.downstreamCh:
+            if !ok {
+                return
+            }
+            p.processDownstream(job)
+        }
+    }
+}
+```
+
+### 6.4 上行消息处理流程
+
+```
+Connection.ReadLoop()
+    │
+    │ 解析消息
+    ▼
+msglogic.Decode(clientSignal) → *types.Message
+    │
+    │ Handler 调度
+    ▼
+UpstreamHandler.Handle()
+    │
+    │ 调用 SubmitUpstream()
+    ▼
+WorkerPool.SubmitUpstream(job)
+    │ 非阻塞 select
+    ▼
+upstreamCh ← job  (写入 channel)
+    │
+    │ upstreamWorker 消费
+    ▼
+processUpstream(job)
+    │
+    │ 调用 UpstreamSender
+    ▼
+sender.Send(ctx, upstreamRequest)
+    │
+    │ 发送到 Kafka
+    ▼
+Kafka (upstream topic)
+```
+
+**详细代码**：
+
+```go
+// SubmitUpstream 提交上行任务（非阻塞）
+func (p *WorkerPool) SubmitUpstream(job UpstreamJob) bool {
+    select {
+    case p.upstreamCh <- job:
+        return true
+    default:
+        // channel 满，拒绝任务
+        return false
+    }
+}
+
+// processUpstream 处理上行任务
+func (p *WorkerPool) processUpstream(job UpstreamJob) {
+    defer func() {
+        if r := recover(); r != nil {
+            logger.Error("processUpstream panic",
+                zap.Any("error", r),
+                zap.String("conn_id", job.ConnID))
+        }
+    }()
+
+    // 填充用户信息
+    req := &types.UpstreamRequest{
+        ConnID:    job.ConnID,
+        UserID:    job.UserID,
+        DeviceID:  job.DeviceID,
+        BizType:   job.BizType,
+        Msg:       job.Msg,
+        Timestamp: time.Now().UnixMilli(),
+    }
+
+    // 发送失败时记录日志（不阻塞）
+    if err := p.upstreamSender.Send(job.Ctx, req); err != nil {
+        logger.Error("upstream send failed",
+            zap.String("conn_id", job.ConnID),
+            zap.String("biz_type", job.BizType.String()),
+            zap.Error(err))
+    }
+}
+```
+
+### 6.5 下行消息处理流程
+
+```
+Business Service
+    │
+    │ 发送下行消息
+    ▼
+Kafka (downstream topic: gateway-{biz}-downstream)
+    │
+    │ KafkaConsumer.FetchMessage()
+    ▼
+DownstreamConsumerManager.Dispatch()
+    │
+    │ 根据 msg.BusinessType 分发
+    ▼
+WorkerPool.SubmitDownstream(job)
+    │ 非阻塞 select
+    ▼
+downstreamCh ← job  (写入 channel)
+    │
+    │ downstreamWorker 消费
+    ▼
+processDownstream(job)
+    │
+    │ 调用 DownstreamRouter.Route()
+    ▼
+DownstreamRouter.Route(msg)
+    │
+    │ 查找 Connection
+    ▼
+Connection.WriteCh ← protoMsg
+    │
+    │ Connection.WriteLoop 消费
+    ▼
+msglogic.Encode() → ClientSignal
+    │
+    │ Transport.Write()
+    ▼
+Client
+```
+
+**详细代码**：
+
+```go
+// DownstreamConsumerManager 下行消费者管理器
+type DownstreamConsumerManager struct {
+    cfg     *config.KafkaConfig
+    pools   map[gateway.BusinessType]WorkerPoolInterface
+    readers map[string]*kafka.Reader // per topic
+    wg      sync.WaitGroup
+}
+
+func (m *DownstreamConsumerManager) Start(ctx context.Context) error {
+    topics := m.getDownstreamTopics()
+
+    for _, topic := range topics {
+        m.wg.Add(1)
+        go m.consumeTopic(ctx, topic)
+    }
+
+    return nil
+}
+
+func (m *DownstreamConsumerManager) consumeTopic(ctx context.Context, topic string) {
+    defer m.wg.Done()
+
+    reader := kafka.NewReader(kafka.ReaderConfig{
+        Brokers:  m.cfg.Brokers,
+        GroupID:  "gateway-downstream-group",
+        Topic:    topic,
+        MinBytes: 1,
+        MaxBytes: 10e6,
+    })
+
+    for {
+        select {
+        case <-ctx.Done():
+            return
+        default:
+            msg, err := reader.FetchMessage(ctx)
+            if err != nil {
+                continue
+            }
+
+            // 反序列化
+            downstreamMsg := &gateway.DownstreamKafkaMessage{}
+            if err := proto.Unmarshal(msg.Value, downstreamMsg); err != nil {
+                reader.CommitMessages(ctx, msg) // 跳过毒消息
+                continue
+            }
+
+            // 提交到对应 bizType 的 WorkerPool
+            pool, ok := m.pools[downstreamMsg.BusinessType]
+            if !ok {
+                logger.Warn("no pool for biz type",
+                    zap.String("biz_type", downstreamMsg.BusinessType.String()))
+                reader.CommitMessages(ctx, msg)
+                continue
+            }
+
+            job := DownstreamJob{
+                Msg:    downstreamMsg,
+                BizType: downstreamMsg.BusinessType,
+                Offset:  msg.Offset,
+            }
+
+            if !pool.SubmitDownstream(job) {
+                // 拒绝时不提交，消息会被重新投递
+                continue
+            }
+
+            // 成功后提交 offset
+            reader.CommitMessages(ctx, msg)
+        }
+    }
+}
+
+// SubmitDownstream 提交下行任务（非阻塞）
+func (p *WorkerPool) SubmitDownstream(job DownstreamJob) bool {
+    select {
+    case p.downstreamCh <- job:
+        return true
+    default:
+        return false
+    }
+}
+
+// processDownstream 处理下行任务
+func (p *WorkerPool) processDownstream(job DownstreamJob) {
+    defer func() {
+        if r := recover(); r != nil {
+            logger.Error("processDownstream panic",
+                zap.Any("error", r))
+        }
+    }()
+
+    // 路由到对应 Connection
+    if err := p.downstreamRouter.Route(job.Msg); err != nil {
+        logger.Debug("downstream route failed",
+            zap.String("conn_id", job.Msg.ConnId),
+            zap.Error(err))
+    }
+}
+```
+
+### 6.6 DownstreamRouter 结构
 
 ```go
 // DownstreamRouter 下行路由：根据 ConnID 找到 Connection
@@ -441,6 +844,7 @@ func (dr *DownstreamRouter) Unregister(connID string) {
     delete(dr.connIDMap, connID)
 }
 
+// Route 将下行消息路由到 Connection 的 WriteCh
 func (dr *DownstreamRouter) Route(msg *gateway.DownstreamKafkaMessage) error {
     dr.mux.RLock()
     conn, ok := dr.connIDMap[msg.ConnId]
@@ -450,12 +854,13 @@ func (dr *DownstreamRouter) Route(msg *gateway.DownstreamKafkaMessage) error {
         return ErrConnectionNotFound
     }
 
-    // 写入 Connection 的 WriteCh
+    // 转换为内部消息格式
     protoMsg := &types.Message{
         MsgID: msg.CorrelationId,
         Body:  msg.Payload,
     }
 
+    // 写入 Connection 的写通道（非阻塞）
     select {
     case conn.WriteCh <- protoMsg:
         return nil
@@ -464,6 +869,228 @@ func (dr *DownstreamRouter) Route(msg *gateway.DownstreamKafkaMessage) error {
     }
 }
 ```
+
+### 6.7 Connection 如何向 Worker 提交上行消息
+
+Connection 持有 `UpstreamSubmitter` 接口，不直接持有 WorkerPool：
+
+```go
+// Connection 结构（简化）
+type Connection struct {
+    tp               transport.Transport
+    upstreamSubmitter worker.UpstreamSubmitter  // 注入的接口
+    // ...
+}
+
+// SubmitUpstream 提交上行消息
+func (c *Connection) SubmitUpstream(msg *types.Message) bool {
+    if c.upstreamSubmitter == nil {
+        return false
+    }
+
+    job := UpstreamJob{
+        Msg:      msg,
+        ConnID:   c.connID,
+        UserID:   c.userID,
+        DeviceID: c.deviceID,
+        BizType:  msg.BizType,
+        Ctx:      c.ctx,
+    }
+
+    return c.upstreamSubmitter.SubmitUpstream(job)
+}
+```
+
+**UpstreamHandler.Handle() 调用链**：
+
+```go
+// UpstreamHandler 处理上行业务消息
+func (h *UpstreamHandler) Handle(conn ConnectionAccessor, msg *types.Message) error {
+    // 刷新分布式路由 TTL
+    if conn.IsAuthed() {
+        conn.RefreshRoute()
+    }
+
+    // 提交到 Worker 池
+    return conn.SubmitUpstream(msg)
+}
+```
+
+### 6.8 Connection 如何注册/注销到 DownstreamRouter
+
+当 Connection 鉴权成功时，需要注册到 DownstreamRouter：
+
+```go
+// Connection.authHandler.Handle() 鉴权成功后调用
+func (h *AuthHandler) Handle(conn ConnectionAccessor, msg *types.Message) error {
+    // ... 鉴权逻辑 ...
+
+    conn.SetUserInfo(userID, deviceID)
+    conn.SetAuthed(true)
+    conn.RouterRegister(userID, deviceID)
+
+    // 注意：DownstreamRouter 注册由 Session 协调层负责
+    // Session 在创建 Connection 后，调用 downstreamRouter.Register()
+    return nil
+}
+```
+
+DownstreamRouter 的注册/注销由 Session 协调层在 Connection 创建和关闭时调用：
+
+```go
+// Session.HandleConnection()
+func (s *Session) HandleConnection(tp transport.Transport) {
+    // 创建 Connection
+    conn := s.connectionFactory.CreateConnection(tp)
+
+    // 注册到 DownstreamRouter（Worker 层）
+    if s.workerManager != nil {
+        s.workerManager.RegisterConnection(conn.GetConnID(), conn)
+    }
+
+    // 启动读写循环...
+
+    // 连接关闭时注销
+    defer func() {
+        if s.workerManager != nil {
+            s.workerManager.UnregisterConnection(conn.GetConnID())
+        }
+    }()
+}
+```
+
+### 6.9 完整调用时序图
+
+```
+Client                    Gateway                          Kafka                   Business
+ │                          │                               │                         │
+ │  1. TCP/WebSocket 连接    │                               │                         │
+ │─────────────────────────>│                               │                         │
+ │                          │                               │                         │
+ │  2. 发送 AuthRequest     │                               │                         │
+ │─────────────────────────>│                               │                         │
+ │                          │  3. ReadLoop 读取              │                         │
+ │                          │  4. Decode → Message           │                         │
+ │                          │  5. Handler 调度               │                         │
+ │                          │  6. AuthHandler.Handle()      │                         │
+ │                          │  7. 调用 Auth Service         │                         │
+ │                          │───────────────────────────────>│                         │
+ │                          │                               │                         │
+ │                          │  8. 鉴权成功                   │                         │
+ │                          │<──────────────────────────────│                         │
+ │                          │                               │                         │
+ │                          │  9. conn.RouterRegister()     │                         │
+ │                          │     (LocalRouter + DistRouter)│                         │
+ │                          │                               │                         │
+ │                          │  10. WorkerManager.Register() │                         │
+ │                          │     (DownstreamRouter)         │                         │
+ │                          │                               │                         │
+ │  11. AuthResponse        │                               │                         │
+ │<─────────────────────────│                               │                         │
+ │                          │                               │                         │
+ │  12. 发送 BusinessUp     │                               │                         │
+ │─────────────────────────>│                               │                         │
+ │                          │  13. ReadLoop 读取             │                         │
+ │                          │  14. UpstreamHandler.Handle() │                         │
+ │                          │  15. conn.SubmitUpstream()    │                         │
+ │                          │  16. upstreamCh ← job        │                         │
+ │                          │                               │                         │
+ │                          │  17. upstreamWorker.Send()   │                         │
+ │                          │────────────────────────────────────────────────>│
+ │                          │                               │  18. 消费处理            │
+ │                          │                               │                         │
+ │  19. (等待响应)           │                               │                         │
+ │<─────────────────────────│                               │                         │
+ │                          │                               │                         │
+ │                          │                               │ 20. 发送 DownstreamMsg  │
+ │                          │                               │<────────────────────────│
+ │                          │                               │                         │
+ │                          │  21. Kafka.FetchMessage()    │                         │
+ │                          │<──────────────────────────────│                         │
+ │                          │                               │                         │
+ │                          │  22. downstreamCh ← job      │                         │
+ │                          │                               │                         │
+ │                          │  23. downstreamWorker.Route() │                         │
+ │                          │  24. WriteCh ← protoMsg      │                         │
+ │                          │                               │                         │
+ │                          │  25. WriteLoop 消费           │                         │
+ │                          │  26. Encode → ClientSignal   │                         │
+ │                          │  27. Transport.Write()       │                         │
+ │                          │                               │                         │
+ │  28. BusinessDown        │                               │                         │
+ │<─────────────────────────│                               │                         │
+```
+
+### 6.10 Session 与 WorkerManager 的交互
+
+```go
+// WorkerManager 接口
+type WorkerManager interface {
+    Start(ctx context.Context) error
+    Stop()
+
+    // Connection 注册/注销（由 Session 调用）
+    RegisterConnection(connID string, conn *connection.Connection)
+    UnregisterConnection(connID string)
+
+    // 获取 UpstreamSubmitter（注入给 ConnectionFactory）
+    GetUpstreamSubmitter() UpstreamSubmitter
+}
+
+// WorkerManager 实现
+type workerManager struct {
+    cfg           *config.Config
+    pools         map[gateway.BusinessType]*WorkerPool
+    downstreamMgr *DownstreamConsumerManager
+    downstreamRouter *DownstreamRouter  // 所有 pool 共享同一个 router
+}
+
+func (m *workerManager) RegisterConnection(connID string, conn *connection.Connection) {
+    m.downstreamRouter.Register(connID, conn)
+}
+
+func (m *workerManager) UnregisterConnection(connID string) {
+    m.downstreamRouter.Unregister(connID)
+}
+
+func (m *workerManager) GetUpstreamSubmitter() UpstreamSubmitter {
+    // 返回一个多路复用的 submitter，根据 bizType 分发到不同 pool
+    return &multiBizTypeSubmitter{pools: m.pools}
+}
+
+// multiBizTypeSubmitter 实现 UpstreamSubmitter 接口
+type multiBizTypeSubmitter struct {
+    pools map[gateway.BusinessType]*WorkerPool
+}
+
+func (s *multiBizTypeSubmitter) SubmitUpstream(msg *types.Message) bool {
+    pool, ok := s.pools[msg.BizType]
+    if !ok {
+        return false
+    }
+
+    job := UpstreamJob{
+        Msg:      msg,
+        ConnID:   msg.ConnID,
+        UserID:   msg.UserID,
+        DeviceID: msg.DeviceID,
+        BizType:  msg.BizType,
+        Ctx:      context.Background(),
+    }
+
+    return pool.SubmitUpstream(job)
+}
+```
+
+### 6.11 关键设计决策
+
+| 决策 | 选择 | 理由 |
+|------|------|------|
+| UpstreamSubmitter 接口 | 注入到 Connection | Connection 不需要知道 WorkerPool 的存在 |
+| DownstreamRouter 共享 | 所有 bizType 共享 | 一个 ConnID 只属于一个 Connection |
+| Job 非阻塞提交 | select + default | 防止慢 worker 阻塞快速路径 |
+| Kafka offset 提交时机 | WorkerPool 接受后提交 | 保证不丢消息 |
+| Channel 容量 | workerNum * 10 | 提供背压能力又不耗尽内存 |
 
 ---
 
@@ -606,3 +1233,29 @@ Connection
 - [ ] gRPC 传输层实现细节
 - [ ] 连接池复用策略
 - [ ] 监控指标集成方式
+
+### 10.3 Worker 层组件清单
+
+| 组件 | 文件 | 职责 |
+|------|------|------|
+| `WorkerPool` | `worker/pool.go` | 上行/下行 Worker 池管理 |
+| `UpstreamJob` | `worker/pool.go` | 上行任务结构 |
+| `DownstreamJob` | `worker/pool.go` | 下行任务结构 |
+| `UpstreamSender` | `worker/upstream/sender.go` | 上行发送接口 |
+| `KafkaSender` | `worker/upstream/kafka.go` | Kafka 上行发送实现 |
+| `GRPCSender` | `worker/upstream/grpc.go` | gRPC 上行发送实现 |
+| `DownstreamRouter` | `worker/downstream/router.go` | 下行路由（ConnID → Connection） |
+| `DownstreamConsumerManager` | `worker/consumer.go` | Kafka 下行消费者管理 |
+| `WorkerManager` | `worker/manager.go` | 统一管理所有 Worker 组件 |
+| `multiBizTypeSubmitter` | `worker/manager.go` | 多业务类型上行提交器 |
+
+### 10.4 类型定义位置
+
+| 类型 | 位置 | 说明 |
+|------|------|------|
+| `types.Message` | `types/message.go` | 内部消息表示 |
+| `types.UpstreamRequest` | `types/upstream.go` | 上行请求结构 |
+| `UpstreamJob` | `worker/pool.go` | 上行任务（channel 传输） |
+| `DownstreamJob` | `worker/pool.go` | 下行任务（channel 传输） |
+| `gateway.ClientSignal` | `common-protocol/v1/` | Protobuf 协议定义 |
+| `gateway.DownstreamKafkaMessage` | `common-protocol/v1/` | Kafka 下行消息格式 |
