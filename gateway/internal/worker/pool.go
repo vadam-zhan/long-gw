@@ -196,7 +196,7 @@ func (p *WorkerPool) processDownstream(job DownstreamJob) {
     downstreamMsg := p.buildDownstreamMessage(msg, qos)
 
     // 获取用户连接
-    writer, ok := p.connRegistry.Get(msg.UserId)
+    writer, ok := p.connRegistry.Get(msg.ConnId)
     if !ok {
         // 用户离线，处理离线存储
         p.handleOffline(msg, qos)

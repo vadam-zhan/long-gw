@@ -48,7 +48,7 @@ func (s *ServiceContext) initRedis(c *config.Config) {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
 		if err := s.RedisClient.Ping(ctx).Err(); err != nil {
-			logger.Warn("redis connection failed", zap.Error(err))
+			logger.Fatal("redis connection failed", zap.Error(err))
 			s.RedisClient = nil
 		} else {
 			logger.Info("redis connected", zap.String("addr", c.Redis.Addr))
@@ -58,7 +58,7 @@ func (s *ServiceContext) initRedis(c *config.Config) {
 
 func (s *ServiceContext) initDatabase(c *config.Config) {
 	if c.Database.DSN == "" {
-		logger.Warn("mysql dsn not configured, offline storage disabled")
+		logger.Fatal("mysql dsn not configured, offline storage disabled")
 		return
 	}
 
@@ -66,13 +66,13 @@ func (s *ServiceContext) initDatabase(c *config.Config) {
 		Logger: gormlogger.Default.LogMode(gormlogger.Info),
 	})
 	if err != nil {
-		logger.Error("mysql connection failed", zap.Error(err))
+		logger.Fatal("mysql connection failed", zap.Error(err))
 		return
 	}
 
 	sqlDB, err := db.DB()
 	if err != nil {
-		logger.Error("get sql.DB failed", zap.Error(err))
+		logger.Fatal("get sql.DB failed", zap.Error(err))
 		return
 	}
 

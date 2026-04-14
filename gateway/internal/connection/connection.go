@@ -1,4 +1,4 @@
-package connector
+package connection
 
 import (
 	"context"
@@ -6,12 +6,11 @@ import (
 	"time"
 
 	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
-	"github.com/vadam-zhan/long-gw/gateway/internal/connector/transport"
 	"github.com/vadam-zhan/long-gw/gateway/internal/consts"
-	"github.com/vadam-zhan/long-gw/gateway/internal/connection"
 	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
 	"github.com/vadam-zhan/long-gw/gateway/internal/logic/msglogic"
 	"github.com/vadam-zhan/long-gw/gateway/internal/router"
+	"github.com/vadam-zhan/long-gw/gateway/internal/transport"
 	"github.com/vadam-zhan/long-gw/gateway/internal/types"
 
 	"github.com/google/uuid"
@@ -19,7 +18,7 @@ import (
 )
 
 // Connection 连接实例，管理连接生命周期
-// 负责：协议编解码、双goroutine模型、路由注册、worker池交互
+// 负责：协议编解码、双goroutine模型、路由注册、上行提交
 type Connection struct {
 	// 传输层（纯I/O）
 	tp transport.Transport
@@ -38,7 +37,6 @@ type Connection struct {
 	userID   string
 	deviceID string
 
-	state gateway.ConnState
 	// 活跃时间
 	lastActive time.Time
 	mux        sync.RWMutex
@@ -50,16 +48,13 @@ type Connection struct {
 	localRouter router.LocalRouterInterface
 	distRouter  router.DistributedRouterInterface
 
-	// Worker池（用于上行消息转发）
-	workerPools map[gateway.BusinessType]WorkerPoolInterface
+	// 上行发送器（由 Session 注入）
+	upstreamSender UpstreamSender
 
 	// refreshCtx 用于刷新分布式路由的复用上下文
 	refreshCtx    context.Context
 	refreshCancel context.CancelFunc
 }
-
-// 确保Connection实现了router.ConnectionInterface
-var _ router.ConnectionInterface = (*Connection)(nil)
 
 // NewConnection 创建连接实例
 func NewConnection(tp transport.Transport) *Connection {
@@ -83,19 +78,20 @@ func (c *Connection) SetUserInfo(userID, deviceID string) {
 	c.deviceID = deviceID
 }
 
-// SetWorkerPool 设置worker池
-func (c *Connection) SetWorkerPool(pool map[gateway.BusinessType]WorkerPoolInterface) {
-	c.workerPools = pool
+// SetRouters 设置路由器
+func (c *Connection) SetRouters(local router.LocalRouterInterface, dist router.DistributedRouterInterface) {
+	c.localRouter = local
+	c.distRouter = dist
+}
+
+// SetUpstreamSender 设置上行发送器
+func (c *Connection) SetUpstreamSender(sender UpstreamSender) {
+	c.upstreamSender = sender
 }
 
 // ReadLoop 读取并处理消息
 func (c *Connection) ReadLoop() {
 	defer func() {
-		// if err := recover(); err != nil {
-		// 	logger.Error("readLoop panic",
-		// 		zap.Any("error", err),
-		// 		zap.String("remote", c.tp.RemoteAddr()))
-		// }
 		c.cancel()
 	}()
 
@@ -155,7 +151,7 @@ func (c *Connection) ReadLoop() {
 			logger.Info("readLoop received message",
 				zap.Any("msgID", msg),
 				zap.String("remote", c.tp.RemoteAddr()))
-			if err := connection.GlobalHandlerRegistry.HandleMessage(c.ctx, c, msg); err != nil {
+			if err := GlobalHandlerRegistry.HandleMessage(c.ctx, c, msg); err != nil {
 				logger.Error("handleMessage message failed",
 					zap.Error(err),
 					zap.String("remote", c.tp.RemoteAddr()))
@@ -207,14 +203,96 @@ func (c *Connection) WriteLoop() {
 	}
 }
 
-// GetUserInfo 获取用户信息
-func (c *Connection) GetUserInfo() (string, string) {
-	return c.userID, c.deviceID
+// ===============================
+// ConnectionAccessor 接口实现
+// ===============================
+
+// GetRemoteAddr 获取远端地址
+func (c *Connection) GetRemoteAddr() string {
+	return c.tp.RemoteAddr()
+}
+
+// GetWriteCh 获取写通道
+func (c *Connection) GetWriteCh() chan *types.Message {
+	return c.WriteCh
+}
+
+// Write 实现 worker.ConnectionWriter 接口
+func (c *Connection) Write(msg *types.Message) bool {
+	select {
+	case c.WriteCh <- msg:
+		return true
+	default:
+		return false
+	}
+}
+
+// Context 获取上下文
+func (c *Connection) Context() context.Context {
+	return c.ctx
+}
+
+// IsAuthed 检查是否已鉴权
+func (c *Connection) IsAuthed() bool {
+	return c.isAuthed
+}
+
+// SetAuthed 设置鉴权状态
+func (c *Connection) SetAuthed(authed bool) {
+	c.isAuthed = authed
+}
+
+// RouterRegister 注册路由
+func (c *Connection) RouterRegister(userID, deviceID string) {
+	if c.localRouter != nil {
+		c.localRouter.Register(userID, deviceID, c)
+	}
+	if c.distRouter != nil {
+		c.distRouter.RegisterUser(c.ctx, userID, deviceID)
+	}
+}
+
+// RefreshRoute 刷新分布式路由
+func (c *Connection) RefreshRoute() {
+	if c.isAuthed && c.distRouter != nil {
+		c.refreshCancel()
+		c.refreshCtx, c.refreshCancel = context.WithTimeout(context.Background(), 3*time.Second)
+		_ = c.distRouter.RefreshRoute(c.refreshCtx, c.userID, c.deviceID)
+	}
+}
+
+// SubmitUpstream 提交上行业务消息到 worker 池
+func (c *Connection) SubmitUpstream(ctx context.Context, msg *types.Message) types.SubmitResult {
+	if c.upstreamSender == nil {
+		logger.Debug("upstream sender not set, skipping upstream message",
+			zap.String("msg_id", msg.RequestID))
+		return types.SubmitResult{Accepted: false, Reason: "not_initialized"}
+	}
+
+	// 从 Payload 提取 BizType
+	var bizType gateway.BusinessType
+	if bp, ok := msg.Payload.(*types.BusinessPayload); ok {
+		bizType = bp.BizType.Proto()
+	}
+
+	job := types.UpstreamJob{
+		Payload:  msg.Payload,
+		ConnID:   c.connID,
+		UserID:   c.userID,
+		DeviceID: c.deviceID,
+		BizType:  types.BusinessTypeFromProto(bizType),
+	}
+	return c.upstreamSender.Submit(ctx, job)
 }
 
 // GetConnID 获取连接ID
 func (c *Connection) GetConnID() string {
 	return c.connID
+}
+
+// GetUserInfo 获取用户信息
+func (c *Connection) GetUserInfo() (string, string) {
+	return c.userID, c.deviceID
 }
 
 // IsTimeout 检查连接是否超时
@@ -243,72 +321,12 @@ func (c *Connection) Close() {
 	}
 }
 
-// SetRouters 设置路由器
-func (c *Connection) SetRouters(local router.LocalRouterInterface, dist router.DistributedRouterInterface) {
-	c.localRouter = local
-	c.distRouter = dist
+// GetUpstreamSubmitter 获取上行提交器
+func (c *Connection) GetUpstreamSubmitter() UpstreamSubmitter {
+	return c
 }
 
-// ===============================
-// ConnectionAccessor 接口实现
-// ===============================
-
-// GetRemoteAddr 获取远端地址
-func (c *Connection) GetRemoteAddr() string {
-	return c.tp.RemoteAddr()
-}
-
-// GetWriteCh 获取写通道
-func (c *Connection) GetWriteCh() chan *types.Message {
-	return c.WriteCh
-}
-
-// Context 获取上下文
-func (c *Connection) Context() context.Context {
-	return c.ctx
-}
-
-func (c *Connection) IsAuthed() bool {
-	return c.isAuthed
-}
-
-func (c *Connection) SetAuthed(authed bool) {
-	c.isAuthed = authed
-}
-
-func (c *Connection) RouterRegister(userID, deviceID string) {
-	c.localRouter.Register(userID, deviceID, c)
-	c.distRouter.RegisterUser(c.ctx, userID, deviceID)
-}
-
-// RefreshRoute 刷新分布式路由
-func (c *Connection) RefreshRoute() {
-	if c.isAuthed && c.distRouter != nil {
-		c.refreshCancel()
-		c.refreshCtx, c.refreshCancel = context.WithTimeout(context.Background(), 3*time.Second)
-		_ = c.distRouter.RefreshRoute(c.refreshCtx, c.userID, c.deviceID)
-	}
-}
-
-// SubmitUpstream 提交上行业务消息到 worker 池
-func (c *Connection) SubmitUpstream(ctx context.Context, msg *types.Message) types.SubmitResult {
-	if c.workerPools == nil {
-		logger.Debug("worker pool not set, skipping upstream message",
-			zap.String("msg_id", msg.RequestID))
-		return types.SubmitResult{Accepted: false, Reason: "no_worker_pool"}
-	}
-
-	// 从 Payload 提取 BizType
-	var bizType gateway.BusinessType
-	if bp, ok := msg.Payload.(*types.BusinessPayload); ok {
-		bizType = bp.BizType.Proto()
-	}
-
-	job := UpstreamJob{
-		Msg:  msg,
-		Ctx:  ctx,
-		Conn: c,
-	}
-	accepted := c.workerPools[bizType].SubmitUpstream(job)
-	return types.SubmitResult{Accepted: accepted, Reason: "ok"}
+// UpstreamSubmitter 提交上行消息到 worker 池的接口
+type UpstreamSubmitter interface {
+	SubmitUpstream(ctx context.Context, msg *types.Message) types.SubmitResult
 }

@@ -5,8 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-	"github.com/vadam-zhan/long-gw/gateway/internal/connector/transport"
 	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
+	"github.com/vadam-zhan/long-gw/gateway/internal/transport"
 	"go.uber.org/zap"
 )
 
@@ -40,5 +40,5 @@ func (h *WsHandler) UpgradeHandler(c *gin.Context) *websocket.Conn {
 
 // CreateTransport 创建 Transport
 func (h *WsHandler) CreateTransport(rawConn *websocket.Conn) transport.Transport {
-	return transport.NewWSTrasnport(rawConn)
+	return transport.NewWSTransport(rawConn)
 }

@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"github.com/vadam-zhan/long-gw/gateway/internal/connector"
+	"github.com/vadam-zhan/long-gw/gateway/internal/router"
 )
 
 // SessionAccessor Session 访问接口，用于解耦 handler 和 session
@@ -13,7 +13,7 @@ type SessionAccessor interface {
 // LocalRouterAccessor 本地路由访问接口
 type LocalRouterAccessor interface {
 	Count() (userCount, deviceCount uint)
-	GetByUserID(userID string) ([]connector.ConnectionInterface, bool)
+	GetByUserID(userID string) ([]router.ConnectionInterface, bool)
 }
 
 // KickAccessor 用于踢人操作的接口

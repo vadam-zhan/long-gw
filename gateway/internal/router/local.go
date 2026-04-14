@@ -4,26 +4,25 @@ import (
 	"maps"
 	"sync"
 
-	"github.com/vadam-zhan/long-gw/gateway/internal/connector"
 	"github.com/vadam-zhan/long-gw/gateway/internal/consts"
 )
 
 // LocalRouter 本地路由中心
 type LocalRouter struct {
 	mux          sync.RWMutex
-	userIDConns  map[string][]connector.ConnectionInterface
-	deviceIDConn map[string]connector.ConnectionInterface
+	userIDConns  map[string][]ConnectionInterface
+	deviceIDConn map[string]ConnectionInterface
 }
 
 func NewLocalRouter() *LocalRouter {
 	return &LocalRouter{
-		userIDConns:  make(map[string][]connector.ConnectionInterface),
-		deviceIDConn: make(map[string]connector.ConnectionInterface),
+		userIDConns:  make(map[string][]ConnectionInterface),
+		deviceIDConn: make(map[string]ConnectionInterface),
 	}
 }
 
 // Register 注册连接
-func (lr *LocalRouter) Register(userID, deviceID string, conn connector.ConnectionInterface) {
+func (lr *LocalRouter) Register(userID, deviceID string, conn ConnectionInterface) {
 	lr.mux.Lock()
 	defer lr.mux.Unlock()
 
@@ -51,13 +50,13 @@ func (lr *LocalRouter) Register(userID, deviceID string, conn connector.Connecti
 }
 
 // UnRegister 注销连接
-func (lr *LocalRouter) UnRegister(conn connector.ConnectionInterface) {
+func (lr *LocalRouter) UnRegister(conn ConnectionInterface) {
 	lr.mux.Lock()
 	defer lr.mux.Unlock()
 	lr.removeConnLocked(conn)
 }
 
-func (lr *LocalRouter) removeConnLocked(conn connector.ConnectionInterface) {
+func (lr *LocalRouter) removeConnLocked(conn ConnectionInterface) {
 	userID, deviceID := conn.GetUserInfo()
 
 	// 移除设备映射
@@ -70,7 +69,7 @@ func (lr *LocalRouter) removeConnLocked(conn connector.ConnectionInterface) {
 	if !ok {
 		return
 	}
-	newConns := make([]connector.ConnectionInterface, 0, len(conns)-1)
+	newConns := make([]ConnectionInterface, 0, len(conns)-1)
 	for _, c := range conns {
 		if c != conn {
 			newConns = append(newConns, c)
@@ -84,7 +83,7 @@ func (lr *LocalRouter) removeConnLocked(conn connector.ConnectionInterface) {
 }
 
 // GetByUserID 根据用户ID获取连接列表（多端推送）
-func (lr *LocalRouter) GetByUserID(userID string) ([]connector.ConnectionInterface, bool) {
+func (lr *LocalRouter) GetByUserID(userID string) ([]ConnectionInterface, bool) {
 	lr.mux.Lock()
 	defer lr.mux.Unlock()
 	conns, ok := lr.userIDConns[userID]
@@ -92,7 +91,7 @@ func (lr *LocalRouter) GetByUserID(userID string) ([]connector.ConnectionInterfa
 }
 
 // GetByDeviceID 根据设备ID获取单连接（精准推送）
-func (lr *LocalRouter) GetByDeviceID(deviceID string) (connector.ConnectionInterface, bool) {
+func (lr *LocalRouter) GetByDeviceID(deviceID string) (ConnectionInterface, bool) {
 	lr.mux.Lock()
 	defer lr.mux.Unlock()
 	conn, ok := lr.deviceIDConn[deviceID]
@@ -109,7 +108,7 @@ func (lr *LocalRouter) Count() (userCount, deviceCount uint) {
 // CleanTimeout 清理超时连接
 func (lr *LocalRouter) CleanTimeout() int {
 	lr.mux.RLock()
-	deviceConns := make(map[string]connector.ConnectionInterface, len(lr.deviceIDConn))
+	deviceConns := make(map[string]ConnectionInterface, len(lr.deviceIDConn))
 	maps.Copy(deviceConns, lr.deviceIDConn)
 	lr.mux.RUnlock()
 

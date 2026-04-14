@@ -18,7 +18,7 @@ type ConnectionAccessor interface {
 	SetAuthed(authed bool)
 	RouterRegister(userID, deviceID string)
 	RefreshRoute()
-	SubmitUpstream(ctx context.Context, msg *types.Message) SubmitResult
+	SubmitUpstream(ctx context.Context, msg *types.Message) types.SubmitResult
 }
 
 // MsgHandler 消息处理接口

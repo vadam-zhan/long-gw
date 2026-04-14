@@ -5,15 +5,16 @@ import (
 	"sync"
 	"time"
 
-	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
-	"github.com/vadam-zhan/long-gw/gateway/internal/connector"
-	"github.com/vadam-zhan/long-gw/gateway/internal/connector/transport"
+	"github.com/vadam-zhan/long-gw/gateway/internal/connection"
 	"github.com/vadam-zhan/long-gw/gateway/internal/connector/upstream"
 	"github.com/vadam-zhan/long-gw/gateway/internal/handler"
 	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
 	"github.com/vadam-zhan/long-gw/gateway/internal/router"
 	"github.com/vadam-zhan/long-gw/gateway/internal/svc"
+	"github.com/vadam-zhan/long-gw/gateway/internal/transport"
 	"github.com/vadam-zhan/long-gw/gateway/internal/utils/kafka"
+	"github.com/vadam-zhan/long-gw/gateway/internal/worker"
+	"github.com/vadam-zhan/long-gw/gateway/internal/worker/storage"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -26,14 +27,20 @@ type Session struct {
 	localRouter        *router.LocalRouter
 	distributionRouter *router.DistributedRouter
 
-	// 业务 worker 池
-	workerPools map[gateway.BusinessType]connector.WorkerPoolInterface
+	// Worker 管理器
+	workerManager *worker.WorkerManager
+
+	// 连接工厂
+	connectionFactory *connection.ConnectionFactory
 
 	// Kafka相关
 	upstreamTopicManager *kafka.TopicManager
 
-	kafkaConsumer    *kafka.Consumer
-	downstreamRouter *connector.DownstreamRouter
+	// 连接注册表
+	connRegistry *ConnectionRegistry
+
+	// 下行消费者
+	kafkaConsumer *kafka.Consumer
 
 	maxConnNum uint64
 	connCount  uint
@@ -54,64 +61,50 @@ func NewSession(svc *svc.ServiceContext) *Session {
 	sess.maxConnNum = svc.Config.Gateway.MaxConnNum
 	sess.svc = svc
 
+	// 初始化离线存储
+	var offlineStore storage.OfflineStore
+	if svc.DB != nil {
+		offlineStore = storage.NewMySQLStore(svc.DB)
+	}
+
+	// 初始化 WorkerManager
+	sess.workerManager = worker.NewWorkerManager(sess.distributionRouter, offlineStore)
+
+	// 初始化连接注册表
+	sess.connRegistry = NewConnectionRegistry()
+	sess.workerManager.SetConnectionRegistry(sess.connRegistry)
+
+	// 获取业务类型列表
 	var businessTypes []string
 	switch svc.Config.Upstream.Kind {
 	case "kafka":
-		// 初始化 TopicManager
 		sess.upstreamTopicManager = kafka.NewTopicManager(&svc.Config.Upstream.Kafka)
 		businessTypes = sess.upstreamTopicManager.BusinessTypes()
-
 	case "grpc":
-
 	}
 
-	// 初始化 upstream sender factory
+	// 创建 Worker pools
 	senderFactory := upstream.NewSenderFactory(svc.Config.Upstream)
+	sess.workerManager.CreatePools(businessTypes, senderFactory)
 
-	// 初始化下行路由器
-	sess.downstreamRouter = connector.NewDownstreamRouter()
+	// 启动 Worker pools
+	sess.workerManager.Start(sess.ctx)
 
-	// 创建业务的 worker 池
-	sess.workerPools = make(map[gateway.BusinessType]connector.WorkerPoolInterface)
-	for _, btStr := range businessTypes {
-		// 转换为 proto BusinessType
-		bt := kafka.StringToProtoBusinessType(btStr)
-		if bt == gateway.BusinessType_BusinessType_UNSPECIFIED {
-			logger.Warn("unknown business type, skipping",
-				zap.String("business_type", btStr))
-			continue
-		}
-
-		// 根据配置创建对应类型的 upstream sender
-		sender, err := senderFactory.CreateSender(btStr)
-		if err != nil {
-			logger.Error("failed to create upstream sender",
-				zap.String("business_type", btStr),
-				zap.Error(err))
-			continue
-		}
-		sess.workerPools[bt] = connector.NewWorkerPool(
-			sess.svc,
-			bt,
-			sender,
-			sess.downstreamRouter,
-		)
-		sess.workerPools[bt].Start()
-		logger.Info("worker pool started",
-			zap.String("business_type", btStr),
-			zap.String("sender_kind", sender.Kind().String()))
-	}
-
-	// Kafka consumer初始化 - 订阅所有下行 topics 下行，目前只支持 kafka 订阅的下行任务，如果是 grpc 调用，则这个服务需要提供 grpc 下行接口，而不是在这里处理
+	// Kafka consumer 初始化
 	if sess.upstreamTopicManager != nil {
 		downstreamTopics := sess.upstreamTopicManager.GetAllDownstreamTopics()
 		if len(downstreamTopics) > 0 {
-			sess.kafkaConsumer = kafka.NewConsumer(&svc.Config.Upstream.Kafka, sess.workerPools, downstreamTopics)
+			sess.kafkaConsumer = kafka.NewConsumer(&svc.Config.Upstream.Kafka, sess.workerManager, downstreamTopics)
 			sess.kafkaConsumer.Start(sess.ctx)
-			logger.Info("kafka consumer started",
-				zap.Strings("topics", downstreamTopics))
 		}
 	}
+
+	// 初始化连接工厂
+	sess.connectionFactory = connection.NewConnectionFactory(
+		sess.localRouter,
+		sess.distributionRouter,
+		sess.workerManager.GetUpstreamSender(),
+	)
 
 	logger.Info("session created",
 		zap.Int("upstream_worker_num", svc.Config.Gateway.UpstreamWorkerNum),
@@ -158,7 +151,7 @@ func (s *Session) wsUpgradeHandler(c *gin.Context) {
 		return
 	}
 
-	tp := s.wsHandler.CreateTransport(rawConn)
+	tp := transport.NewWSTransport(rawConn)
 	logger.Info("new ws connection", zap.String("remote", tp.RemoteAddr()))
 	go s.HandleConnection(tp)
 }
@@ -172,15 +165,11 @@ func (s *Session) HandleConnection(tp transport.Transport) {
 		return
 	}
 
-	// 创建Session并设置路由
-	conn := connector.NewConnection(tp)
-	conn.SetRouters(s.localRouter, s.distributionRouter)
-	conn.SetWorkerPool(s.workerPools)
+	// 使用连接工厂创建连接
+	conn := s.connectionFactory.CreateConnection(tp)
 
-	// 注册到下游路由器
-	if s.downstreamRouter != nil {
-		s.downstreamRouter.RegisterConnection(conn.GetConnID(), conn)
-	}
+	// 注册到连接注册表
+	s.connRegistry.Register(conn.GetConnID(), conn)
 
 	// 增加连接计数
 	count := s.IncrConnCount()
@@ -194,9 +183,7 @@ func (s *Session) HandleConnection(tp transport.Transport) {
 	conn.ReadLoop()
 
 	// ReadLoop结束后清理
-	if s.downstreamRouter != nil {
-		s.downstreamRouter.UnregisterConnection(conn.GetConnID())
-	}
+	s.connRegistry.Unregister(conn.GetConnID())
 	count = s.DecrConnCount()
 	logger.Info("connection closed",
 		zap.String("remote", tp.RemoteAddr()),
@@ -226,8 +213,8 @@ func (s *Session) Close() {
 	s.cancel()
 
 	// 停止worker池
-	for _, wp := range s.workerPools {
-		wp.Stop()
+	if s.workerManager != nil {
+		s.workerManager.Stop()
 	}
 
 	// 停止Kafka consumer

@@ -7,8 +7,8 @@ import (
 	"github.com/segmentio/kafka-go"
 	pb "github.com/vadam-zhan/long-gw/common-protocol/v1"
 	"github.com/vadam-zhan/long-gw/gateway/internal/config"
-	"github.com/vadam-zhan/long-gw/gateway/internal/connector"
 	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
+	"github.com/vadam-zhan/long-gw/gateway/internal/worker"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
 )
@@ -17,7 +17,7 @@ import (
 type Consumer struct {
 	cfg       *config.KafkaConfig
 	ReaderMap map[string]*kafka.Reader
-	pools     map[pb.BusinessType]connector.WorkerPoolInterface
+	wm        *worker.WorkerManager
 	cancel    context.CancelFunc
 	wg        sync.WaitGroup
 	topics    []string
@@ -25,7 +25,7 @@ type Consumer struct {
 }
 
 // NewConsumer creates a new Kafka consumer
-func NewConsumer(cfg *config.KafkaConfig, pools map[pb.BusinessType]connector.WorkerPoolInterface, topics []string) *Consumer {
+func NewConsumer(cfg *config.KafkaConfig, wm *worker.WorkerManager, topics []string) *Consumer {
 	logger.Info("kafka consumer created",
 		zap.Strings("brokers", cfg.Brokers),
 		zap.Strings("topics", topics))
@@ -33,7 +33,7 @@ func NewConsumer(cfg *config.KafkaConfig, pools map[pb.BusinessType]connector.Wo
 	return &Consumer{
 		cfg:       cfg,
 		ReaderMap: map[string]*kafka.Reader{},
-		pools:     pools,
+		wm:        wm,
 		topics:    topics,
 	}
 }
@@ -72,10 +72,12 @@ func (c *Consumer) Start(ctx context.Context) error {
 					}
 
 					// Submit to worker pool
-					job := connector.DownstreamJob{
-						DownstreamMsg: downstreamMsg,
+					job := worker.DownstreamJob{
+						Msg:    downstreamMsg,
+						Offset: msg.Offset,
 					}
-					if !c.pools[downstreamMsg.BusinessType].SubmitDownstream(job) {
+					pool, ok := c.wm.GetPool(downstreamMsg.BusinessType)
+					if !ok || !pool.SubmitDownstream(job) {
 						logger.Warn("worker pool full, message will be redelivered",
 							zap.String("correlation_id", downstreamMsg.CorrelationId),
 							zap.Int64("offset", msg.Offset))
