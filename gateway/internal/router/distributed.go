@@ -8,6 +8,15 @@ import (
 	"github.com/vadam-zhan/long-gw/gateway/internal/consts"
 )
 
+// DistributedRouterInterface 分布式路由接口
+type DistributedRouterInterface interface {
+	RegisterUser(ctx context.Context, userID, deviceID string) error
+	RefreshRoute(ctx context.Context, userID, deviceID string) error
+	UnregisterUser(ctx context.Context, userID, deviceID string) error
+	GetNodeByUserID(ctx context.Context, userID string) (string, error)
+	GetNodeByDeviceID(ctx context.Context, deviceID string) (string, error)
+}
+
 // DistributedRouter 分布式路由中心
 type DistributedRouter struct {
 	redisClient *redis.Client

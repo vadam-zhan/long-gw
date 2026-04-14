@@ -14,6 +14,15 @@ type Config struct {
 	Upstream InteractConfig `json:"upstream" mapstructure:"upstream"`
 	Auth     AuthConfig     `json:"auth" mapstructure:"auth"`
 	Log      LogConfig      `json:"log" mapstructure:"log"`
+	Database DatabaseConfig `json:"database" mapstructure:"database"`
+}
+
+// DatabaseConfig MySQL 数据库配置
+type DatabaseConfig struct {
+	DSN          string `json:"dsn" mapstructure:"dsn"`
+	MaxOpenConns int    `json:"max_open_conns" mapstructure:"max_open_conns"`
+	MaxIdleConns int    `json:"max_idle_conns" mapstructure:"max_idle_conns"`
+	ConnMaxLife  int    `json:"conn_max_life" mapstructure:"conn_max_life"`
 }
 
 // GatewayConfig 网关配置

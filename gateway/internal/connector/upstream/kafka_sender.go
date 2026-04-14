@@ -32,15 +32,23 @@ func NewKafkaSender(brokers []string, topic string) *KafkaSender {
 
 // Send 发送上行消息到 Kafka
 func (s *KafkaSender) Send(ctx context.Context, req *types.UpstreamRequest) error {
+	// 从 Payload 提取业务数据
+	var payload []byte
+	var bizType pb.BusinessType
+	if bp, ok := req.Msg.Payload.(*types.BusinessPayload); ok {
+		payload = bp.Body
+		bizType = bp.BizType.Proto()
+	}
+
 	// Build protobuf message
 	upstreamMsg := &pb.UpstreamKafkaMessage{
 		ConnId:       req.ConnID,
 		UserId:       req.Msg.UserID,
 		DeviceId:     req.Msg.DeviceID,
-		OriginalType: req.Msg.Type,
-		Payload:      req.Msg.Body,
+		OriginalType: req.Msg.Type.ToProto(),
+		Payload:      payload,
 		Timestamp:    time.Now().UnixMilli(),
-		BusinessType: req.Msg.BizType,
+		BusinessType: bizType,
 	}
 
 	logger.Info("kafka sender upstreamMsg", zap.Any("upstreamMsg", upstreamMsg))

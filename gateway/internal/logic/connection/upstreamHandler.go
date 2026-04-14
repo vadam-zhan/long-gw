@@ -19,12 +19,12 @@ func (h *UpstreamHandler) Handle(conn ConnectionAccessor, msg *types.Message) er
 	if submitter := conn.GetUpstreamSubmitter(); submitter != nil {
 		if !submitter.SubmitUpstream(msg) {
 			logger.Warn("worker pool full, reject upstream job",
-				zap.String("msg_id", msg.MsgID),
+				zap.String("msg_id", msg.RequestID),
 				zap.String("remote", conn.GetRemoteAddr()))
 		}
 	} else {
 		logger.Debug("upstream submitter not set, skipping upstream message",
-			zap.String("msg_id", msg.MsgID))
+			zap.String("msg_id", msg.RequestID))
 	}
 
 	return nil

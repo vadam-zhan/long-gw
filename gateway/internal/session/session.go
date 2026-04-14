@@ -54,7 +54,7 @@ func NewSession(svc *svc.ServiceContext) *Session {
 	sess.maxConnNum = svc.Config.Gateway.MaxConnNum
 	sess.svc = svc
 
-	var businessTypes []gateway.BusinessType
+	var businessTypes []string
 	switch svc.Config.Upstream.Kind {
 	case "kafka":
 		// 初始化 TopicManager
@@ -73,12 +73,20 @@ func NewSession(svc *svc.ServiceContext) *Session {
 
 	// 创建业务的 worker 池
 	sess.workerPools = make(map[gateway.BusinessType]connector.WorkerPoolInterface)
-	for _, bt := range businessTypes {
+	for _, btStr := range businessTypes {
+		// 转换为 proto BusinessType
+		bt := kafka.StringToProtoBusinessType(btStr)
+		if bt == gateway.BusinessType_BusinessType_UNSPECIFIED {
+			logger.Warn("unknown business type, skipping",
+				zap.String("business_type", btStr))
+			continue
+		}
+
 		// 根据配置创建对应类型的 upstream sender
-		sender, err := senderFactory.CreateSender(bt.String())
+		sender, err := senderFactory.CreateSender(btStr)
 		if err != nil {
 			logger.Error("failed to create upstream sender",
-				zap.String("business_type", bt.String()),
+				zap.String("business_type", btStr),
 				zap.Error(err))
 			continue
 		}
@@ -90,7 +98,7 @@ func NewSession(svc *svc.ServiceContext) *Session {
 		)
 		sess.workerPools[bt].Start()
 		logger.Info("worker pool started",
-			zap.String("business_type", bt.String()),
+			zap.String("business_type", btStr),
 			zap.String("sender_kind", sender.Kind().String()))
 	}
 

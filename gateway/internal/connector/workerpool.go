@@ -122,14 +122,14 @@ func (p *WorkerPool) processUpstreamJob(job UpstreamJob) {
 		if r := recover(); r != nil {
 			logger.Error("processUpstreamJob panic",
 				zap.Any("error", r),
-				zap.String("msg_id", job.Msg.MsgID))
+				zap.String("msg_id", job.Msg.RequestID))
 			p.sendErrorToClient(job)
 		}
 	}()
 
 	if p.upstreamSender == nil {
 		logger.Debug("upstream sender not available, skipping upstream send",
-			zap.String("msg_id", job.Msg.MsgID))
+			zap.String("msg_id", job.Msg.RequestID))
 		return
 	}
 
@@ -172,11 +172,20 @@ func (p *WorkerPool) processDownstreamJob(job DownstreamJob) {
 
 // sendErrorToClient sends an error message back to the client
 func (p *WorkerPool) sendErrorToClient(job UpstreamJob) {
+	// 提取原始消息的 MsgID
+	var origMsgID string
+	if bp, ok := job.Msg.Payload.(*types.BusinessPayload); ok {
+		origMsgID = bp.MsgID
+	} else {
+		origMsgID = job.Msg.RequestID
+	}
+
 	respMsg := &types.Message{
-		MsgID:  job.Msg.MsgID,
-		Type:   gateway.SignalType_SIGNAL_TYPE_UNSPECIFIED,
-		Body:   []byte("upstream failed"),
-		UserID: job.Msg.UserID,
+		Type: types.SignalTypeBusinessDown,
+		Payload: &types.DownstreamPayload{
+			MsgID: origMsgID,
+			Body:  []byte("upstream failed"),
+		},
 	}
 	select {
 	case job.Conn.WriteCh <- respMsg:

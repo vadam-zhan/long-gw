@@ -1,7 +1,6 @@
 package connection
 
 import (
-	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
 	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
 	"github.com/vadam-zhan/long-gw/gateway/internal/types"
 	"go.uber.org/zap"
@@ -11,7 +10,7 @@ import (
 type HeartbeatHandler struct{}
 
 func (h *HeartbeatHandler) Handle(conn ConnectionAccessor, msg *types.Message) error {
-	msg.Type = gateway.SignalType_SIGNAL_TYPE_HEARTBEAT_PONG
+	msg.Type = types.SignalTypeHeartbeatPong
 	select {
 	case conn.GetWriteCh() <- msg:
 	default:

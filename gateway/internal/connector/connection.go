@@ -314,15 +314,22 @@ func (c *Connection) RefreshRoute() {
 func (c *Connection) SubmitUpstream(msg *types.Message) bool {
 	if c.workerPools == nil {
 		logger.Debug("worker pool not set, skipping upstream message",
-			zap.String("msg_id", msg.MsgID))
+			zap.String("msg_id", msg.RequestID))
 		return false
 	}
+
+	// 从 Payload 提取 BizType
+	var bizType gateway.BusinessType
+	if bp, ok := msg.Payload.(*types.BusinessPayload); ok {
+		bizType = bp.BizType.Proto()
+	}
+
 	job := UpstreamJob{
 		Msg:  msg,
 		Ctx:  c.ctx,
 		Conn: c,
 	}
-	return c.workerPools[msg.BizType].SubmitUpstream(job)
+	return c.workerPools[bizType].SubmitUpstream(job)
 }
 
 // GetUpstreamSubmitter 获取上行提交器

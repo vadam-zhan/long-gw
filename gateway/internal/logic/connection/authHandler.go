@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
 	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
 	"github.com/vadam-zhan/long-gw/gateway/internal/types"
 	"go.uber.org/zap"
@@ -44,7 +43,7 @@ func InitAuthHandler(authAddr string) {
 			},
 		}
 	})
-	GlobalHandlerRegistry.Register(gateway.SignalType_SIGNAL_TYPE_AUTH_REQUEST, authHandler)
+	GlobalHandlerRegistry.Register(types.SignalTypeAuthRequest, authHandler)
 }
 
 // GetAuthHandler 获取全局AuthHandler实例
@@ -76,7 +75,12 @@ func (h *AuthHandler) validateToken(token string) (*AuthResponse, error) {
 }
 
 func (h *AuthHandler) Handle(conn ConnectionAccessor, msg *types.Message) error {
-	token := msg.AuthToken
+	// 从 Payload 提取 token
+	authPayload, ok := msg.Payload.(*types.AuthPayload)
+	if !ok {
+		return fmt.Errorf("invalid auth payload")
+	}
+	token := authPayload.Token
 
 	// 调用auth服务验证token
 	authResp, err := h.validateToken(token)
@@ -85,7 +89,7 @@ func (h *AuthHandler) Handle(conn ConnectionAccessor, msg *types.Message) error 
 			zap.String("token", token),
 			zap.Error(err))
 
-		msg.Type = gateway.SignalType_SIGNAL_TYPE_AUTH_RESPONSE
+		msg.Type = types.SignalTypeAuthResponse
 		conn.GetWriteCh() <- msg
 		return err
 	}
@@ -95,7 +99,7 @@ func (h *AuthHandler) Handle(conn ConnectionAccessor, msg *types.Message) error 
 			zap.String("token", token),
 			zap.String("msg", authResp.Msg))
 
-		msg.Type = gateway.SignalType_SIGNAL_TYPE_AUTH_RESPONSE
+		msg.Type = types.SignalTypeAuthResponse
 		conn.GetWriteCh() <- msg
 		return fmt.Errorf("token invalid: %s", authResp.Msg)
 	}
@@ -112,7 +116,7 @@ func (h *AuthHandler) Handle(conn ConnectionAccessor, msg *types.Message) error 
 		zap.String("user_id", userID),
 		zap.String("device_id", deviceID))
 
-	msg.Type = gateway.SignalType_SIGNAL_TYPE_AUTH_RESPONSE
+	msg.Type = types.SignalTypeAuthResponse
 	select {
 	case conn.GetWriteCh() <- msg:
 	default:

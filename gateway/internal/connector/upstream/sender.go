@@ -5,7 +5,6 @@ import (
 
 	"github.com/vadam-zhan/long-gw/gateway/internal/config"
 	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
-	"github.com/vadam-zhan/long-gw/gateway/internal/types"
 	"go.uber.org/zap"
 )
 
@@ -26,7 +25,7 @@ func (f *SenderFactory) CreateSender(bt string) (Sender, error) {
 		logger.Info("creating kafka upstream sender",
 			zap.String("business_type", bt),
 			zap.String("topic", f.cfg.Kafka.BusinessTopics[bt].UpstreamTopic))
-		return NewKafkaSender(f.cfg.Kafka.Brokers, f.cfg.Kafka.BusinessTopics[types.Proto(bt)].UpstreamTopic), nil
+		return NewKafkaSender(f.cfg.Kafka.Brokers, f.cfg.Kafka.BusinessTopics[bt].UpstreamTopic), nil
 
 	case "grpc":
 		logger.Info("creating grpc upstream sender",

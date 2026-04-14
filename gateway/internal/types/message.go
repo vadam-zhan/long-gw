@@ -1,39 +1,58 @@
 package types
 
-import gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
+import (
+    gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
+)
 
-// Message 解析后的内部消息表示
-// 设计原则：
-// 1. 字段语义业务化，与 proto 解耦
-// 2. 根据 Type 不同，特定字段才有效（见各字段注释）
-// 3. 控制消息不需要路由到后端，业务消息才需要
+// Message 是内部统一消息表示
 type Message struct {
-	// ===== 通用字段 =====
-	RequestID  string             // 请求ID，用于全链路追踪（对应 ClientSignal.request_id）
-	SequenceID uint64             // 消息序列号，防重放（对应 ClientSignal.sequence_id）
-	Type       gateway.SignalType // 消息类型
+    // ===== 传输层元信息 =====
+    RequestID  string
+    SequenceID uint64
+    Type       SignalType
 
-	// ===== 载荷 =====
-	Body []byte // 原始载荷，业务消息使用
+    // ===== 发送方上下文 =====
+    ConnID   string
+    UserID   string
+    DeviceID string
 
-	// ===== 业务消息专用（Type=BusinessUp/BusinessDown 时有效） =====
-	MsgID   string               // 业务消息唯一ID
-	BizType gateway.BusinessType // 业务类型
+    // ===== 消息载荷 =====
+    Payload MessagePayload
 
-	// ===== 控制消息专用字段 =====
-	// AuthRequest 时有效
-	UserID    string // 用户ID
-	DeviceID  string // 设备ID
-	AuthToken string // 鉴权 Token
-	Platform  string // 客户端平台
+    // ===== 可选元信息 =====
+    Metadata map[string]string
+    Tags     []string
 
-	// HeartbeatPing 时有效
-	ClientTimestamp uint64 // 客户端发送时间戳
+    // ===== 时间戳 =====
+    ClientTimestamp  int64
+    ServerTimestamp int64
+}
 
-	// LogoutRequest 时有效
-	Reason uint32 // 登出原因
+// SignalType 信令类型
+type SignalType int32
 
-	// SubscribeRequest/UnsubscribeRequest 时有效
-	Topic string // 订阅主题
-	Qos   uint32 // 订阅质量等级
+const (
+    SignalTypeHeartbeatPing       SignalType = 1
+    SignalTypeHeartbeatPong       SignalType = 2
+    SignalTypeAuthRequest         SignalType = 3
+    SignalTypeAuthResponse        SignalType = 4
+    SignalTypeMessageAck          SignalType = 5
+    SignalTypeLogoutRequest       SignalType = 7
+    SignalTypeLogoutResponse      SignalType = 8
+    SignalTypeSubscribeRequest    SignalType = 9
+    SignalTypeSubscribeResponse   SignalType = 10
+    SignalTypeUnsubscribeRequest  SignalType = 11
+    SignalTypeUnsubscribeResponse SignalType = 12
+    SignalTypeBusinessUp          SignalType = 100
+    SignalTypeBusinessDown        SignalType = 101
+)
+
+// ToProto 转换为 proto SignalType
+func (s SignalType) ToProto() gateway.SignalType {
+    return gateway.SignalType(s)
+}
+
+// SignalTypeFromProto 从 proto 转换
+func SignalTypeFromProto(p gateway.SignalType) SignalType {
+    return SignalType(p)
 }

@@ -23,37 +23,61 @@ func Decode(cs *gateway.ClientSignal) (*types.Message, error) {
 	msg := &types.Message{
 		RequestID:  cs.RequestId,
 		SequenceID: cs.SequenceId,
-		Type:       cs.SignalType,
+		Type:       types.SignalTypeFromProto(cs.SignalType),
 	}
 
 	switch payload := cs.Payload.(type) {
 	case *gateway.ClientSignal_HeartbeatPing:
-		msg.ClientTimestamp = payload.HeartbeatPing.ClientTimestamp
+		msg.Payload = &types.HeartbeatPayload{
+			ClientTime: payload.HeartbeatPing.ClientTimestamp,
+		}
+		msg.ClientTimestamp = int64(payload.HeartbeatPing.ClientTimestamp)
 
 	case *gateway.ClientSignal_AuthRequest:
 		msg.UserID = payload.AuthRequest.UserId
 		msg.DeviceID = payload.AuthRequest.DeviceId
-		msg.AuthToken = payload.AuthRequest.Token
-		msg.Platform = payload.AuthRequest.Platform
-		// Note: ClientVersion 和 HeartbeatInterval 可按需扩展
+		clientVer := ""
+		if payload.AuthRequest.ClientVersion != nil {
+			clientVer = *payload.AuthRequest.ClientVersion
+		}
+		heartbeatInterval := uint32(0)
+		if payload.AuthRequest.HeartbeatInterval != nil {
+			heartbeatInterval = *payload.AuthRequest.HeartbeatInterval
+		}
+		msg.Payload = &types.AuthPayload{
+			Token:              payload.AuthRequest.Token,
+			Platform:           payload.AuthRequest.Platform,
+			ClientVer:          clientVer,
+			HeartbeatInterval:  heartbeatInterval,
+		}
 
 	case *gateway.ClientSignal_LogoutRequest:
-		msg.Reason = payload.LogoutRequest.Reason
+		msg.Payload = &types.LogoutPayload{
+			Reason: payload.LogoutRequest.Reason,
+		}
 
 	case *gateway.ClientSignal_SubscribeRequest:
-		msg.Topic = payload.SubscribeRequest.Topic
-		msg.Qos = payload.SubscribeRequest.Qos
+		msg.Payload = &types.SubscribePayload{
+			Topic: payload.SubscribeRequest.Topic,
+			Qos:   payload.SubscribeRequest.Qos,
+		}
 
 	case *gateway.ClientSignal_UnsubscribeRequest:
-		msg.Topic = payload.UnsubscribeRequest.Topic
+		msg.Payload = &types.SubscribePayload{
+			Topic: payload.UnsubscribeRequest.Topic,
+		}
 
 	case *gateway.ClientSignal_MessageAck:
 		// Ack 消息暂不处理具体内容，只做路由
+		msg.Payload = &types.AckPayload{}
 
 	case *gateway.ClientSignal_BusinessUp:
-		msg.MsgID = payload.BusinessUp.MsgId
-		msg.BizType = payload.BusinessUp.Type
-		msg.Body = payload.BusinessUp.Body
+		msg.Payload = &types.BusinessPayload{
+			MsgID:   payload.BusinessUp.MsgId,
+			BizType: types.BusinessTypeFromProto(payload.BusinessUp.Type),
+			RoomID:  "",
+			Body:    payload.BusinessUp.Body,
+		}
 
 	}
 
@@ -70,29 +94,34 @@ func Decode(cs *gateway.ClientSignal) (*types.Message, error) {
 func Encode(msg *types.Message) (*gateway.ClientSignal, error) {
 	cs := &gateway.ClientSignal{
 		RequestId:  msg.RequestID,
-		SignalType: msg.Type,
+		SignalType: msg.Type.ToProto(),
 	}
 
 	switch msg.Type {
-	case gateway.SignalType_SIGNAL_TYPE_HEARTBEAT_PONG:
+	case types.SignalTypeHeartbeatPong:
+		// 从 Payload 提取 ClientTimestamp
+		var clientTs uint64
+		if hp, ok := msg.Payload.(*types.HeartbeatPayload); ok {
+			clientTs = hp.ClientTime
+		}
 		cs.Payload = &gateway.ClientSignal_HeartbeatPong{
 			HeartbeatPong: &gateway.HeartbeatPong{
 				ServerTimestamp: uint64(SystemTimestamp()),
-				ClientTimestamp: msg.ClientTimestamp,
+				ClientTimestamp: clientTs,
 			},
 		}
 
-	case gateway.SignalType_SIGNAL_TYPE_AUTH_RESPONSE:
+	case types.SignalTypeAuthResponse:
 		cs.Payload = &gateway.ClientSignal_AuthResponse{
 			AuthResponse: &gateway.AuthResponse{
-				Code:              0,
-				Msg:               "ok",
-				Result:            true,
+				Code:               0,
+				Msg:                "ok",
+				Result:             true,
 				HeartbeatInternal: 20,
 			},
 		}
 
-	case gateway.SignalType_SIGNAL_TYPE_LOGOUT_RESPONSE:
+	case types.SignalTypeLogoutResponse:
 		cs.Payload = &gateway.ClientSignal_LogoutResponse{
 			LogoutResponse: &gateway.LogoutResponse{
 				Code: 0,
@@ -100,7 +129,7 @@ func Encode(msg *types.Message) (*gateway.ClientSignal, error) {
 			},
 		}
 
-	case gateway.SignalType_SIGNAL_TYPE_SUBSCRIBE_RESPONSE:
+	case types.SignalTypeSubscribeResponse:
 		cs.Payload = &gateway.ClientSignal_SubscribeResponse{
 			SubscribeResponse: &gateway.SubscribeResponse{
 				Code: 0,
@@ -108,7 +137,7 @@ func Encode(msg *types.Message) (*gateway.ClientSignal, error) {
 			},
 		}
 
-	case gateway.SignalType_SIGNAL_TYPE_UNSUBSCRIBE_RESPONSE:
+	case types.SignalTypeUnsubscribeResponse:
 		cs.Payload = &gateway.ClientSignal_UnsubscribeResponse{
 			UnsubscribeResponse: &gateway.UnsubscribeResponse{
 				Code: 0,
@@ -116,12 +145,21 @@ func Encode(msg *types.Message) (*gateway.ClientSignal, error) {
 			},
 		}
 
-	case gateway.SignalType_SIGNAL_TYPE_BUSINESS_DOWN:
+	case types.SignalTypeBusinessDown:
+		// 从 DownstreamPayload 提取业务数据
+		var msgID string
+		var bizType gateway.BusinessType
+		var body []byte
+		if dp, ok := msg.Payload.(*types.DownstreamPayload); ok {
+			msgID = dp.MsgID
+			bizType = dp.BizType.Proto()
+			body = dp.Body
+		}
 		cs.Payload = &gateway.ClientSignal_BusinessDown{
 			BusinessDown: &gateway.BusinessDown{
-				MsgId: msg.MsgID,
-				Type:  msg.BizType,
-				Body:  msg.Body,
+				MsgId: msgID,
+				Type:  bizType,
+				Body:  body,
 			},
 		}
 

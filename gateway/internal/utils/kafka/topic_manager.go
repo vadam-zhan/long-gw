@@ -1,62 +1,61 @@
 package kafka
 
 import (
-	pb "github.com/vadam-zhan/long-gw/common-protocol/v1"
+	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
 	"github.com/vadam-zhan/long-gw/gateway/internal/config"
 	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
-	"github.com/vadam-zhan/long-gw/gateway/internal/types"
 
 	"go.uber.org/zap"
 )
 
+// stringToBusinessType maps string business type keys to proto BusinessType
+var stringToBusinessType = map[string]gateway.BusinessType{
+	"im":      gateway.BusinessType_BusinessType_IM,
+	"live":    gateway.BusinessType_BusinessType_LIVE,
+	"message": gateway.BusinessType_BusinessType_MESSAGE,
+}
+
 // TopicManager 业务类型到 Kafka Topic 的映射管理
 type TopicManager struct {
-	topics map[pb.BusinessType]config.TopicPair
+	topics map[string]config.TopicPair
 }
 
 // NewTopicManager 创建 TopicManager
 func NewTopicManager(cfg *config.KafkaConfig) *TopicManager {
 	tm := &TopicManager{
-		topics: make(map[pb.BusinessType]config.TopicPair),
+		topics: make(map[string]config.TopicPair),
 	}
 
 	for key, topicCfg := range cfg.BusinessTopics {
-		bt := types.BusinessType(key)
-		if err := bt.Validate(); err != nil {
-			logger.Warn("invalid business type in config, skipping",
-				zap.String("type", key),
-				zap.Error(err))
-			panic(err)
-		}
-
-		tm.topics[bt.Proto()] = topicCfg
+		tm.topics[key] = topicCfg
 		logger.Info("registered business topic",
-			zap.String("business", bt.String()),
-			zap.String("upstream", topicCfg.UpstreamTopic))
+			zap.String("business", key),
+			zap.String("upstream", topicCfg.UpstreamTopic),
+			zap.String("downstream", topicCfg.DownstreamTopic))
 	}
 
 	return tm
 }
 
 // GetUpstreamTopic 获取上行 Topic
-func (tm *TopicManager) GetUpstreamTopic(bt pb.BusinessType) string {
-	if pair, ok := tm.topics[bt]; ok {
+func (tm *TopicManager) GetUpstreamTopic(key string) string {
+	if pair, ok := tm.topics[key]; ok {
 		return pair.UpstreamTopic
 	}
 	return ""
 }
 
 // GetTopicConfig 获取完整 Topic 配置
-func (tm *TopicManager) GetTopicConfig(bt pb.BusinessType) *config.TopicPair {
-	if pair, ok := tm.topics[bt]; ok {
+func (tm *TopicManager) GetTopicConfig(key string) *config.TopicPair {
+	if pair, ok := tm.topics[key]; ok {
 		return &pair
 	}
 	return nil
 }
 
 // GetDownstreamTopic 获取下行 Topic
-func (tm *TopicManager) GetDownstreamTopic(bt pb.BusinessType) string {
-	if pair, ok := tm.topics[bt]; ok {
+func (tm *TopicManager) GetDownstreamTopic(key string) string {
+	if pair, ok := tm.topics[key]; ok {
 		return pair.DownstreamTopic
 	}
 	return ""
@@ -84,11 +83,19 @@ func (tm *TopicManager) GetAllDownstreamTopics() []string {
 	return topics
 }
 
-// BusinessTypes 返回所有已注册的业务类型
-func (tm *TopicManager) BusinessTypes() []pb.BusinessType {
-	result := make([]pb.BusinessType, 0, len(tm.topics))
-	for bt := range tm.topics {
-		result = append(result, bt)
+// BusinessTypes 返回所有已注册的业务类型（字符串 key）
+func (tm *TopicManager) BusinessTypes() []string {
+	keys := make([]string, 0, len(tm.topics))
+	for key := range tm.topics {
+		keys = append(keys, key)
 	}
-	return result
+	return keys
+}
+
+// StringToProtoBusinessType converts a string business type to proto BusinessType
+func StringToProtoBusinessType(s string) gateway.BusinessType {
+	if bt, ok := stringToBusinessType[s]; ok {
+		return bt
+	}
+	return gateway.BusinessType_BusinessType_UNSPECIFIED
 }

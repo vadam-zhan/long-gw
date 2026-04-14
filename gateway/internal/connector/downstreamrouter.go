@@ -77,11 +77,12 @@ func (dr *DownstreamRouter) sendToConnection(conn *Connection, msg *pb.Downstrea
 	}
 
 	protoMsg := &types.Message{
-		MsgID: msg.CorrelationId,
-		// Type:     msg.TargetType,
-		Body:     msg.Payload,
-		UserID:   msg.UserId,
-		DeviceID: msg.DeviceId,
+		Type: types.SignalTypeBusinessDown,
+		Payload: &types.DownstreamPayload{
+			MsgID:      msg.CorrelationId,
+			FromUserID: msg.UserId,
+			Body:       msg.Payload,
+		},
 	}
 
 	select {
