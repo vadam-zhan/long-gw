@@ -6,8 +6,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/vadam-zhan/long-gw/gateway/internal/config"
+	"github.com/vadam-zhan/long-gw/gateway/internal/connection"
 	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
-	"github.com/vadam-zhan/long-gw/gateway/internal/logic/connection"
 	"go.uber.org/zap"
 )
 
@@ -35,6 +35,11 @@ var rootCmd = &cobra.Command{
 		if cfg.Redis.Addr != "" {
 			logger.Info("redis config",
 				zap.String("addr", cfg.Redis.Addr))
+		}
+		if cfg.Database.DSN != "" {
+			logger.Info("database config",
+				zap.String("dsn", cfg.Database.DSN),
+				zap.Int("max_open_conns", cfg.Database.MaxOpenConns))
 		}
 
 		// 初始化AuthHandler

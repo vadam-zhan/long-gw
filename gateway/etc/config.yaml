@@ -52,3 +52,10 @@ log:
   level: "info"
   format: "json"
   file: ""
+
+# 数据库配置（用于离线消息存储）
+database:
+  dsn: "root:password@tcp(localhost:3306)/gateway?charset=utf8mb4&parseTime=True&loc=Local"
+  max_open_conns: 100
+  max_idle_conns: 10
+  conn_max_life: 3600

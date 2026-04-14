@@ -31,6 +31,9 @@ type HandlerRegistry struct {
 	handlers map[types.SignalType]MsgHandler
 }
 
+// GlobalHandlerRegistry 全局处理器注册表
+var GlobalHandlerRegistry = NewHandlerRegistry()
+
 // NewHandlerRegistry 创建注册表
 func NewHandlerRegistry() *HandlerRegistry {
 	return &HandlerRegistry{

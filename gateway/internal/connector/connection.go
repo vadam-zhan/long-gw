@@ -8,8 +8,8 @@ import (
 	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
 	"github.com/vadam-zhan/long-gw/gateway/internal/connector/transport"
 	"github.com/vadam-zhan/long-gw/gateway/internal/consts"
+	"github.com/vadam-zhan/long-gw/gateway/internal/connection"
 	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
-	"github.com/vadam-zhan/long-gw/gateway/internal/logic/connection"
 	"github.com/vadam-zhan/long-gw/gateway/internal/logic/msglogic"
 	"github.com/vadam-zhan/long-gw/gateway/internal/types"
 
@@ -175,7 +175,7 @@ func (c *Connection) ReadLoop() {
 			logger.Info("readLoop received message",
 				zap.Any("msgID", msg),
 				zap.String("remote", c.tp.RemoteAddr()))
-			if err := connection.GlobalHandlerRegistry.HandleMessage(c, msg); err != nil {
+			if err := connection.GlobalHandlerRegistry.HandleMessage(c.ctx, c, msg); err != nil {
 				logger.Error("handleMessage message failed",
 					zap.Error(err),
 					zap.String("remote", c.tp.RemoteAddr()))
@@ -311,11 +311,11 @@ func (c *Connection) RefreshRoute() {
 }
 
 // SubmitUpstream 提交上行业务消息到 worker 池
-func (c *Connection) SubmitUpstream(msg *types.Message) bool {
+func (c *Connection) SubmitUpstream(ctx context.Context, msg *types.Message) connection.SubmitResult {
 	if c.workerPools == nil {
 		logger.Debug("worker pool not set, skipping upstream message",
 			zap.String("msg_id", msg.RequestID))
-		return false
+		return connection.SubmitResult{Accepted: false, Reason: "no_worker_pool"}
 	}
 
 	// 从 Payload 提取 BizType
@@ -326,13 +326,9 @@ func (c *Connection) SubmitUpstream(msg *types.Message) bool {
 
 	job := UpstreamJob{
 		Msg:  msg,
-		Ctx:  c.ctx,
+		Ctx:  ctx,
 		Conn: c,
 	}
-	return c.workerPools[bizType].SubmitUpstream(job)
-}
-
-// GetUpstreamSubmitter 获取上行提交器
-func (c *Connection) GetUpstreamSubmitter() connection.UpstreamSubmitter {
-	return c
+	accepted := c.workerPools[bizType].SubmitUpstream(job)
+	return connection.SubmitResult{Accepted: accepted, Reason: "ok"}
 }
