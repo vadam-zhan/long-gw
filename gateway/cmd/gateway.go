@@ -12,7 +12,7 @@ import (
 
 	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
 	"github.com/vadam-zhan/long-gw/gateway/internal/config"
-	"github.com/vadam-zhan/long-gw/gateway/internal/connector/transport"
+	"github.com/vadam-zhan/long-gw/gateway/internal/transport"
 	gatewaygrpc "github.com/vadam-zhan/long-gw/gateway/internal/handler/gatewaygrpc"
 	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
 	"github.com/vadam-zhan/long-gw/gateway/internal/metrics"

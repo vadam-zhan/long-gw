@@ -3,7 +3,6 @@ package upstream
 import (
 	"context"
 
-	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
 	"github.com/vadam-zhan/long-gw/gateway/internal/types"
 )
 
@@ -18,7 +17,3 @@ type Sender interface {
 	Close()
 }
 
-// DownstreamRouter 下行路由接口
-type DownstreamRouterInterface interface {
-	RouteDownstreamMessage(msg *gateway.DownstreamKafkaMessage) error
-}
