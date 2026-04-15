@@ -4,7 +4,7 @@ import (
     "context"
 
     gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
-    "github.com/vadam-zhan/long-gw/gateway/internal/connector/upstream"
+    "github.com/vadam-zhan/long-gw/gateway/internal/worker/upstream"
     "github.com/vadam-zhan/long-gw/gateway/internal/router"
     "github.com/vadam-zhan/long-gw/gateway/internal/worker/storage"
     "github.com/vadam-zhan/long-gw/gateway/internal/types"

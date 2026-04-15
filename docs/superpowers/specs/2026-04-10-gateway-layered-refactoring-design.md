@@ -1172,7 +1172,6 @@ gateway/internal/
 │   ├── heartbeat.go    # HeartbeatHandler
 │   ├── upstream.go     # UpstreamHandler
 │   ├── ack.go          # AckHandler (新增)
-│   └── downstream.go   # DownstreamHandler
 │
 ├── worker/              # Worker 层
 │   ├── pool.go         # WorkerPool

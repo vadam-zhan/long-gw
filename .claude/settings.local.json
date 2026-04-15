@@ -28,7 +28,12 @@
       "Bash(curl -s -X POST http://localhost:8081/v1/auth/token -H \"Content-Type: application/json\" -d '{\"device_id\":\"test-device\",\"user_id\":\"user123\"}' | jq .)",
       "Bash(sleep 2 && curl -s -X POST http://localhost:8081/v1/auth/token -H \"Content-Type: application/json\" -d '{\"device_id\":\"test-device\",\"user_id\":\"user123\"}')",
       "Bash(curl -s -X POST http://localhost:8081/v1/auth/validate -H \"Content-Type: application/json\" -d '{\"token\":\"bfbf69aef30f33c12a88cf364bae75f5461a614efb8346f1944ce81580a5d876\"}')",
-      "Bash(git -C /Users/mac/Project/backend-projects/long-gw status)"
+      "Bash(git -C /Users/mac/Project/backend-projects/long-gw status)",
+      "Bash(go test:*)",
+      "Bash(git add:*)",
+      "Bash(xxd /Users/mac/Project/backend-projects/long-gw/gateway/internal/worker/manager.go)",
+      "Bash(git commit:*)",
+      "Bash(grep:*)"
     ]
   }
 }

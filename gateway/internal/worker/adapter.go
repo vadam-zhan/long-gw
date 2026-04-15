@@ -3,7 +3,7 @@ package worker
 import (
 	"context"
 
-	"github.com/vadam-zhan/long-gw/gateway/internal/connector/upstream"
+	"github.com/vadam-zhan/long-gw/gateway/internal/worker/upstream"
 	"github.com/vadam-zhan/long-gw/gateway/internal/types"
 )
 
