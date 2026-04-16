@@ -1,0 +1,314 @@
+syntax = "proto3";
+
+package gateway.v1;
+
+option go_package = "github.com/vadam-zhan/long-gw/proto/v1;gateway";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 枚举：消息类型
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum MsgType {
+    MSG_TYPE_UNSPECIFIED = 0;
+
+    // ── 控制面 (1–99) ── 网关内部，不转发给业务 ──────────────────────────────
+    MSG_TYPE_HANDSHAKE     = 1;  // Client→Gateway  初始认证握手
+    MSG_TYPE_HANDSHAKE_ACK = 2;  // Gateway→Client  握手结果
+    MSG_TYPE_PING          = 3;  // Client→Gateway  心跳探针
+    MSG_TYPE_PONG          = 4;  // Gateway→Client  心跳回应
+    MSG_TYPE_KICK          = 5;  // Gateway→Client  强制断连通知
+    MSG_TYPE_ERROR         = 6;  // 双向             错误通知
+    MSG_TYPE_ACK           = 7;  // 双向             QoS-1/2 确认帧
+
+    // ── 数据面通用 (100) ─────────────────────────────────────────────────────
+    MSG_TYPE_DATA = 100;         // 通用数据帧，BizCode+Body.type 细分路由
+
+    // ── IM 域 (101–199) ──────────────────────────────────────────────────────
+    MSG_TYPE_IM_CHAT    = 101;   // 单聊 / 群聊消息
+    MSG_TYPE_IM_RECEIPT = 102;   // 投递 / 已读回执
+    MSG_TYPE_IM_REVOKE  = 103;   // 消息撤回
+    MSG_TYPE_IM_TYPING  = 104;   // 正在输入指示
+
+    // ── Push 域 (201–299) ────────────────────────────────────────────────────
+    MSG_TYPE_PUSH_NOTIFY = 201;  // 服务端主动推送
+    MSG_TYPE_PUSH_ACK    = 202;  // 客户端推送确认
+
+    // ── Live 域 (301–399) ────────────────────────────────────────────────────
+    MSG_TYPE_LIVE_JOIN    = 301;
+    MSG_TYPE_LIVE_LEAVE   = 302;
+    MSG_TYPE_LIVE_COMMENT = 303;
+    MSG_TYPE_LIVE_GIFT    = 304;
+    MSG_TYPE_LIVE_SIGNAL  = 305;
+
+    // ── 自定义扩展 (1000+) ───────────────────────────────────────────────────
+    // 业务团队在 1000 以上自由分配，网关按 biz_code 路由，不感知具体类型
+}
+
+// QoS 投递保证等级，语义对齐 MQTT
+enum QoS {
+  QOS_AT_MOST_ONCE  = 0;  // 最多一次：发完即忘，无 ACK（弹幕、位置）
+  QOS_AT_LEAST_ONCE = 1;  // 至少一次：SDK 重试直到收到 ACK，可能重复（IM）
+  QOS_EXACTLY_ONCE  = 2;  // 恰好一次：接收端去重（金融事件）
+}
+
+// Codec 编码格式：作用于 Body.payload 字节的序列化方式
+enum Codec {
+  CODEC_UNSPECIFIED = 0;  // 由实现自行约定（历史兼容）
+  CODEC_JSON        = 1;  // 调试友好，默认
+  CODEC_PROTOBUF    = 2;  // 生产首选，紧凑高效
+  CODEC_MSGPACK     = 3;  // 动态语言场景
+}
+
+// CompressAlgo 压缩算法：作用于编码后的 payload 字节
+enum CompressAlgo {
+  COMPRESS_NONE   = 0;
+  COMPRESS_GZIP   = 1;
+  COMPRESS_ZSTD   = 2;  // 推荐：压缩比与速度最优
+  COMPRESS_SNAPPY = 3;  // 低延迟场景
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Layer 1：网关层 Message（网关只读外层字段，不解析 Body.payload）
+// ─────────────────────────────────────────────────────────────────────────────
+
+message Message {
+  // ── 帧身份 ──────────────────────────────────────────────────────────────
+  // version: 协议版本，用于平滑升级。当前 = 1。
+  uint32  version   = 1;
+  MsgType type      = 2;
+
+  // msg_id: 发送方生成的全局唯一 ID（UUID v4 或雪花 ID）。
+  //   用途：① ACK 关联  ② 幂等去重（QoS-2）  ③ 追踪日志关联
+  string  msg_id    = 3;
+
+  // seq_id: 发送方单向单调递增序号。
+  //   用途：① 接收方检测丢包间隙  ② 断线重连时告知网关"从哪里补发"
+  //   注意：与 msg_id 职责不同——msg_id 是全局唯一 ID，seq_id 是顺序标记。
+  uint64  seq_id    = 4;
+
+  // timestamp: 发送方时间戳，Unix 毫秒。
+  //   用途：① 端到端延迟度量  ② 客户端时钟校准（与 HandshakeAck.server_time 对比）
+  int64   timestamp = 5;
+
+  // ── 寻址 ────────────────────────────────────────────────────────────────
+  // from: 发送方标识，格式 "{domain}:{uid}"，例如 "im:user_123"。
+  //   控制面消息（Ping/Handshake）可留空。
+  string from = 6;
+
+  // to: 目标地址，支持 4 种 scheme：
+  //   "u:{uid}"       → 单用户，全设备扇出
+  //   "r:{roomID}"    → 房间广播（直播弹幕）
+  //   "t:{topic}"     → Pub/Sub Topic
+  //   "g:{groupID}"   → 群组，网关侧解析成员列表
+  //   "c:{connID}"    → 原始连接 ID（内部路由/调试）
+  string to   = 7;
+
+  // ── 投递控制 ─────────────────────────────────────────────────────────────
+  QoS    qos      = 8;
+
+  // ack_id: 网关向客户端回 ACK 时填写，值为被确认消息的 msg_id。
+  //   SDK 收到后从重试队列删除对应消息。
+  string ack_id   = 9;
+
+  // expire_at: 绝对过期时间戳（Unix 毫秒）。为 0 表示永不过期。
+  //   使用绝对时间而非 TTL：消息经多节点转发时各节点判断结果一致。
+  int64  expire_at = 10;
+
+  // offline: true = 目标离线时持久化，联网后补投。
+  bool   offline  = 11;
+
+  // ── 路由提示（网关中间件读取，不透传给业务） ──────────────────────────────
+  // biz_code: 业务域标识，用于网关侧 plugin 选择（限流策略、审核规则等）。
+  //   约定："im" | "push" | "live" | "custom.{name}"
+  string biz_code = 12;
+
+  // trace_id: 分布式追踪 ID，跨服务传播。格式建议 W3C TraceContext。
+  string trace_id = 13;
+
+  // ── 编码提示（作用于 Body.payload） ──────────────────────────────────────
+  // body_codec: Body.payload 的序列化格式。
+  //   接收方 unmarshal payload 前必须检查此字段。
+  Codec        body_codec = 14;
+
+  // compress: Body.payload 编码后的压缩算法。
+  //   解码顺序：先解压 → 再按 body_codec 反序列化。
+  CompressAlgo compress   = 15;
+
+  // ── 扩展 ─────────────────────────────────────────────────────────────────
+  // headers: 中间件 K-V 元数据。网关 plugin 可读写。
+  //   Key 规范：小写，"x-" 前缀表示私有扩展。
+  //   示例：{"x-retry-count":"2", "x-priority":"high", "x-content-type":"image"}
+  map<string, string> headers = 16;
+
+  // body: 业务载荷容器。网关转发时不解析 body.payload。
+  Body body = 17;
+}
+
+// Body 是业务载荷的容器。
+// payload 对网关完全不透明——网关转发时不反序列化，只按外层字段路由。
+message Body {
+  // type: 业务子类型字符串，由各域 SDK 定义。
+  //   IM:   "text" | "image" | "video" | "file" | "location" | "custom"
+  //   Push: "alert" | "silent" | "badge"
+  //   Live: "comment" | "gift" | "signal" | "pklive"
+  string type    = 1;
+
+  // payload: 按 Message.body_codec 编码、Message.compress 压缩后的字节。
+  //   网关：直接转发，不 unmarshal。
+  //   SDK：按 body_codec 反序列化为 WellKnownPayload 或业务私有结构。
+  bytes  payload = 2;
+
+  // ext: 轻量扩展字段，存放不值得独立字段的元数据。
+  //   示例：{"mention_uids":"[\"u1\",\"u2\"]", "reply_to_mid":"msg_abc"}
+  //   注意：value 存储为字符串（避免 Any 的额外 type_url 开销）。
+  map<string, string> ext = 3;
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Layer 2：SDK 层强类型 payload（网关不感知，SDK 负责编解码）
+// ─────────────────────────────────────────────────────────────────────────────
+// WellKnownPayload 提供 oneof 强类型约束，由 SDK Marshal/Unmarshal 工具使用。
+// 业务私有的 payload 不需要在此注册——直接使用 Body.payload = bytes 即可。
+
+message WellKnownPayload {
+  oneof content {
+    // ── 控制面 ──────────────────────────────────────────────────────────
+    HandshakePayload    handshake     = 1;
+    HandshakeAckPayload handshake_ack = 2;
+    KickPayload         kick          = 3;
+    ErrorPayload        error         = 4;
+    AckPayload          ack           = 5;
+
+    // ── IM 域 ────────────────────────────────────────────────────────────
+    IMChatPayload    im_chat    = 10;
+    IMReceiptPayload im_receipt = 11;
+    IMRevokePayload  im_revoke  = 12;
+
+    // ── Push 域 ──────────────────────────────────────────────────────────
+    PushNotifyPayload push_notify = 20;
+
+    // ── Live 域 ──────────────────────────────────────────────────────────
+    LiveCommentPayload live_comment = 30;
+    LiveGiftPayload    live_gift    = 31;
+
+    // ── 自定义 / 未来扩展 ────────────────────────────────────────────────
+    // 业务方自定义 payload 请使用 field 100+ 并在业务 .proto 中 extend
+    bytes raw = 99;  // 透传原始字节，用于网关不认识的业务 payload
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 控制面 payload 定义
+// ─────────────────────────────────────────────────────────────────────────────
+
+message HandshakePayload {
+  string app_id      = 1;  // 多租户网关：标识应用
+  string token       = 2;  // 业务 auth 服务签发的短期 JWT
+  string device_id   = 3;  // 设备指纹，跨 session 稳定
+  string device_type = 4;  // "ios" | "android" | "web" | "pc" | "iot"
+  string sdk_version = 5;  // 能力协商用
+
+  // last_seq_id: 客户端上次 session 收到的最高 SeqID。
+  // 网关据此从 last_seq_id+1 开始补发离线消息（replay）。
+  uint64 last_seq_id = 6;
+}
+
+message HandshakeAckPayload {
+  string conn_id            = 1;  // 网关分配的连接唯一 ID
+  string user_id            = 2;  // token 验证后解析出的用户 ID
+  int64  server_time        = 3;  // 服务器 Unix 毫秒，供客户端校准时钟偏差
+  int32  heartbeat_interval = 4;  // 建议心跳间隔（秒）
+  int64  max_body_size      = 5;  // 允许的最大 Body.payload 字节数
+  uint64 replay_from        = 6;  // 网关将从此 SeqID 开始补发（= last_seq_id + 1）
+
+  // extensions: 网关声明支持的能力列表。
+  //   示例：["compress:zstd", "qos:2", "multi-device", "offline", "replay"]
+  repeated string extensions = 7;
+}
+
+message KickPayload {
+  int32  code             = 1;  // 机器可读错误码
+  string reason           = 2;  // 人类可读原因（调试用）
+  int32  reconnect_after  = 3;  // >0 表示建议客户端等待 N 秒后重连（灰度发布用）
+}
+
+message ErrorPayload {
+  int32  code       = 1;
+  string message    = 2;
+  string ref_msg_id = 3;  // 触发此错误的原始 msg_id
+}
+
+message AckPayload {
+  string ref_msg_id = 1;  // 被确认的消息 msg_id
+  int64  recv_time  = 2;  // 网关收到时间（Unix 毫秒），供 RTT 度量
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// IM 域 payload
+// ─────────────────────────────────────────────────────────────────────────────
+
+message IMChatPayload {
+  // conv_id: 会话 ID。单聊 = 双方 uid 排序后拼接，群聊 = groupID。
+  string conv_id     = 1;
+
+  // content_type: "text" | "image" | "video" | "audio" | "file" | "location" | "custom"
+  string content_type = 2;
+
+  // content: 按 content_type 解析的实际内容，编码为 JSON bytes。
+  //   text:     {"text":"..."}
+  //   image:    {"url":"...","width":1920,"height":1080}
+  //   location: {"lat":31.2,"lng":121.4,"name":"..."}
+  bytes  content     = 3;
+
+  repeated string mentions = 4;  // 被 @ 的 uid 列表
+  string reply_to          = 5;  // 回复的消息 msg_id（Thread 支持）
+}
+
+message IMReceiptPayload {
+  string conv_id      = 1;
+  // receipt_type: "delivered" | "read"
+  string receipt_type = 2;
+  repeated string msg_ids = 3;  // 被确认的消息 ID 列表
+  uint64 read_seq     = 4;  // 已读水位线 SeqID（"已读到第 N 条"）
+}
+
+message IMRevokePayload {
+  string conv_id = 1;
+  string msg_id  = 2;  // 被撤回的消息 ID
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Push 域 payload
+// ─────────────────────────────────────────────────────────────────────────────
+
+message PushNotifyPayload {
+  string title        = 1;  // 通知标题（silent push 时为空）
+  string body         = 2;  // 通知正文
+  string sound        = 3;  // "default" | "" (静默) | 自定义音效名
+  int32  badge        = 4;  // 角标数，-1 表示不变
+  // data: 应用后台静默处理的 KV，不展示给用户
+  map<string, string> data = 5;
+  // priority: "high"（立即唤醒设备）| "normal"
+  string priority     = 6;
+  // collapse_key: 相同 key 的未投递 push 会被后来者覆盖（类似 FCM collapse_key）
+  string collapse_key = 7;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Live 域 payload
+// ─────────────────────────────────────────────────────────────────────────────
+
+message LiveCommentPayload {
+  string room_id  = 1;
+  string content  = 2;
+  string color    = 3;  // 付费彩色弹幕 hex 颜色值，例如 "#FF6600"
+}
+
+message LiveGiftPayload {
+  string room_id    = 1;
+  string gift_id    = 2;
+  string gift_name  = 3;
+  int32  count      = 4;
+  int64  total_cost = 5;  // 网关校验后的虚拟货币总花费
+}
