@@ -1,7 +1,6 @@
 package pipeline
 
 import (
-	"context"
 	"time"
 )
 
@@ -15,7 +14,6 @@ type Chain[C any] struct {
 	stages []Stage[C]
 }
 
-// NewChain builds a Chain from the given stages.
 func NewChain[C any](stages ...Stage[C]) Chain[C] {
 	s := make([]Stage[C], len(stages))
 	copy(s, stages)
@@ -43,19 +41,26 @@ func (c Chain[C]) Run(ctx C) {
 }
 
 type BaseCtx struct {
-	GoCtx context.Context
-
-	TraceID string
-
+	TraceID     string
 	Aborted     bool
 	AbortReason string
-
-	ReceivedAt time.Time
-
-	Values map[string]any
+	ReceivedAt  time.Time
+	Values      map[string]any
 }
 
 func (b *BaseCtx) Abort(reason string) {
 	b.Aborted = true
 	b.AbortReason = reason
+}
+
+func (b *BaseCtx) Set(key string, v any) {
+	if b.Values == nil {
+		b.Values = make(map[string]any)
+	}
+	b.Values[key] = v
+}
+
+func (b *BaseCtx) Get(key string) (any, bool) {
+	v, ok := b.Values[key]
+	return v, ok
 }

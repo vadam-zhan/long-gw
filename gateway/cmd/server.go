@@ -13,6 +13,7 @@ import (
 	"github.com/vadam-zhan/long-gw/gateway/internal/router"
 	"github.com/vadam-zhan/long-gw/gateway/internal/session"
 	"github.com/vadam-zhan/long-gw/gateway/internal/svc"
+	"github.com/vadam-zhan/long-gw/gateway/internal/types"
 	"github.com/vadam-zhan/long-gw/gateway/internal/worker"
 )
 
@@ -23,13 +24,19 @@ type GatewayServer struct {
 	cmux     cmux.CMux
 	listener net.Listener
 
-	sessionRegistry *session.SessionRegistry
-	workerManager   *worker.Manager
-	connFactory     *connection.Factory
-	localRouter     *router.LocalRouter
-	distRouter      *router.DistributedRouter
-	ackRetrier      *session.AckRetrier
-	codec           codec.Codec
+	codec codec.Codec
+
+	localRouter *router.LocalRouter
+	distRouter  *router.DistributedRouter
+
+	sessRegistry *session.Registry
+	connRegistry *connection.Registry
+
+	workerManager *worker.Manager
+
+	connFactory *connection.Factory
+
+	offlineStore types.OfflineStore
 
 	svc *svc.ServiceContext
 
@@ -52,3 +59,21 @@ func (s *GatewayServer) Addr() string {
 	}
 	return ""
 }
+
+var (
+	_ types.LocalRouterOps      = (*router.LocalRouter)(nil)
+	_ types.SessionResolver     = (*router.LocalRouter)(nil)
+	_ types.DistRouterOps       = (*router.DistributedRouter)(nil)
+	_ types.WorkerSubmitter     = (*worker.Manager)(nil)
+	_ types.DownstreamSubmitter = (*worker.Manager)(nil)
+	_ types.HandlerSession      = (*session.Session)(nil)
+	_ types.UplinkSession       = (*session.Session)(nil)
+	_ types.SessionRef          = (*session.Session)(nil)
+	_ types.SessionTarget       = (*session.Session)(nil)
+	_ types.FactorySession      = (*session.Session)(nil)
+	_ types.ConnRegistry        = (*connection.Registry)(nil)
+	_ types.SessionRegistry     = (*session.Registry)(nil)
+)
+
+// downlink package also needs to use types.SessionTarget — verify:
+var _ types.SessionTarget = (*session.Session)(nil)

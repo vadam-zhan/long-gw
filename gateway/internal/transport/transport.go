@@ -2,19 +2,10 @@ package transport
 
 import (
 	"context"
-	"sync"
 	"time"
 
-	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
 	"google.golang.org/protobuf/proto"
 )
-
-// clientSignalPool 使用 sync.Pool 复用 ClientSignal 对象，减少内存分配
-var clientSignalPool = sync.Pool{
-	New: func() any {
-		return &gateway.ClientSignal{}
-	},
-}
 
 // 使用 proto.MarshalOptions 减少内存分配
 var marshalOpts = proto.MarshalOptions{

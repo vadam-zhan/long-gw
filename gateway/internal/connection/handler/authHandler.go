@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
-
-	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
-	"go.uber.org/zap"
 )
 
 type AuthResponse struct {
@@ -55,25 +53,25 @@ func (h *AuthVerifier) Verify(token string) (string, string, error) {
 	// 调用auth服务验证token
 	authResp, err := h.validateToken(token)
 	if err != nil {
-		logger.Error("validate token failed",
-			zap.String("token", token),
-			zap.Error(err))
+		slog.Error("validate token failed",
+			"token", token,
+			"error", err)
 		return "", "", fmt.Errorf("validate token failed: %w", err)
 	}
 
 	if !authResp.Valid {
-		logger.Warn("token invalid",
-			zap.String("token", token),
-			zap.String("msg", authResp.Msg))
+		slog.Warn("token invalid",
+			"token", token,
+			"msg", authResp.Msg)
 		return "", "", fmt.Errorf("token invalid: %s", authResp.Msg)
 	}
 
 	userID := authResp.UserID
 	deviceID := authResp.DeviceID
 
-	logger.Info("connection auth success",
-		zap.String("user_id", userID),
-		zap.String("device_id", deviceID))
+	slog.Info("connection auth success",
+		"user_id", userID,
+		"device_id", deviceID)
 
 	return userID, deviceID, nil
 }

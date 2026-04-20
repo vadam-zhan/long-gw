@@ -7,9 +7,7 @@ import (
 	"sync"
 
 	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
-	"github.com/vadam-zhan/long-gw/gateway/internal/pipeline/downlink"
-	"github.com/vadam-zhan/long-gw/gateway/internal/router"
-	"github.com/vadam-zhan/long-gw/gateway/internal/session"
+	"github.com/vadam-zhan/long-gw/gateway/internal/types"
 )
 
 // File: gateway/internal/worker/manager.go + pool.go
@@ -42,57 +40,44 @@ import (
 // 通过接口解耦：upstreamWorker 只持有 SessionRef，不知道具体的 Session 类型。
 // ─────────────────────────────────────────────────────────────────────
 
-// SessionRef 是 Worker 层对 Session 的视图。
+// SessionRef 是 Worker 层对 Session 的视图。目前在 types.iface 中定义。
 // upstreamWorker 在 Kafka 发送失败时，通过此接口将错误路由回客户端。
-type SessionRef interface {
-	// Submit 将错误消息投递给客户端。
-	// 内部调用链：sess.Submit → conn.Submit → writeCh → writeLoop → TCP
-	Submit(msg *gateway.Message) bool
-
-	// 以下方法供 DownlinkChain 的 RouteStage 和 FanOutStage 使用
-	IsActive() bool
-	SessionID() string
-	UserID() string
-}
 
 type PoolConfig struct {
-	Router *router.LocalRouter
-
 	BizCode           string
 	UpstreamWorkers   int
 	UpstreamChanCap   int
 	DownstreamWorkers int
 	DownstreamChanCap int
-	UpstreamSender    UpstreamSender
-	OfflineStore      OfflineStore // nil = QoS-0（Live 弹幕不需要离线）
 
-	Resolver downlink.SessionResolver // LocalRouter 实现此接口
+	UpstreamSender types.UpstreamSender
 
-	Brokers []string
-	Topic   string
+	Router       types.LocalRouterOps
+	OfflineStore types.OfflineStore    // nil = QoS-0（Live 弹幕不需要离线）
+	Resolver     types.SessionResolver // LocalRouter 实现此接口
 }
 
 type Manager struct {
+	ctx   context.Context
 	pools map[string]*WorkerPool // bizCode -> pool
 	mu    sync.RWMutex
 }
 
-func NewManager() *Manager {
+func NewManager(ctx context.Context) *Manager {
 	return &Manager{
+		ctx:   ctx,
 		pools: make(map[string]*WorkerPool),
 	}
 }
 
-// CreatePool 为业务域创建 WorkerPool
-func (m *Manager) CreatePool(cfg *PoolConfig) {
+// AddPool 为业务域创建 WorkerPool
+func (m *Manager) AddPool(cfg PoolConfig) {
 	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	pool := NewWorkerPool(cfg)
-	m.pools[cfg.BizCode] = pool
+	m.pools[cfg.BizCode] = newWorkerPool(m.ctx, cfg)
+	m.mu.Unlock()
 }
 
-func (m *Manager) getPool(bizCode string) (*WorkerPool, error) {
+func (m *Manager) GetPool(bizCode string) (*WorkerPool, error) {
 	m.mu.RLock()
 	p, ok := m.pools[bizCode]
 	m.mu.RUnlock()
@@ -123,7 +108,7 @@ func (m *Manager) StartAll(ctx context.Context) {
 }
 
 // SubmitUpstream 上行提交(Handler -> Pipeline -> WorkerManager)
-func (m *Manager) SubmitUpstream(bizCode string, sess *session.Session, msg *gateway.Message) error {
+func (m *Manager) SubmitUpstream(bizCode string, sess types.SessionRef, msg *gateway.Message) error {
 	m.mu.Lock()
 	pool, ok := m.pools[bizCode]
 	m.mu.Unlock()
@@ -137,7 +122,7 @@ func (m *Manager) SubmitUpstream(bizCode string, sess *session.Session, msg *gat
 // SubmitDownstream 是 KafkaDownstreamConsumer 的调用目标。
 // 按 bizCode 路由到对应 WorkerPool.downstreamCh。
 func (m *Manager) SubmitDownstream(bizCode string, msg *gateway.Message) bool {
-	pool, err := m.getPool(bizCode)
+	pool, err := m.GetPool(bizCode)
 	if err != nil {
 		slog.Warn("worker: pool not found", "biz", bizCode, "mid", msg.MsgId)
 		return false

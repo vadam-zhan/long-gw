@@ -3,34 +3,36 @@ package connection
 import (
 	"fmt"
 	"sync"
+
+	"github.com/vadam-zhan/long-gw/gateway/internal/types"
 )
 
 type Registry struct {
 	mu    sync.RWMutex
-	conns map[string]*Connection
+	conns map[string]types.ConnSubmitter
 }
 
 func NewRegistry() *Registry {
-	return &Registry{conns: make(map[string]*Connection)}
+	return &Registry{conns: make(map[string]types.ConnSubmitter)}
 }
 
-func (r *Registry) Register(conn *Connection) error {
-	if conn.ConnID == "" {
+func (r *Registry) RegisterConn(connID string, conn types.ConnSubmitter) error {
+	if connID == "" {
 		return fmt.Errorf("registry: empty ConnID")
 	}
 	r.mu.Lock()
-	r.conns[conn.ConnID] = conn
+	r.conns[connID] = conn
 	r.mu.Unlock()
 	return nil
 }
 
-func (r *Registry) Unregister(conn *Connection) {
+func (r *Registry) UnregisterConn(connID string) {
 	r.mu.Lock()
-	delete(r.conns, conn.ConnID)
+	delete(r.conns, connID)
 	r.mu.Unlock()
 }
 
-func (r *Registry) Get(connID string) (*Connection, bool) {
+func (r *Registry) GetConn(connID string) (types.ConnSubmitter, bool) {
 	r.mu.RLock()
 	c, ok := r.conns[connID]
 	r.mu.RUnlock()

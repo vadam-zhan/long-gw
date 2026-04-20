@@ -2,8 +2,7 @@ package handler
 
 import (
 	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
-	"github.com/vadam-zhan/long-gw/gateway/internal/connection"
-	"github.com/vadam-zhan/long-gw/gateway/internal/contracts"
+	"github.com/vadam-zhan/long-gw/gateway/internal/types"
 )
 
 // UpstreamHandler handles SignalTypeBusinessUp.
@@ -25,17 +24,11 @@ import (
 //                                  → upstreamWorker → sender.Send → Kafka
 //                            on ErrPoolFull → conn.Submit(5001)
 
-type UplinkChain interface {
-	// Run executes the full uplink pipeline for one message.
-	// sess and conn are both needed: sess for SubmitUpstream, conn for error replies.
-	Run(sess contracts.SessionAccessor, conn *connection.Connection, msg *gateway.Message)
-}
-
 type UpstreamHandler struct {
-	chain UplinkChain
+	chain types.UplinkChain
 }
 
-func (h *UpstreamHandler) Handle(sess contracts.SessionAccessor, conn *connection.Connection, msg *gateway.Message) error {
+func (h *UpstreamHandler) Handle(sess types.HandlerSession, conn types.ConnSubmitter, msg *gateway.Message) error {
 	// chain.Run builds a UplinkCtx{Session: sess, Conn: conn, Message: msg}
 	// and executes all stages in order.
 	h.chain.Run(sess, conn, msg)

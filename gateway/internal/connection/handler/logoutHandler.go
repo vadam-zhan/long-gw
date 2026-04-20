@@ -2,8 +2,7 @@ package handler
 
 import (
 	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
-	"github.com/vadam-zhan/long-gw/gateway/internal/connection"
-	"github.com/vadam-zhan/long-gw/gateway/internal/contracts"
+	"github.com/vadam-zhan/long-gw/gateway/internal/types"
 )
 
 // LogoutHandler handles SignalTypeLogoutRequest (client-initiated logout).
@@ -14,9 +13,9 @@ import (
 //     Session.Close → conn.Close → readLoop exits → onClose.
 type LogoutHandler struct{}
 
-func (h *LogoutHandler) Handle(sess contracts.SessionAccessor, conn *connection.Connection, msg *gateway.Message) error {
+func (h *LogoutHandler) Handle(sess types.HandlerSession, conn types.ConnSubmitter, msg *gateway.Message) error {
 	resp := &gateway.Message{
-		Type:    gateway.MsgType_MSG_TYPE_KICK,
+		Type:    gateway.SignalType_KICK,
 		MsgId:   msg.MsgId,
 		TraceId: msg.TraceId,
 		Body:    &gateway.Body{},

@@ -2,14 +2,13 @@ package metrics
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
-	"go.uber.org/zap"
 )
 
 var (
@@ -32,6 +31,13 @@ var (
 		prometheus.CounterOpts{
 			Name: "gateway_downstream_msg_total",
 			Help: "Total number of downstream messages",
+		},
+	)
+
+	SessionCreated = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "gateway_session_created",
+			Help: "Total number of session created",
 		},
 	)
 )
@@ -90,9 +96,9 @@ func (c *Collector) Start(ctx context.Context) {
 	c.wg.Add(1)
 	c.wg.Go(func() {
 		defer c.wg.Done()
-		logger.Info("metrics server started", zap.String("addr", c.addr))
+		slog.Info("metrics server started", "addr", c.addr)
 		if err := c.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("metrics serve failed", zap.Error(err))
+			slog.Error("metrics serve failed", "error", err)
 		}
 	})
 
@@ -112,13 +118,13 @@ func (c *Collector) collectLoop(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			logger.Info("collect loop by ctx.Done() stopped")
+			slog.Info("collect loop by ctx.Done() stopped")
 			return
 		case <-c.stopCh:
-			logger.Info("collect loop by stopCh stopped")
+			slog.Info("collect loop by stopCh stopped")
 			return
 		case <-ticker.C:
-			logger.Debug("collect loop tick")
+			slog.Debug("collect loop tick")
 			c.collectRuntimeMetrics()
 		}
 	}
@@ -157,4 +163,9 @@ func IncUpstreamMsg() {
 // IncDownstreamMsg 增加下行消息数
 func IncDownstreamMsg() {
 	downstreamMsgTotal.Inc()
+}
+
+// IncSessionCreated 增加会话创建数
+func IncSessionCreated() {
+	SessionCreated.Inc()
 }

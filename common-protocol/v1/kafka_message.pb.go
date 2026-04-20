@@ -21,69 +21,24 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// KafkaMessageType defines the direction and purpose of Kafka messages
-type KafkaMessageType int32
-
-const (
-	KafkaMessageType_KafkaMessageType_UNSPECIFIED KafkaMessageType = 0
-	// Upstream: gateway -> backend (client message forwarded)
-	KafkaMessageType_UPSTREAM KafkaMessageType = 1
-	// Downstream: backend -> gateway (response to be delivered to client)
-	KafkaMessageType_DOWNSTREAM KafkaMessageType = 2
-)
-
-// Enum value maps for KafkaMessageType.
-var (
-	KafkaMessageType_name = map[int32]string{
-		0: "KafkaMessageType_UNSPECIFIED",
-		1: "UPSTREAM",
-		2: "DOWNSTREAM",
-	}
-	KafkaMessageType_value = map[string]int32{
-		"KafkaMessageType_UNSPECIFIED": 0,
-		"UPSTREAM":                     1,
-		"DOWNSTREAM":                   2,
-	}
-)
-
-func (x KafkaMessageType) Enum() *KafkaMessageType {
-	p := new(KafkaMessageType)
-	*p = x
-	return p
-}
-
-func (x KafkaMessageType) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (KafkaMessageType) Descriptor() protoreflect.EnumDescriptor {
-	return file_v1_kafka_message_proto_enumTypes[0].Descriptor()
-}
-
-func (KafkaMessageType) Type() protoreflect.EnumType {
-	return &file_v1_kafka_message_proto_enumTypes[0]
-}
-
-func (x KafkaMessageType) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use KafkaMessageType.Descriptor instead.
-func (KafkaMessageType) EnumDescriptor() ([]byte, []int) {
-	return file_v1_kafka_message_proto_rawDescGZIP(), []int{0}
-}
-
 // UpstreamKafkaMessage is sent from gateway to backend
 type UpstreamKafkaMessage struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	CorrelationId string                 `protobuf:"bytes,1,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`                            // UUID for request/response matching
-	ConnId        string                 `protobuf:"bytes,2,opt,name=conn_id,json=connId,proto3" json:"conn_id,omitempty"`                                                 // Connection identifier (for routing back)
-	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`                                                 // Client user ID
-	DeviceId      string                 `protobuf:"bytes,4,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`                                           // Client device ID
-	OriginalType  SignalType             `protobuf:"varint,5,opt,name=original_type,json=originalType,proto3,enum=gateway.v1.SignalType" json:"original_type,omitempty"`   // Original client message type
-	Payload       []byte                 `protobuf:"bytes,6,opt,name=payload,proto3" json:"payload,omitempty"`                                                             // Original message body
-	Timestamp     int64                  `protobuf:"varint,7,opt,name=timestamp,proto3" json:"timestamp,omitempty"`                                                        // Unix timestamp (ms)
-	BusinessType  BusinessType           `protobuf:"varint,8,opt,name=business_type,json=businessType,proto3,enum=gateway.v1.BusinessType" json:"business_type,omitempty"` // 消息属于哪个业务
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`                                                                               // 用户 ID
+	DeviceId      string                 `protobuf:"bytes,2,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`                                                                         // 设备 ID
+	BizCode       string                 `protobuf:"bytes,3,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`                                                                            // 业务域标识
+	OriginalType  SignalType             `protobuf:"varint,4,opt,name=original_type,json=originalType,proto3,enum=gateway.v1.SignalType" json:"original_type,omitempty"`                                 // 原始消息类型
+	From          string                 `protobuf:"bytes,5,opt,name=from,proto3" json:"from,omitempty"`                                                                                                 // 发送方标识
+	To            string                 `protobuf:"bytes,6,opt,name=to,proto3" json:"to,omitempty"`                                                                                                     // 路由地址
+	Qos           QoS                    `protobuf:"varint,7,opt,name=qos,proto3,enum=gateway.v1.QoS" json:"qos,omitempty"`                                                                              // QoS 等级
+	Offline       bool                   `protobuf:"varint,8,opt,name=offline,proto3" json:"offline,omitempty"`                                                                                          // 离线存储标志
+	TraceId       string                 `protobuf:"bytes,9,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`                                                                            // 追踪 ID
+	BodyCodec     Codec                  `protobuf:"varint,10,opt,name=body_codec,json=bodyCodec,proto3,enum=gateway.v1.Codec" json:"body_codec,omitempty"`                                              // 编码格式
+	Compress      CompressAlgo           `protobuf:"varint,11,opt,name=compress,proto3,enum=gateway.v1.CompressAlgo" json:"compress,omitempty"`                                                          // 压缩算法
+	Headers       map[string]string      `protobuf:"bytes,12,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`                // 扩展元数据
+	BodyType      string                 `protobuf:"bytes,13,opt,name=body_type,json=bodyType,proto3" json:"body_type,omitempty"`                                                                        // 业务子类型
+	Payload       []byte                 `protobuf:"bytes,14,opt,name=payload,proto3" json:"payload,omitempty"`                                                                                          // 业务载荷
+	BodyExt       map[string]string      `protobuf:"bytes,15,rep,name=body_ext,json=bodyExt,proto3" json:"body_ext,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // Body 扩展字段
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -118,20 +73,6 @@ func (*UpstreamKafkaMessage) Descriptor() ([]byte, []int) {
 	return file_v1_kafka_message_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *UpstreamKafkaMessage) GetCorrelationId() string {
-	if x != nil {
-		return x.CorrelationId
-	}
-	return ""
-}
-
-func (x *UpstreamKafkaMessage) GetConnId() string {
-	if x != nil {
-		return x.ConnId
-	}
-	return ""
-}
-
 func (x *UpstreamKafkaMessage) GetUserId() string {
 	if x != nil {
 		return x.UserId
@@ -146,11 +87,81 @@ func (x *UpstreamKafkaMessage) GetDeviceId() string {
 	return ""
 }
 
+func (x *UpstreamKafkaMessage) GetBizCode() string {
+	if x != nil {
+		return x.BizCode
+	}
+	return ""
+}
+
 func (x *UpstreamKafkaMessage) GetOriginalType() SignalType {
 	if x != nil {
 		return x.OriginalType
 	}
 	return SignalType_SignalType_UNSPECIFIED
+}
+
+func (x *UpstreamKafkaMessage) GetFrom() string {
+	if x != nil {
+		return x.From
+	}
+	return ""
+}
+
+func (x *UpstreamKafkaMessage) GetTo() string {
+	if x != nil {
+		return x.To
+	}
+	return ""
+}
+
+func (x *UpstreamKafkaMessage) GetQos() QoS {
+	if x != nil {
+		return x.Qos
+	}
+	return QoS_AT_MOST_ONCE
+}
+
+func (x *UpstreamKafkaMessage) GetOffline() bool {
+	if x != nil {
+		return x.Offline
+	}
+	return false
+}
+
+func (x *UpstreamKafkaMessage) GetTraceId() string {
+	if x != nil {
+		return x.TraceId
+	}
+	return ""
+}
+
+func (x *UpstreamKafkaMessage) GetBodyCodec() Codec {
+	if x != nil {
+		return x.BodyCodec
+	}
+	return Codec_Codec_UNSPECIFIED
+}
+
+func (x *UpstreamKafkaMessage) GetCompress() CompressAlgo {
+	if x != nil {
+		return x.Compress
+	}
+	return CompressAlgo_NONE
+}
+
+func (x *UpstreamKafkaMessage) GetHeaders() map[string]string {
+	if x != nil {
+		return x.Headers
+	}
+	return nil
+}
+
+func (x *UpstreamKafkaMessage) GetBodyType() string {
+	if x != nil {
+		return x.BodyType
+	}
+	return ""
 }
 
 func (x *UpstreamKafkaMessage) GetPayload() []byte {
@@ -160,31 +171,28 @@ func (x *UpstreamKafkaMessage) GetPayload() []byte {
 	return nil
 }
 
-func (x *UpstreamKafkaMessage) GetTimestamp() int64 {
+func (x *UpstreamKafkaMessage) GetBodyExt() map[string]string {
 	if x != nil {
-		return x.Timestamp
+		return x.BodyExt
 	}
-	return 0
-}
-
-func (x *UpstreamKafkaMessage) GetBusinessType() BusinessType {
-	if x != nil {
-		return x.BusinessType
-	}
-	return BusinessType_UNSPECIFIED
+	return nil
 }
 
 // DownstreamKafkaMessage is sent from backend to gateway
 type DownstreamKafkaMessage struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	CorrelationId string                 `protobuf:"bytes,1,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`                            // Matches the upstream correlation_id
-	ConnId        string                 `protobuf:"bytes,2,opt,name=conn_id,json=connId,proto3" json:"conn_id,omitempty"`                                                 // Target connection (gateway uses to route)
-	UserId        string                 `protobuf:"bytes,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`                                                 // Target user ID (for validation)
-	DeviceId      string                 `protobuf:"bytes,4,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`                                           // Target device ID (for validation)
-	TargetType    SignalType             `protobuf:"varint,5,opt,name=target_type,json=targetType,proto3,enum=gateway.v1.SignalType" json:"target_type,omitempty"`         // Message type to send to client
-	Payload       []byte                 `protobuf:"bytes,6,opt,name=payload,proto3" json:"payload,omitempty"`                                                             // Response body for client
-	Timestamp     int64                  `protobuf:"varint,7,opt,name=timestamp,proto3" json:"timestamp,omitempty"`                                                        // Unix timestamp (ms)
-	BusinessType  BusinessType           `protobuf:"varint,8,opt,name=business_type,json=businessType,proto3,enum=gateway.v1.BusinessType" json:"business_type,omitempty"` // 消息属于哪个业务
+	To            string                 `protobuf:"bytes,1,opt,name=to,proto3" json:"to,omitempty"`                                                                                                     // 路由地址 "u:{uid}" | "r:{roomID}" | "t:{topic}"
+	BizCode       string                 `protobuf:"bytes,2,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`                                                                            // 业务域标识
+	TargetType    SignalType             `protobuf:"varint,3,opt,name=target_type,json=targetType,proto3,enum=gateway.v1.SignalType" json:"target_type,omitempty"`                                       // 投递到客户端的消息类型
+	Qos           QoS                    `protobuf:"varint,4,opt,name=qos,proto3,enum=gateway.v1.QoS" json:"qos,omitempty"`                                                                              // QoS 等级
+	Offline       bool                   `protobuf:"varint,5,opt,name=offline,proto3" json:"offline,omitempty"`                                                                                          // 离线存储标志
+	TraceId       string                 `protobuf:"bytes,6,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`                                                                            // 追踪 ID
+	BodyCodec     Codec                  `protobuf:"varint,7,opt,name=body_codec,json=bodyCodec,proto3,enum=gateway.v1.Codec" json:"body_codec,omitempty"`                                               // 编码格式
+	Compress      CompressAlgo           `protobuf:"varint,8,opt,name=compress,proto3,enum=gateway.v1.CompressAlgo" json:"compress,omitempty"`                                                           // 压缩算法
+	Headers       map[string]string      `protobuf:"bytes,9,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`                 // 扩展元数据
+	BodyType      string                 `protobuf:"bytes,10,opt,name=body_type,json=bodyType,proto3" json:"body_type,omitempty"`                                                                        // 业务子类型
+	Payload       []byte                 `protobuf:"bytes,11,opt,name=payload,proto3" json:"payload,omitempty"`                                                                                          // 业务载荷
+	BodyExt       map[string]string      `protobuf:"bytes,12,rep,name=body_ext,json=bodyExt,proto3" json:"body_ext,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // Body 扩展字段
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -219,30 +227,16 @@ func (*DownstreamKafkaMessage) Descriptor() ([]byte, []int) {
 	return file_v1_kafka_message_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *DownstreamKafkaMessage) GetCorrelationId() string {
+func (x *DownstreamKafkaMessage) GetTo() string {
 	if x != nil {
-		return x.CorrelationId
+		return x.To
 	}
 	return ""
 }
 
-func (x *DownstreamKafkaMessage) GetConnId() string {
+func (x *DownstreamKafkaMessage) GetBizCode() string {
 	if x != nil {
-		return x.ConnId
-	}
-	return ""
-}
-
-func (x *DownstreamKafkaMessage) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
-}
-
-func (x *DownstreamKafkaMessage) GetDeviceId() string {
-	if x != nil {
-		return x.DeviceId
+		return x.BizCode
 	}
 	return ""
 }
@@ -254,6 +248,55 @@ func (x *DownstreamKafkaMessage) GetTargetType() SignalType {
 	return SignalType_SignalType_UNSPECIFIED
 }
 
+func (x *DownstreamKafkaMessage) GetQos() QoS {
+	if x != nil {
+		return x.Qos
+	}
+	return QoS_AT_MOST_ONCE
+}
+
+func (x *DownstreamKafkaMessage) GetOffline() bool {
+	if x != nil {
+		return x.Offline
+	}
+	return false
+}
+
+func (x *DownstreamKafkaMessage) GetTraceId() string {
+	if x != nil {
+		return x.TraceId
+	}
+	return ""
+}
+
+func (x *DownstreamKafkaMessage) GetBodyCodec() Codec {
+	if x != nil {
+		return x.BodyCodec
+	}
+	return Codec_Codec_UNSPECIFIED
+}
+
+func (x *DownstreamKafkaMessage) GetCompress() CompressAlgo {
+	if x != nil {
+		return x.Compress
+	}
+	return CompressAlgo_NONE
+}
+
+func (x *DownstreamKafkaMessage) GetHeaders() map[string]string {
+	if x != nil {
+		return x.Headers
+	}
+	return nil
+}
+
+func (x *DownstreamKafkaMessage) GetBodyType() string {
+	if x != nil {
+		return x.BodyType
+	}
+	return ""
+}
+
 func (x *DownstreamKafkaMessage) GetPayload() []byte {
 	if x != nil {
 		return x.Payload
@@ -261,18 +304,11 @@ func (x *DownstreamKafkaMessage) GetPayload() []byte {
 	return nil
 }
 
-func (x *DownstreamKafkaMessage) GetTimestamp() int64 {
+func (x *DownstreamKafkaMessage) GetBodyExt() map[string]string {
 	if x != nil {
-		return x.Timestamp
+		return x.BodyExt
 	}
-	return 0
-}
-
-func (x *DownstreamKafkaMessage) GetBusinessType() BusinessType {
-	if x != nil {
-		return x.BusinessType
-	}
-	return BusinessType_UNSPECIFIED
+	return nil
 }
 
 var File_v1_kafka_message_proto protoreflect.FileDescriptor
@@ -280,31 +316,53 @@ var File_v1_kafka_message_proto protoreflect.FileDescriptor
 const file_v1_kafka_message_proto_rawDesc = "" +
 	"\n" +
 	"\x16v1/kafka_message.proto\x12\n" +
-	"gateway.v1\x1a\x10v1/gateway.proto\x1a\x10v1/message.proto\"\xc0\x02\n" +
-	"\x14UpstreamKafkaMessage\x12%\n" +
-	"\x0ecorrelation_id\x18\x01 \x01(\tR\rcorrelationId\x12\x17\n" +
-	"\aconn_id\x18\x02 \x01(\tR\x06connId\x12\x17\n" +
-	"\auser_id\x18\x03 \x01(\tR\x06userId\x12\x1b\n" +
-	"\tdevice_id\x18\x04 \x01(\tR\bdeviceId\x12;\n" +
-	"\roriginal_type\x18\x05 \x01(\x0e2\x16.gateway.v1.SignalTypeR\foriginalType\x12\x18\n" +
-	"\apayload\x18\x06 \x01(\fR\apayload\x12\x1c\n" +
-	"\ttimestamp\x18\a \x01(\x03R\ttimestamp\x12=\n" +
-	"\rbusiness_type\x18\b \x01(\x0e2\x18.gateway.v1.BusinessTypeR\fbusinessType\"\xbe\x02\n" +
-	"\x16DownstreamKafkaMessage\x12%\n" +
-	"\x0ecorrelation_id\x18\x01 \x01(\tR\rcorrelationId\x12\x17\n" +
-	"\aconn_id\x18\x02 \x01(\tR\x06connId\x12\x17\n" +
-	"\auser_id\x18\x03 \x01(\tR\x06userId\x12\x1b\n" +
-	"\tdevice_id\x18\x04 \x01(\tR\bdeviceId\x127\n" +
-	"\vtarget_type\x18\x05 \x01(\x0e2\x16.gateway.v1.SignalTypeR\n" +
-	"targetType\x12\x18\n" +
-	"\apayload\x18\x06 \x01(\fR\apayload\x12\x1c\n" +
-	"\ttimestamp\x18\a \x01(\x03R\ttimestamp\x12=\n" +
-	"\rbusiness_type\x18\b \x01(\x0e2\x18.gateway.v1.BusinessTypeR\fbusinessType*R\n" +
-	"\x10KafkaMessageType\x12 \n" +
-	"\x1cKafkaMessageType_UNSPECIFIED\x10\x00\x12\f\n" +
-	"\bUPSTREAM\x10\x01\x12\x0e\n" +
+	"gateway.v1\x1a\x10v1/message.proto\"\xca\x05\n" +
+	"\x14UpstreamKafkaMessage\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x1b\n" +
+	"\tdevice_id\x18\x02 \x01(\tR\bdeviceId\x12\x19\n" +
+	"\bbiz_code\x18\x03 \x01(\tR\abizCode\x12;\n" +
+	"\roriginal_type\x18\x04 \x01(\x0e2\x16.gateway.v1.SignalTypeR\foriginalType\x12\x12\n" +
+	"\x04from\x18\x05 \x01(\tR\x04from\x12\x0e\n" +
+	"\x02to\x18\x06 \x01(\tR\x02to\x12!\n" +
+	"\x03qos\x18\a \x01(\x0e2\x0f.gateway.v1.QoSR\x03qos\x12\x18\n" +
+	"\aoffline\x18\b \x01(\bR\aoffline\x12\x19\n" +
+	"\btrace_id\x18\t \x01(\tR\atraceId\x120\n" +
 	"\n" +
-	"DOWNSTREAM\x10\x02B0Z.github.com/vadam-zhan/long-gw/proto/v1;gatewayb\x06proto3"
+	"body_codec\x18\n" +
+	" \x01(\x0e2\x11.gateway.v1.CodecR\tbodyCodec\x124\n" +
+	"\bcompress\x18\v \x01(\x0e2\x18.gateway.v1.CompressAlgoR\bcompress\x12G\n" +
+	"\aheaders\x18\f \x03(\v2-.gateway.v1.UpstreamKafkaMessage.HeadersEntryR\aheaders\x12\x1b\n" +
+	"\tbody_type\x18\r \x01(\tR\bbodyType\x12\x18\n" +
+	"\apayload\x18\x0e \x01(\fR\apayload\x12H\n" +
+	"\bbody_ext\x18\x0f \x03(\v2-.gateway.v1.UpstreamKafkaMessage.BodyExtEntryR\abodyExt\x1a:\n" +
+	"\fHeadersEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a:\n" +
+	"\fBodyExtEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x82\x05\n" +
+	"\x16DownstreamKafkaMessage\x12\x0e\n" +
+	"\x02to\x18\x01 \x01(\tR\x02to\x12\x19\n" +
+	"\bbiz_code\x18\x02 \x01(\tR\abizCode\x127\n" +
+	"\vtarget_type\x18\x03 \x01(\x0e2\x16.gateway.v1.SignalTypeR\n" +
+	"targetType\x12!\n" +
+	"\x03qos\x18\x04 \x01(\x0e2\x0f.gateway.v1.QoSR\x03qos\x12\x18\n" +
+	"\aoffline\x18\x05 \x01(\bR\aoffline\x12\x19\n" +
+	"\btrace_id\x18\x06 \x01(\tR\atraceId\x120\n" +
+	"\n" +
+	"body_codec\x18\a \x01(\x0e2\x11.gateway.v1.CodecR\tbodyCodec\x124\n" +
+	"\bcompress\x18\b \x01(\x0e2\x18.gateway.v1.CompressAlgoR\bcompress\x12I\n" +
+	"\aheaders\x18\t \x03(\v2/.gateway.v1.DownstreamKafkaMessage.HeadersEntryR\aheaders\x12\x1b\n" +
+	"\tbody_type\x18\n" +
+	" \x01(\tR\bbodyType\x12\x18\n" +
+	"\apayload\x18\v \x01(\fR\apayload\x12J\n" +
+	"\bbody_ext\x18\f \x03(\v2/.gateway.v1.DownstreamKafkaMessage.BodyExtEntryR\abodyExt\x1a:\n" +
+	"\fHeadersEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a:\n" +
+	"\fBodyExtEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B0Z.github.com/vadam-zhan/long-gw/proto/v1;gatewayb\x06proto3"
 
 var (
 	file_v1_kafka_message_proto_rawDescOnce sync.Once
@@ -318,25 +376,37 @@ func file_v1_kafka_message_proto_rawDescGZIP() []byte {
 	return file_v1_kafka_message_proto_rawDescData
 }
 
-var file_v1_kafka_message_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_v1_kafka_message_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_v1_kafka_message_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_v1_kafka_message_proto_goTypes = []any{
-	(KafkaMessageType)(0),          // 0: gateway.v1.KafkaMessageType
-	(*UpstreamKafkaMessage)(nil),   // 1: gateway.v1.UpstreamKafkaMessage
-	(*DownstreamKafkaMessage)(nil), // 2: gateway.v1.DownstreamKafkaMessage
-	(SignalType)(0),                // 3: gateway.v1.SignalType
-	(BusinessType)(0),              // 4: gateway.v1.BusinessType
+	(*UpstreamKafkaMessage)(nil),   // 0: gateway.v1.UpstreamKafkaMessage
+	(*DownstreamKafkaMessage)(nil), // 1: gateway.v1.DownstreamKafkaMessage
+	nil,                            // 2: gateway.v1.UpstreamKafkaMessage.HeadersEntry
+	nil,                            // 3: gateway.v1.UpstreamKafkaMessage.BodyExtEntry
+	nil,                            // 4: gateway.v1.DownstreamKafkaMessage.HeadersEntry
+	nil,                            // 5: gateway.v1.DownstreamKafkaMessage.BodyExtEntry
+	(SignalType)(0),                // 6: gateway.v1.SignalType
+	(QoS)(0),                       // 7: gateway.v1.QoS
+	(Codec)(0),                     // 8: gateway.v1.Codec
+	(CompressAlgo)(0),              // 9: gateway.v1.CompressAlgo
 }
 var file_v1_kafka_message_proto_depIdxs = []int32{
-	3, // 0: gateway.v1.UpstreamKafkaMessage.original_type:type_name -> gateway.v1.SignalType
-	4, // 1: gateway.v1.UpstreamKafkaMessage.business_type:type_name -> gateway.v1.BusinessType
-	3, // 2: gateway.v1.DownstreamKafkaMessage.target_type:type_name -> gateway.v1.SignalType
-	4, // 3: gateway.v1.DownstreamKafkaMessage.business_type:type_name -> gateway.v1.BusinessType
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	6,  // 0: gateway.v1.UpstreamKafkaMessage.original_type:type_name -> gateway.v1.SignalType
+	7,  // 1: gateway.v1.UpstreamKafkaMessage.qos:type_name -> gateway.v1.QoS
+	8,  // 2: gateway.v1.UpstreamKafkaMessage.body_codec:type_name -> gateway.v1.Codec
+	9,  // 3: gateway.v1.UpstreamKafkaMessage.compress:type_name -> gateway.v1.CompressAlgo
+	2,  // 4: gateway.v1.UpstreamKafkaMessage.headers:type_name -> gateway.v1.UpstreamKafkaMessage.HeadersEntry
+	3,  // 5: gateway.v1.UpstreamKafkaMessage.body_ext:type_name -> gateway.v1.UpstreamKafkaMessage.BodyExtEntry
+	6,  // 6: gateway.v1.DownstreamKafkaMessage.target_type:type_name -> gateway.v1.SignalType
+	7,  // 7: gateway.v1.DownstreamKafkaMessage.qos:type_name -> gateway.v1.QoS
+	8,  // 8: gateway.v1.DownstreamKafkaMessage.body_codec:type_name -> gateway.v1.Codec
+	9,  // 9: gateway.v1.DownstreamKafkaMessage.compress:type_name -> gateway.v1.CompressAlgo
+	4,  // 10: gateway.v1.DownstreamKafkaMessage.headers:type_name -> gateway.v1.DownstreamKafkaMessage.HeadersEntry
+	5,  // 11: gateway.v1.DownstreamKafkaMessage.body_ext:type_name -> gateway.v1.DownstreamKafkaMessage.BodyExtEntry
+	12, // [12:12] is the sub-list for method output_type
+	12, // [12:12] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_v1_kafka_message_proto_init() }
@@ -344,21 +414,19 @@ func file_v1_kafka_message_proto_init() {
 	if File_v1_kafka_message_proto != nil {
 		return
 	}
-	file_v1_gateway_proto_init()
 	file_v1_message_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_v1_kafka_message_proto_rawDesc), len(file_v1_kafka_message_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   2,
+			NumEnums:      0,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_v1_kafka_message_proto_goTypes,
 		DependencyIndexes: file_v1_kafka_message_proto_depIdxs,
-		EnumInfos:         file_v1_kafka_message_proto_enumTypes,
 		MessageInfos:      file_v1_kafka_message_proto_msgTypes,
 	}.Build()
 	File_v1_kafka_message_proto = out.File

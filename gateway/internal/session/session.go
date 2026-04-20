@@ -12,7 +12,7 @@ import (
 	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
 	"github.com/vadam-zhan/long-gw/gateway/internal/connection"
 	"github.com/vadam-zhan/long-gw/gateway/internal/svc"
-	"github.com/vadam-zhan/long-gw/gateway/internal/worker/storage"
+	"github.com/vadam-zhan/long-gw/gateway/internal/types"
 )
 
 /*
@@ -67,7 +67,7 @@ type SessionDeps struct {
 	// LocalRouter        *router.LocalRouter
 	// DistributionRouter *router.DistributedRouter
 	ConnectionFactory *connection.Factory
-	OfflineStore      storage.OfflineStore
+	OfflineStore      types.OfflineStore
 	AckRetrier        AckRetrier // 全局重试器，per-gateway 而非 per-session
 }
 
@@ -119,7 +119,7 @@ type Session struct {
 	// conn 是 Session 与 Connection 的唯一连接点。
 	// 所有下行消息最终通过 conn.Submit → writeCh 写出。
 	connMu sync.RWMutex
-	conn   *connection.Connection // nil 表示 Suspended 状态
+	conn   types.ConnSubmitter // nil 表示 Suspended 状态
 
 	// QoS-1 重试队列
 	// 存储已发送但未收到 ACK 的消息。
@@ -187,7 +187,7 @@ func NewSession(svc *svc.ServiceContext, userID, deviceID, appID, deviceType, bi
 //	并重新通过 downlink 投递
 //
 // ═══════════════════════════════════════════════════════════════════════
-func (s *Session) AttachConn(conn *connection.Connection) (lastSeq uint64) {
+func (s *Session) AttachConn(conn types.ConnSubmitter) (lastSeq uint64) {
 	s.connMu.Lock()
 	oldConn := s.conn
 	s.conn = conn
@@ -355,7 +355,7 @@ func (s *Session) Submit(msg *gateway.Message) bool {
 
 		// QoS-1：加入重试队列，等待客户端 ACK
 		// 未收到 ACK 时，retryLoop 会重发
-		if msg.Qos == gateway.QoS_QOS_AT_LEAST_ONCE {
+		if msg.Qos == gateway.QoS_AT_LEAST_ONCE {
 			s.pendingAcks.Store(msg.MsgId, &pendingEntry{
 				msg:         msg,
 				firstSentAt: time.Now(),
@@ -395,35 +395,35 @@ func (s *Session) Ack(msgID string) {
 // ─────────────────────────────────────────────────────────────────────
 func (s *Session) JoinRoom(roomID string) {
 	s.subs.addRoom(roomID) // 持久化，重连后可恢复
-	s.withConn(func(_ *connection.Connection) {
+	s.withConn(func(_ types.ConnSubmitter) {
 		s.deps.LocalRouter.JoinRoom(roomID, s)
 	})
 }
 
 func (s *Session) LeaveRoom(roomID string) {
 	s.subs.removeRoom(roomID)
-	s.withConn(func(_ *connection.Connection) {
+	s.withConn(func(_ types.ConnSubmitter) {
 		s.deps.LocalRouter.LeaveRoom(roomID, s)
 	})
 }
 
 func (s *Session) Subscribe(topic string) {
 	s.subs.addTopic(topic)
-	s.withConn(func(_ *connection.Connection) {
+	s.withConn(func(_ types.ConnSubmitter) {
 		s.deps.LocalRouter.Subscribe(topic, s)
 	})
 }
 
 func (s *Session) Unsubscribe(topic string) {
 	s.subs.removeTopic(topic)
-	s.withConn(func(_ *connection.Connection) {
+	s.withConn(func(_ types.ConnSubmitter) {
 		s.deps.LocalRouter.Unsubscribe(topic, s)
 	})
 }
 
 // withConn 在持有 RLock 的情况下执行 fn。
 // 只在 Active 状态（conn != nil）时执行，Suspended 时跳过。
-func (s *Session) withConn(fn func(*connection.Connection)) {
+func (s *Session) withConn(fn func(types.ConnSubmitter)) {
 	s.connMu.RLock()
 	c := s.conn
 	s.connMu.RUnlock()
@@ -432,16 +432,8 @@ func (s *Session) withConn(fn func(*connection.Connection)) {
 	}
 }
 
-func (s *Session) GetConn() *connection.Connection {
-	s.connMu.RLock()
-	defer s.connMu.RUnlock()
-	return s.conn
-}
-
-// GetLocalRouter 获取本地路由（实现 SessionAccessor 接口）
-func (s *Session) GetLocalRouter() LocalRouterOps {
-	// return s.deps.LocalRouter
-	return nil
+func (s *Session) GetLocalRouter() types.LocalRouterOps {
+	return s.deps.LocalRouter
 }
 
 // CleanTimeoutLoop 定期清理超时连接
@@ -608,7 +600,7 @@ func (s *Session) handleUndelivered(msg *gateway.Message) {
 	if !msg.Offline || s.deps.Offline == nil {
 		return // QoS-0 或未配置 OfflineStore：直接丢弃
 	}
-	if msg.Qos == gateway.QoS_QOS_AT_MOST_ONCE {
+	if msg.Qos == gateway.QoS_AT_MOST_ONCE {
 		return // QoS-0：不存离线
 	}
 	if err := s.deps.Offline.Store(context.Background(), msg); err != nil {

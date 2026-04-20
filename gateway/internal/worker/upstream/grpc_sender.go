@@ -2,11 +2,9 @@ package upstream
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
-	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
-	"github.com/vadam-zhan/long-gw/gateway/internal/types"
-	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -26,7 +24,7 @@ func NewGRPCSender(addr string) *GrpcSender {
 }
 
 // Send 发送上行消息到 gRPC 服务
-func (s *GrpcSender) Send(ctx context.Context, req *types.UpstreamRequest) error {
+func (s *GrpcSender) Send(ctx context.Context) error {
 	_, err := s.getConn()
 	if err != nil {
 		return err
@@ -34,19 +32,13 @@ func (s *GrpcSender) Send(ctx context.Context, req *types.UpstreamRequest) error
 
 	// TODO: 根据实际业务方定义的 gRPC service interface 调整
 	// 这里使用通用的UnaryCaller方式，实际项目中可能需要定义业务方的 service interface
-	logger.Debug("grpc upstream send",
-		zap.String("addr", s.addr),
-		zap.String("method", s.method),
-		zap.String("user_id", req.Msg.UserID))
+	slog.Debug("grpc upstream send",
+		"addr", s.addr,
+		"method", s.method)
 
 	// 模拟发送 - 实际实现需要调用业务方的 gRPC 接口，这里可以理解成 callback 形式，只要业务方实现了接口即可
 	// 例如: client.SendMessage(ctx, &pb.BusinessMessage{...})
 	return nil
-}
-
-// Kind 返回发送器类型
-func (s *GrpcSender) Kind() types.UpstreamKind {
-	return types.UpstreamKindGRPC
 }
 
 func (s *GrpcSender) getConn() (*grpc.ClientConn, error) {
@@ -58,9 +50,9 @@ func (s *GrpcSender) getConn() (*grpc.ClientConn, error) {
 			grpc.WithTimeout(3*time.Second),
 		)
 		if err != nil {
-			logger.Error("grpc dial failed",
-				zap.String("addr", s.addr),
-				zap.Error(err))
+			slog.Error("grpc dial failed",
+				"addr", s.addr,
+				"error", err)
 			return nil, err
 		}
 		s.conn = conn

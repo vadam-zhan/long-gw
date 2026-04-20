@@ -6,60 +6,55 @@ import (
 	"sync"
 
 	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
-	"github.com/vadam-zhan/long-gw/gateway/internal/connection"
-	"github.com/vadam-zhan/long-gw/gateway/internal/contracts"
 	"github.com/vadam-zhan/long-gw/gateway/internal/pipeline"
 	"github.com/vadam-zhan/long-gw/gateway/internal/pipeline/uplink"
+	"github.com/vadam-zhan/long-gw/gateway/internal/types"
 )
 
 // Architecture:
 //
 //	Connection.ReadLoop()
-//	  └─▶ HandlerRegistry.Dispatch(conn, msg)
+//	  └─▶ MsgHandler.Dispatch(conn, msg)
 //	        ├─▶ HeartbeatHandler.Handle()  [inline, no pipeline]
 //	        ├─▶ AuthHandler.Handle()        [inline, updates session state]
 //	        ├─▶ AckHandler.Handle()         [inline, clears QoS retry queue]
 //	        ├─▶ SubscribeHandler.Handle()   [inline, mutates router indexes]
 //	        └─▶ UpstreamHandler.Handle()    [runs UplinkChain pipeline]
 
-type Handler interface {
-	Handle(sess contracts.SessionAccessor, conn *connection.Connection, msg *gateway.Message) error
-}
-
 type Deps struct {
-	contracts.WorkerManager
+	types.WorkerSubmitter
 	UplinkChain pipeline.Chain[*uplink.UplinkCtx]
 }
 
 type ImplRegistry struct {
 	mu           sync.RWMutex
-	handlers     map[gateway.MsgType]Handler
-	fallback     Handler
-	authVerifier contracts.AuthVerifier
+	handlers     map[gateway.SignalType]types.MsgHandler
+	fallback     types.MsgHandler
+	authVerifier types.AuthVerifier
 
 	deps *Deps
 }
 
-func Build(av contracts.AuthVerifier, chain UplinkChain) *ImplRegistry {
+func Build(av types.AuthVerifier, chain types.UplinkChain) *ImplRegistry {
 	reg := NewRegistry(av)
 
-	reg.Register(gateway.MsgType_MSG_TYPE_PING, &HeartbeatHandler{})
-	reg.Register(gateway.MsgType_MSG_TYPE_ACK, &AckHandler{})
-	reg.Register(gateway.MsgType_MSG_TYPE_KICK, &LogoutHandler{})
-	reg.Register(gateway.MsgType_MSG_TYPE_DATA, &UpstreamHandler{})
+	reg.Register(gateway.SignalType_PING, &HeartbeatHandler{})
+	reg.Register(gateway.SignalType_ACK, &AckHandler{})
+	reg.Register(gateway.SignalType_KICK, &LogoutHandler{})
+	reg.Register(gateway.SignalType_BUSINESS_UP, &UpstreamHandler{chain: chain})
 
 	return reg
 }
 
-func NewRegistry(av contracts.AuthVerifier) *ImplRegistry {
+func NewRegistry(av types.AuthVerifier) *ImplRegistry {
 	return &ImplRegistry{
-		handlers: map[gateway.MsgType]Handler{},
+		handlers: map[gateway.SignalType]types.MsgHandler{},
 		// fallback:     HandlerFunc(defaultFallback),
 		authVerifier: av,
 	}
 }
 
-func (r *ImplRegistry) Register(msgType gateway.MsgType, handler Handler) {
+func (r *ImplRegistry) Register(msgType gateway.SignalType, handler types.MsgHandler) {
 	r.handlers[msgType] = handler
 }
 
@@ -74,7 +69,7 @@ func (r *ImplRegistry) Register(msgType gateway.MsgType, handler Handler) {
 //	    },
 //	    onClose,
 //	)
-func (r *ImplRegistry) Dispatch(sess contracts.SessionAccessor, conn *connection.Connection, msg *gateway.Message) error {
+func (r *ImplRegistry) Dispatch(sess types.HandlerSession, conn types.ConnSubmitter, msg *gateway.Message) error {
 	r.mu.RLock()
 	h, ok := r.handlers[msg.Type]
 	r.mu.RUnlock()
@@ -86,25 +81,25 @@ func (r *ImplRegistry) Dispatch(sess contracts.SessionAccessor, conn *connection
 	return h.Handle(sess, conn, msg)
 }
 
-func (r *ImplRegistry) AuthVerifier() contracts.AuthVerifier {
+func (r *ImplRegistry) AuthVerifier() types.AuthVerifier {
 	return r.authVerifier
 }
 
-func defaultFallback(sess contracts.SessionAccessor, conn *connection.Connection, msg *gateway.Message) {
+func defaultFallback(sess types.HandlerSession, conn types.ConnSubmitter, msg *gateway.Message) {
 	slog.Warn("handler: unregistered signal type",
 		"type", msg.Type,
 		"mid", msg.MsgId,
-		"conn", conn.ConnID,
-		"uid", sess.UserID(),
+		// "conn", conn.ConnID,
+		// "uid", sess.UserID(),
 	)
 	replyError(conn, msg, 4002, fmt.Sprintf("unsupported signal type %d", msg.Type))
 }
 
 // replyError sends a structured error frame back to the client.
 // Interaction: conn.Submit(errMsg) → writeCh → writeLoop → TCP.
-func replyError(conn *connection.Connection, ref *gateway.Message, code int32, text string) {
+func replyError(conn types.ConnSubmitter, ref *gateway.Message, code int32, text string) {
 	errMsg := &gateway.Message{
-		Type:  gateway.MsgType_MSG_TYPE_ERROR,
+		Type:  gateway.SignalType_ERROR,
 		MsgId: ref.MsgId,
 		Body: &gateway.Body{
 			Payload: []byte(fmt.Sprintf(`{"code":%d,"message":"%s"}`, code, text)),

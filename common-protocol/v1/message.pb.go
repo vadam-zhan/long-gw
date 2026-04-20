@@ -33,8 +33,9 @@ const (
 	SignalType_KICK          SignalType = 5 // Gateway→Client  强制断连通知
 	SignalType_ERROR         SignalType = 6 // 双向             错误通知
 	SignalType_ACK           SignalType = 7 // 双向             QoS-1/2 确认帧
-	// ── 数据面通用 (100) ─────────────────────────────────────────────────────
-	SignalType_DATA SignalType = 100 // 通用数据帧，BizCode+Body.type 细分路由
+	// ── 数据面通用 (99) ─────────────────────────────────────────────────────
+	SignalType_BUSINESS_UP   SignalType = 99  // 通用数据帧，BizCode+Body.type 细分路由
+	SignalType_BUSINESS_DOWN SignalType = 100 // 下行数据帧，
 	// ── IM 域 (101–199) ──────────────────────────────────────────────────────
 	SignalType_IM_CHAT    SignalType = 101 // 单聊 / 群聊消息
 	SignalType_IM_RECEIPT SignalType = 102 // 投递 / 已读回执
@@ -62,7 +63,8 @@ var (
 		5:   "KICK",
 		6:   "ERROR",
 		7:   "ACK",
-		100: "DATA",
+		99:  "BUSINESS_UP",
+		100: "BUSINESS_DOWN",
 		101: "IM_CHAT",
 		102: "IM_RECEIPT",
 		103: "IM_REVOKE",
@@ -84,7 +86,8 @@ var (
 		"KICK":                   5,
 		"ERROR":                  6,
 		"ACK":                    7,
-		"DATA":                   100,
+		"BUSINESS_UP":            99,
+		"BUSINESS_DOWN":          100,
 		"IM_CHAT":                101,
 		"IM_RECEIPT":             102,
 		"IM_REVOKE":              103,
@@ -2028,7 +2031,7 @@ const file_v1_message_proto_rawDesc = "" +
 	"\tgift_name\x18\x03 \x01(\tR\bgiftName\x12\x14\n" +
 	"\x05count\x18\x04 \x01(\x05R\x05count\x12\x1d\n" +
 	"\n" +
-	"total_cost\x18\x05 \x01(\x03R\ttotalCost*\xb8\x02\n" +
+	"total_cost\x18\x05 \x01(\x03R\ttotalCost*\xd2\x02\n" +
 	"\n" +
 	"SignalType\x12\x1a\n" +
 	"\x16SignalType_UNSPECIFIED\x10\x00\x12\r\n" +
@@ -2038,8 +2041,9 @@ const file_v1_message_proto_rawDesc = "" +
 	"\x04PONG\x10\x04\x12\b\n" +
 	"\x04KICK\x10\x05\x12\t\n" +
 	"\x05ERROR\x10\x06\x12\a\n" +
-	"\x03ACK\x10\a\x12\b\n" +
-	"\x04DATA\x10d\x12\v\n" +
+	"\x03ACK\x10\a\x12\x0f\n" +
+	"\vBUSINESS_UP\x10c\x12\x11\n" +
+	"\rBUSINESS_DOWN\x10d\x12\v\n" +
 	"\aIM_CHAT\x10e\x12\x0e\n" +
 	"\n" +
 	"IM_RECEIPT\x10f\x12\r\n" +

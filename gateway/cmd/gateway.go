@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -9,6 +11,7 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
@@ -20,79 +23,86 @@ import (
 	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
 	"github.com/vadam-zhan/long-gw/gateway/internal/logic/codec"
 	"github.com/vadam-zhan/long-gw/gateway/internal/metrics"
+	"github.com/vadam-zhan/long-gw/gateway/internal/pipeline/uplink"
 	"github.com/vadam-zhan/long-gw/gateway/internal/router"
 	"github.com/vadam-zhan/long-gw/gateway/internal/session"
 	"github.com/vadam-zhan/long-gw/gateway/internal/svc"
 	"github.com/vadam-zhan/long-gw/gateway/internal/transport"
+	"github.com/vadam-zhan/long-gw/gateway/internal/types"
 	"github.com/vadam-zhan/long-gw/gateway/internal/worker"
 	"github.com/vadam-zhan/long-gw/gateway/internal/worker/storage"
+	"github.com/vadam-zhan/long-gw/gateway/internal/worker/upstream"
 
 	"github.com/soheilhy/cmux"
-	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
 // NewGatewayServer 创建网关服务器
-func NewGatewayServer(cfg *config.Config) *GatewayServer {
+func NewGatewayServer(cfg *config.Config) (*GatewayServer, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	gs := &GatewayServer{
 		ctx:    ctx,
 		cancel: cancel,
 	}
-	svc := svc.NewServiceContext(ctx, cfg)
-	gs.svc = svc
+	gs.svc = svc.NewServiceContext(ctx, cfg)
+
+	// 初始化路由
 	gs.localRouter = router.NewLocalRouter()
-	gs.distRouter = router.NewDistributedRouter(svc.RedisClient, cfg.Gateway.Addr)
+	gs.distRouter = router.NewDistributedRouter(gs.svc.RedisClient, cfg.Gateway.Addr)
 
-	offlineStore := storage.NewMySQLStore(svc.DB)
+	// 初始化离线存储
+	gs.offlineStore = storage.NewMySQLStore(gs.svc.DB)
 
-	gs.sessionRegistry = session.NewSessionRegistry(
+	// 初始化连接注册表
+	gs.connRegistry = connection.NewRegistry()
+
+	// 初始化会话注册表
+	gs.sessRegistry = session.NewRegistry(
 		session.WithLocalRouter(gs.localRouter),
-		// session.WithDistRouter(gs.distRouter),
-		session.WithOfflineStore(offlineStore),
+		session.WithOfflineStore(gs.offlineStore),
 		session.SetSuspendTTL(cfg.Session.SuspendTTL),
 		session.WithServiceContext(gs.svc),
 	)
 
-	gs.workerManager = worker.NewManager()
-	for bizCode, poolCfg := range cfg.Workers {
-		gs.workerManager.CreatePool(&worker.PoolConfig{
-			BizCode:           bizCode,
-			UpstreamWorkers:   poolCfg.UpstreamWorkers,
-			DownstreamWorkers: poolCfg.DownstreamWorkers,
-			UpstreamChanCap:   poolCfg.UpstreamChanCap,
-			DownstreamChanCap: poolCfg.DownstreamChanCap,
-			OfflineStore:      offlineStore,
-			Router:            gs.localRouter,
-		})
+	gs.workerManager = worker.NewManager(gs.ctx)
+	if err := gs.registerWorkerPools(); err != nil {
+		cancel()
+		return nil, fmt.Errorf("gateway: worker pools: %w", err)
 	}
-
-	gs.ackRetrier = &session.AckRetrier{}
 
 	gs.codec = codec.NewCodec(codec.DefaultConfig())
 
+	uplinkChain := uplink.BuildChain(nil) // nil = no rate limiter in dev; inject real limiter in prod
+	chainAdapter := uplink.NewChainAdapter(uplinkChain)
+
+	authVerifier := connection_handler.NewAuthVerifier(cfg.Auth.Addr)
+	handlerReg := connection_handler.Build(authVerifier, chainAdapter)
+
 	// 初始化 connectionFactory
 	gs.connFactory = connection.NewFactory(&connection.FactoryDeps{
-		Codec:        gs.codec,
-		ConnRegistry: connection.NewRegistry(),
-		HandlerReg:   connection_handler.NewRegistry(connection_handler.NewAuthVerifier(cfg.Auth.Addr)),
+		Codec:            gs.codec,
+		HandlerReg:       handlerReg,
+		ConnRegistry:     gs.connRegistry,
+		SessRegistry:     gs.sessRegistry,
+		LocalRouter:      gs.localRouter,
+		DistRouter:       gs.distRouter,
+		HeartbeatTimeout: 30 * time.Second,
+		HandshakeTimeout: 30 * time.Second,
+		MaxBodySize:      2 << 20,
+		SelfAddr:         cfg.Gateway.Addr,
 	})
 
 	// gs.adminHandler = handler.NewAdminHandler(sess)
 	gs.wsHandler = handler.NewWsHandler()
 
-	return gs
+	return gs, nil
 }
 
 // Start 启动网关服务
 func (s *GatewayServer) Start() error {
 	var err error
 	var wg sync.WaitGroup
-	logger.Info("gateway start",
-		zap.String("addr", s.svc.Config.Gateway.Addr),
-		zap.Uint64("max_conn", s.svc.Config.Gateway.MaxConnNum),
-		zap.Int("upstream_worker_num", s.svc.Config.Gateway.UpstreamWorkerNum),
-		zap.Int("downstream_worker_num", s.svc.Config.Gateway.DownstreamWorkerNum))
+	slog.Info("gateway start", "addr", s.svc.Config.Gateway.Addr, "max_conn", s.svc.Config.Gateway.MaxConnNum)
 
 	// 目前只支持 tcp 协议，不支持 udp 协议
 	s.listener, err = net.Listen("tcp", s.svc.Config.Gateway.Addr)
@@ -111,7 +121,7 @@ func (s *GatewayServer) Start() error {
 		ginEngine := s.SetupGinRouter()
 		httpSrv := &http.Server{Handler: ginEngine.Handler()}
 		if err := httpSrv.Serve(httpListener); err != nil && err != http.ErrServerClosed {
-			logger.Error("http serve failed", zap.Error(err))
+			slog.Error("http serve failed", "error", err)
 		}
 	})
 
@@ -132,7 +142,7 @@ func (s *GatewayServer) Start() error {
 	// 启动 cmux（阻塞直到服务关闭）
 	go func() {
 		if err := s.cmux.Serve(); err != nil {
-			logger.Error("cmux serve failed", zap.Error(err))
+			slog.Error("cmux serve failed", "error", err)
 		}
 	}()
 
@@ -144,9 +154,9 @@ func (s *GatewayServer) Start() error {
 		wg.Add(1)
 		wg.Go(func() {
 			defer wg.Done()
-			logger.Info("pprof server started", zap.String("addr", s.svc.Config.Gateway.Profile.Addr))
+			slog.Info("pprof server started", "addr", s.svc.Config.Gateway.Profile.Addr)
 			if err := http.ListenAndServe(s.svc.Config.Gateway.Profile.Addr, nil); err != nil {
-				logger.Error("pprof serve failed", zap.Error(err))
+				slog.Error("pprof serve failed", "error", err)
 			}
 		})
 	}
@@ -162,33 +172,34 @@ func (s *GatewayServer) Start() error {
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	<-sigCh
 
-	logger.Info("gateway server shutting down...")
+	slog.Info("gateway server shutting down...")
 	s.Stop()
 
-	// 等待所有服务退出
 	wg.Wait()
-	logger.Info("gateway server stopped")
+	slog.Info("gateway server stopped")
 	return nil
 }
 
 // acceptTCP 接受TCP连接
 func (s *GatewayServer) acceptTCP(listener net.Listener) {
-	logger.Info("tcp acceptor started")
+	slog.Info("tcp acceptor started")
 	for {
 		select {
 		case <-s.ctx.Done():
-			logger.Info("tcp acceptor stopped")
+			slog.Info("tcp acceptor stopped")
 			return
 		default:
 			rawConn, err := listener.Accept()
 			if err != nil {
-				logger.Error("tcp accept failed", zap.Error(err))
+				slog.Error("tcp accept failed", "error", err)
 				continue
 			}
-			logger.Debug("new tcp connection", zap.String("remote", rawConn.RemoteAddr().String()))
 
-			// 使用独立goroutine处理，HandleConnection 会管理自己的生命周期
-			go s.HandleConnection(transport.NewTCPTransport(rawConn))
+			traceID := logger.GenerateTraceID()
+			ctx := context.WithValue(s.ctx, logger.TraceIDKey, traceID)
+			slog.DebugContext(ctx, "new tcp connection", "remote", rawConn.RemoteAddr().String())
+
+			go s.connFactory.CreateAndRun(ctx, transport.NewTCPTransport(rawConn))
 		}
 	}
 }
@@ -198,6 +209,7 @@ func (s *GatewayServer) SetupGinRouter() *gin.Engine {
 	r := gin.New()
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
+	r.Use(logger.TraceMiddleware())
 
 	// 管理接口
 	adminG := r.Group("/v1/admin")
@@ -223,39 +235,20 @@ func (s *GatewayServer) wsUpgradeHandler(c *gin.Context) {
 	}
 
 	tp := transport.NewWSTransport(rawConn)
-	logger.Info("new ws connection", zap.String("remote", tp.RemoteAddr()))
-	go s.HandleConnection(tp)
-}
+	slog.Info("new ws connection", "remote", tp.RemoteAddr())
 
-func (s *GatewayServer) HandleConnection(tp transport.Transport) {
-
-	conn, err := s.connFactory.Create(s.ctx, tp)
-	if err != nil {
-		return
-	}
-
-	s.connFactory.Run(s.ctx, conn)
-
-	sess := s.sessionRegistry.GetOrCreate(conn.UserID, conn.DeviceID)
-
-	// 处理踢人（同设备旧 Session）
-	if oldConn := sess.GetConn(); oldConn != nil {
-		oldConn.Close(&gateway.KickPayload{Code: 4002, Reason: "login from another device"})
-	}
-
-	sess.AttachConn(conn)
-
+	go s.connFactory.CreateAndRun(s.ctx, tp)
 }
 
 // serveGRPC 启动 gRPC 服务
 func (s *GatewayServer) serveGRPC(listener net.Listener) {
-	logger.Info("grpc server started")
+	slog.Info("grpc server started")
 
 	grpcSrv := grpc.NewServer()
 	gateway.RegisterGatewayServer(grpcSrv, gatewaygrpc.NewGrpcServer())
 
 	if err := grpcSrv.Serve(listener); err != nil {
-		logger.Error("grpc serve failed", zap.Error(err))
+		slog.Error("grpc serve failed", "error", err)
 	}
 }
 
@@ -279,4 +272,30 @@ func (s *GatewayServer) Stop() {
 	if s.cmux != nil {
 		s.cmux.Close()
 	}
+}
+
+func (gs *GatewayServer) registerWorkerPools() error {
+	for bizCode, wcfg := range gs.svc.Config.Workers {
+		var sender types.UpstreamSender
+		switch wcfg.UpstreamSender {
+		case "kafka", "":
+			sender = upstream.NewKafkaSender(gs.svc.Config.Upstream.Kafka.Brokers, gs.svc.Config.Upstream.Kafka.BusinessTopics[bizCode].UpstreamTopic)
+		default:
+			return fmt.Errorf("unknown upstream_sender %q for biz %s", wcfg.UpstreamSender, bizCode)
+		}
+
+		// Resolver: LocalRouter implements the SessionResolver interface
+		// expected by WorkerPool's downstreamWorker (FanOut path).
+		gs.workerManager.AddPool(worker.PoolConfig{
+			BizCode:           bizCode,
+			UpstreamWorkers:   wcfg.UpstreamWorkers,
+			UpstreamChanCap:   wcfg.UpstreamChanCap,
+			DownstreamWorkers: wcfg.DownstreamWorkers,
+			DownstreamChanCap: wcfg.DownstreamChanCap,
+			UpstreamSender:    sender,
+			OfflineStore:      gs.offlineStore,
+			Resolver:          gs.localRouter, // resolves To → []SessionTarget
+		})
+	}
+	return nil
 }

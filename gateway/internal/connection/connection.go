@@ -3,17 +3,15 @@ package connection
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
 	"github.com/vadam-zhan/long-gw/gateway/internal/consts"
-	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
 	"github.com/vadam-zhan/long-gw/gateway/internal/logic/codec"
 	"github.com/vadam-zhan/long-gw/gateway/internal/transport"
-
-	"go.uber.org/zap"
 )
 
 // State encodes the connection lifecycle phase.
@@ -35,6 +33,7 @@ type Connection struct {
 	AppID      string
 	DeviceID   string
 	DeviceType string
+	BizCode    string
 
 	// ---- Transport & codec
 	tp      transport.Transport
@@ -59,8 +58,8 @@ type Connection struct {
 	ConnectedAt time.Time
 }
 
-// NewConnection 创建连接实例
-func NewConnection(ctx context.Context, tp transport.Transport, codec codec.Codec) *Connection {
+// newConnection 创建连接实例
+func newConnection(ctx context.Context, tp transport.Transport, codec codec.Codec) *Connection {
 	ctx, cancel := context.WithCancel(ctx)
 	c := &Connection{
 		tp:      tp,
@@ -104,7 +103,12 @@ func (c *Connection) Activate() {
 func (c *Connection) GetConnID() string {
 	return c.ConnID
 }
-
+func (c *Connection) GetUserID() string {
+	return c.UserID
+}
+func (c *Connection) GetDeviceType() string {
+	return c.DeviceType
+}
 func (c *Connection) RemoteAddr() string {
 	return c.tp.RemoteAddr()
 }
@@ -142,25 +146,25 @@ func (c *Connection) readLoop(onMessage func(*Connection, *gateway.Message)) {
 	for {
 		select {
 		case <-c.ctx.Done():
-			logger.Debug("readLoop exit",
-				zap.String("remote", c.tp.RemoteAddr()))
+			slog.Debug("readLoop exit",
+				"remote", c.tp.RemoteAddr())
 			return
 
 		default:
 			// 设置读取超时
 			if err := c.tp.SetReadDeadline(time.Now().Add(consts.HeartbeatTimeout)); err != nil {
-				logger.Error("set read deadline failed",
-					zap.Error(err),
-					zap.String("remote", c.tp.RemoteAddr()))
+				slog.Error("set read deadline failed",
+					"error", err,
+					"remote", c.tp.RemoteAddr())
 				return
 			}
 
 			// 读取原始数据
 			raw, err := c.tp.Read(c.ctx)
 			if err != nil {
-				logger.Error("read message failed",
-					zap.Error(err),
-					zap.String("remote", c.tp.RemoteAddr()))
+				slog.Error("read message failed",
+					"error", err,
+					"remote", c.tp.RemoteAddr())
 				return
 			}
 
@@ -169,7 +173,7 @@ func (c *Connection) readLoop(onMessage func(*Connection, *gateway.Message)) {
 
 			msg, err := c.codec.Decode(raw)
 			if err != nil {
-				logger.Error("connection: decode error", zap.String("connID", c.ConnID), zap.Error(err), zap.String("remote", c.tp.RemoteAddr()))
+				slog.Error("connection: decode error", "connID", c.ConnID, "error", err, "remote", c.tp.RemoteAddr())
 				continue // skip malformed frames, do not close connection
 			}
 
@@ -177,7 +181,7 @@ func (c *Connection) readLoop(onMessage func(*Connection, *gateway.Message)) {
 				c.lastRecvSeq.Store(msg.SeqId)
 			}
 			if isExpired(msg) {
-				logger.Error("connection: drop expired", zap.String("mid", msg.MsgId), zap.String("conn", c.ConnID))
+				slog.Error("connection: drop expired", "mid", msg.MsgId, "conn", c.ConnID)
 				continue
 			}
 
@@ -196,8 +200,8 @@ func (c *Connection) writeLoop() {
 	for {
 		select {
 		case <-c.ctx.Done():
-			logger.Debug("writeLoop exit",
-				zap.String("remote", c.tp.RemoteAddr()))
+			slog.Debug("writeLoop exit",
+				"remote", c.tp.RemoteAddr())
 			for {
 				select {
 				case msg := <-c.writeCh:
@@ -213,10 +217,10 @@ func (c *Connection) writeLoop() {
 			}
 
 			if err := c.encodeAndWrite(msg); err != nil {
-				logger.Warn("connection: write error",
-					zap.String("connID", c.ConnID),
-					zap.Error(err),
-					zap.String("remote", c.tp.RemoteAddr()))
+				slog.Warn("connection: write error",
+					"connID", c.ConnID,
+					"error", err,
+					"remote", c.tp.RemoteAddr())
 				return
 			}
 		}
@@ -260,10 +264,10 @@ func (c *Connection) HeartbeatWatchdog(timeout time.Duration) {
 		case <-ticker.C:
 			since := time.Since(time.UnixMilli(c.lastPingAt.Load()))
 			if since > timeout {
-				logger.Info("connection: heartbeat timeout",
-					zap.String("conn", c.ConnID),
-					zap.String("uid", c.UserID),
-					zap.Duration("since", since),
+				slog.Info("connection: heartbeat timeout",
+					"conn", c.ConnID,
+					"uid", c.UserID,
+					"since", since,
 				)
 				c.Close(&gateway.KickPayload{
 					Code:   4001,

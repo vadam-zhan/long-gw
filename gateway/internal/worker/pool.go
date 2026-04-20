@@ -8,10 +8,9 @@ import (
 	"time"
 
 	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
-	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
 	"github.com/vadam-zhan/long-gw/gateway/internal/pipeline"
 	"github.com/vadam-zhan/long-gw/gateway/internal/pipeline/downlink"
-	"github.com/vadam-zhan/long-gw/gateway/internal/pipeline/uplink"
+	"github.com/vadam-zhan/long-gw/gateway/internal/types"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -21,7 +20,7 @@ var ErrPoolFull = fmt.Errorf("worker: pool channel full")
 // UpstreamJob 是上行队列的任务单元。
 // Sess 字段的用途：当 KafkaSender.Send 失败时，通过 Sess 回传错误给客户端。
 type UpstreamJob struct {
-	Sess SessionRef       // 发送方 Session（用于 Kafka 失败时的错误回传）
+	Sess types.SessionRef // 发送方 Session（用于 Kafka 失败时的错误回传）
 	Msg  *gateway.Message // 待发送到 Kafka 的消息
 }
 
@@ -33,13 +32,12 @@ type DownstreamJob struct {
 
 // WorkerPool 上行/下行 Worker 池
 type WorkerPool struct {
-	cfg *PoolConfig
+	cfg PoolConfig
 
 	upstreamCh   chan UpstreamJob
 	downstreamCh chan DownstreamJob
 
-	uplinkChain pipeline.Chain[*uplink.UplinkCtx]
-	dlChain     pipeline.Chain[*downlink.DownlinkCtx] // 下行 Pipeline
+	dlChain pipeline.Chain[*downlink.DownlinkCtx] // 下行 Pipeline
 
 	// 生命周期
 	ctx    context.Context
@@ -47,22 +45,10 @@ type WorkerPool struct {
 	wg     sync.WaitGroup
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// UpstreamSender：对 Kafka/gRPC 的抽象
-// ─────────────────────────────────────────────────────────────────────
-type UpstreamSender interface {
-	Send(ctx context.Context, msg *gateway.Message) error
-}
-
-// OfflineStore：离线消息存储（下行 FanOut 失败时使用）
-type OfflineStore interface {
-	Store(ctx context.Context, msg *gateway.Message) error
-}
-
 // WorkerPool 是单个业务域的独立 goroutine 池。
 // IM Pool 的流量峰值不影响 Live Pool 的处理延迟。
-func NewWorkerPool(cfg *PoolConfig) *WorkerPool {
-	ctx, cancel := context.WithCancel(context.Background())
+func newWorkerPool(ctx context.Context, cfg PoolConfig) *WorkerPool {
+	ctx, cancel := context.WithCancel(ctx)
 	pool := &WorkerPool{
 		ctx:          ctx,
 		cancel:       cancel,
@@ -70,14 +56,8 @@ func NewWorkerPool(cfg *PoolConfig) *WorkerPool {
 		upstreamCh:   make(chan UpstreamJob, 100),
 		downstreamCh: make(chan DownstreamJob, 100),
 	}
-	// pool.uplinkChain = uplink.BuildChain(uplink.Deps{
-	// 	Publisher: upstream.NewKafkaSender(cfg.Brokers, cfg.Topic),
-	// 	// RateLimiter: &stubRateLimiter{},
-	// 	// Registry:    reg,
-	// })
-
 	// 构建下行 Pipeline（包含 Resolve → FanOut → Session.Submit 的完整链路）
-	var offlineAdapter downlink.OfflineStore
+	var offlineAdapter types.OfflineStore
 	if cfg.OfflineStore != nil {
 		offlineAdapter = &offlineStoreAdapter{store: cfg.OfflineStore}
 	}
@@ -106,7 +86,7 @@ func (p *WorkerPool) Start(ctx context.Context) {
 			p.downstreamWorker()
 		}()
 	}
-	logger.Info("worker pool started")
+	slog.Info("worker pool started")
 }
 
 // Stop 停止 worker 池
@@ -209,7 +189,7 @@ func (p *WorkerPool) upstreamWorker() {
 				// 通过 job.Sess.Submit 把错误路由回客户端
 				// 调用链：job.Sess.Submit → sess.conn.Submit → writeCh → writeLoop → TCP
 				errMsg := &gateway.Message{
-					Type: gateway.MsgType_MSG_TYPE_ERROR,
+					Type: gateway.SignalType_ERROR,
 				}
 				errMsg.TraceId = job.Msg.TraceId
 				if job.Msg != nil {
@@ -293,8 +273,15 @@ func (p *WorkerPool) downstreamWorker() {
 	}
 }
 
-type offlineStoreAdapter struct{ store OfflineStore }
+type offlineStoreAdapter struct{ store types.OfflineStore }
 
-func (a *offlineStoreAdapter) Store(msg *gateway.Message) error {
-	return a.store.Store(context.Background(), msg)
+func (a *offlineStoreAdapter) Store(ctx context.Context, msg *gateway.Message) error {
+	return a.store.Store(ctx, msg)
+}
+
+func (a *offlineStoreAdapter) Fetch(ctx context.Context, userID string, afterSeq uint64) ([]*gateway.Message, error) {
+	return a.store.Fetch(ctx, userID, afterSeq)
+}
+func (a *offlineStoreAdapter) Delete(ctx context.Context, msgID string) error {
+	return a.store.Delete(ctx, msgID)
 }

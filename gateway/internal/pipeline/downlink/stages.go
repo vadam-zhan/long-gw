@@ -1,11 +1,13 @@
 package downlink
 
 import (
+	"context"
 	"log/slog"
 	"time"
 
 	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
 	"github.com/vadam-zhan/long-gw/gateway/internal/pipeline"
+	"github.com/vadam-zhan/long-gw/gateway/internal/types"
 )
 
 // File: gateway/internal/pipeline/downlink/stages.go
@@ -46,12 +48,6 @@ import (
 //   - UserID：用于日志
 //
 // ─────────────────────────────────────────────────────────────────────
-type SessionTarget interface {
-	Submit(msg *gateway.Message) bool
-	IsActive() bool
-	SessionID() string
-	UserID() string
-}
 
 // FanOutResult 汇总扇出投递的结果
 type FanOutResult struct {
@@ -61,30 +57,10 @@ type FanOutResult struct {
 	Offline int // 无活跃 Session（全部 Suspended/Closed）
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// SessionResolver：RouteStage 对 LocalRouter 的依赖接口
-//
-// 实现方：LocalRouter.Resolve
-// LocalRouter 维护三个索引：
-//
-//	"u:{uid}"    → GetUserSessions(uid)    → userSessions[uid]
-//	"r:{roomID}" → RoomMembers(roomID)     → rooms[roomID]
-//	"t:{topic}"  → TopicSubscribers(topic) → topics[topic]
-//
-// ─────────────────────────────────────────────────────────────────────
-type SessionResolver interface {
-	Resolve(to string) ([]SessionTarget, bool)
-}
-
-// OfflineStore：FanOutStage 存储无法投递消息的接口
-type OfflineStore interface {
-	Store(msg *gateway.Message) error
-}
-
 // Deps 打包下行 Pipeline 的依赖
 type Deps struct {
-	Resolver     SessionResolver
-	OfflineStore OfflineStore
+	Resolver     types.SessionResolver
+	OfflineStore types.OfflineStore
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -98,8 +74,8 @@ type DownlinkCtx struct {
 	Message *gateway.Message
 
 	// 目标会话由路由阶段进行填充，分发阶段向这些目标会话推送数据。
-	TargetSessions []SessionTarget // RouteStage 填充
-	FanOutResult   FanOutResult    // FanOutStage 填充
+	TargetSessions []types.SessionTarget // RouteStage 填充
+	FanOutResult   FanOutResult          // FanOutStage 填充
 }
 
 // BuildChain 组装下行 Pipeline
@@ -213,7 +189,7 @@ func IsExpired(expireAt int64) bool {
 //	  → gRPC GatewayInternal.PushToConn(connID, msg) → 远端节点投递
 //
 // ─────────────────────────────────────────────────────────────────────
-func RouteStage(resolver SessionResolver) pipeline.Stage[*DownlinkCtx] {
+func RouteStage(resolver types.SessionResolver) pipeline.Stage[*DownlinkCtx] {
 	return func(ctx *DownlinkCtx, next func()) {
 		msg := ctx.Message
 
@@ -321,14 +297,16 @@ func FilterStage() pipeline.Stage[*DownlinkCtx] {
 //	的问题不会影响其他 999,999 个客户端。
 //
 // ─────────────────────────────────────────────────────────────────────
-func FanOutStage(store OfflineStore) pipeline.Stage[*DownlinkCtx] {
+func FanOutStage(store types.OfflineStore) pipeline.Stage[*DownlinkCtx] {
 	return func(ctx *DownlinkCtx, next func()) {
 		msg := ctx.Message
 
+		ctx1 := context.Background()
+
 		// 场景B：全部离线（RouteStage 找不到本地 Session）
 		if ctx.FanOutResult.Offline > 0 {
-			if msg.Offline && msg.Qos >= gateway.QoS_QOS_AT_LEAST_ONCE && store != nil {
-				if err := store.Store(msg); err != nil {
+			if msg.Offline && msg.Qos >= gateway.QoS_AT_LEAST_ONCE && store != nil {
+				if err := store.Store(ctx1, msg); err != nil {
 					slog.Error("downlink: offline store failed",
 						"mid", msg.MsgId,
 						"to", msg.To,
@@ -364,7 +342,7 @@ func FanOutStage(store OfflineStore) pipeline.Stage[*DownlinkCtx] {
 				// writeCh 满：离线存储（仅限 QoS-1+ 且配置了 OfflineStore）
 				// 注意：只存前几个 drop，避免一个慢客户端的问题导致 OfflineStore 风暴
 				if msg.Offline && store != nil && result.Dropped <= 3 {
-					_ = store.Store(msg)
+					_ = store.Store(ctx1, msg)
 				}
 			}
 		}

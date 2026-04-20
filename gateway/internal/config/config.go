@@ -41,6 +41,7 @@ type GatewayConfig struct {
 
 type PoolConfig struct {
 	BizCode           string `json:"biz_code" mapstructure:"biz_code"` // im live message
+	UpstreamSender    string `json:"upstream_sender" mapstructure:"upstream_sender"`
 	UpstreamWorkers   int    `json:"upstream_workers"  mapstructure:"upstream_workers"`
 	UpstreamChanCap   int    `json:"upstream_chan_cap"  mapstructure:"upstream_chan_cap"`
 	DownstreamWorkers int    `json:"downstream_workers"  mapstructure:"downstream_workers"`

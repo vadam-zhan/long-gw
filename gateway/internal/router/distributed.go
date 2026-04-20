@@ -8,15 +8,6 @@ import (
 	"github.com/vadam-zhan/long-gw/gateway/internal/consts"
 )
 
-// DistributedRouterInterface 分布式路由接口
-type DistributedRouterInterface interface {
-	RegisterUser(ctx context.Context, userID, deviceID string) error
-	RefreshRoute(ctx context.Context, userID, deviceID string) error
-	UnregisterUser(ctx context.Context, userID, deviceID string) error
-	GetNodeByUserID(ctx context.Context, userID string) (string, error)
-	GetNodeByDeviceID(ctx context.Context, deviceID string) (string, error)
-}
-
 // DistributedRouter 分布式路由中心
 type DistributedRouter struct {
 	redisClient *redis.Client
@@ -42,7 +33,7 @@ func (dr *DistributedRouter) RegisterUser(ctx context.Context, userID, deviceID 
 }
 
 // RefreshRoute 刷新路由TTL
-func (dr *DistributedRouter) RefreshRoute(ctx context.Context, userID, deviceID string) error {
+func (dr *DistributedRouter) Refresh(ctx context.Context, userID, deviceID string) error {
 	pipe := dr.redisClient.Pipeline()
 	pipe.Expire(ctx, consts.GatewayRedis_User+userID, consts.RedisKeyExpireTime)
 	pipe.Expire(ctx, consts.GatewayRedis_Device+deviceID, consts.RedisKeyExpireTime)

@@ -8,9 +8,9 @@ import (
 	"time"
 
 	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
-	"github.com/vadam-zhan/long-gw/gateway/internal/connection"
 	"github.com/vadam-zhan/long-gw/gateway/internal/pipeline"
 	"github.com/vadam-zhan/long-gw/gateway/internal/session"
+	"github.com/vadam-zhan/long-gw/gateway/internal/types"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -75,25 +75,17 @@ import (
 //   → UplinkCtx 由 Factory 注入的闭包在创建时绑定好两者
 // ─────────────────────────────────────────────────────────────────────
 
-// Session 是 uplink stages 对 Session 的最小接口。
-// 只暴露 stages 实际需要的方法，避免 stages 对 Session 的过度依赖。
-type Session interface {
-	SubmitUpstream(msg *gateway.Message) error // SubmitStage 调用
-	UserID() string                            // RateLimitStage 调用（限流 key）
-	SessionID() string                         // TraceStage / MetricsStage 日志
-}
-
 // UplinkCtx 是上行 Pipeline 的上下文结构体。
 type UplinkCtx struct {
 	pipeline.BaseCtx
 
 	// Session：用于业务层操作（SubmitUpstream）
 	// 由 Factory 在闭包中绑定，stages 不知道具体的 Session 类型
-	Session Session
+	Session types.UplinkSession
 
 	// Conn：用于立即回错（不经 Session，直接写 writeCh）
 	// 注意：这里用的是 *Connection，不是 Session，因为回错是传输层操作
-	Conn *connection.Connection
+	Conn types.ConnSubmitter
 
 	// Message：当前处理的消息
 	Message *gateway.Message
@@ -110,7 +102,7 @@ type UplinkCtx struct {
 // 原因：错误回复是连接层的即时响应，不需要 QoS-1 重试，也不存离线。
 func (c *UplinkCtx) ReplyError(code int32, text string) {
 	errMsg := &gateway.Message{
-		Type: gateway.MsgType_MSG_TYPE_ERROR,
+		Type: gateway.SignalType_ERROR,
 	}
 	errMsg.TraceId = c.TraceID
 	if c.Message != nil {
@@ -191,8 +183,8 @@ func RecoverStage() pipeline.Stage[*UplinkCtx] {
 		defer func() {
 			if r := recover(); r != nil {
 				slog.Error("uplink: stage panic",
-					"conn", ctx.Conn.ConnID,
-					"uid", ctx.Conn.UserID,
+					"conn", ctx.Conn.GetConnID(),
+					"uid", ctx.Conn.GetUserID(),
 					"mid", ctx.Message.MsgId,
 					"panic", r,
 				)
@@ -382,15 +374,15 @@ func SubmitStage() pipeline.Stage[*UplinkCtx] {
 		if msg.Headers == nil {
 			msg.Headers = make(map[string]string)
 		}
-		msg.Headers["x-conn-id"] = ctx.Conn.ConnID
-		msg.Headers["x-device-type"] = ctx.Conn.DeviceType
+		msg.Headers["x-conn-id"] = ctx.Conn.GetConnID()
+		msg.Headers["x-device-type"] = ctx.Conn.GetDeviceType()
 		msg.Headers["x-gw-recv-ts"] = strconv.FormatInt(ctx.ReceivedAt.UnixMilli(), 10)
 		msg.Headers["x-trace-id"] = ctx.TraceID
 
 		// ② 填充 From 字段（从 Connection.UserID 读取）
 		// 格式："{bizCode}:{userID}"，业务后端用于识别发送方
 		if msg.From == "" {
-			msg.From = msg.BizCode + ":" + ctx.Conn.UserID
+			msg.From = msg.BizCode + ":" + ctx.Conn.GetUserID()
 		}
 
 		// ③ 核心调用：将消息转交给 Session，Session 再路由到 Worker
@@ -448,7 +440,7 @@ func NewChainAdapter(chain pipeline.Chain[*UplinkCtx]) *ChainAdapter {
 
 // Run 是 UpstreamHandler 调用的方法。
 // 这里完成了 Handler 层 → Pipeline 层 → Stage 的接口适配。
-func (a *ChainAdapter) Run(sess Session, conn *connection.Connection, msg *gateway.Message) {
+func (a *ChainAdapter) Run(sess types.UplinkSession, conn types.ConnSubmitter, msg *gateway.Message) {
 	ctx := &UplinkCtx{
 		BaseCtx: pipeline.BaseCtx{
 			ReceivedAt: time.Now(),

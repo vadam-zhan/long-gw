@@ -2,6 +2,8 @@ package svc
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -10,13 +12,14 @@ import (
 	gormlogger "gorm.io/gorm/logger"
 
 	"github.com/vadam-zhan/long-gw/gateway/internal/config"
-	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
-	"go.uber.org/zap"
+	"github.com/vadam-zhan/long-gw/gateway/internal/worker/storage/model"
 )
 
 type ServiceContext struct {
 	context.Context
-	Config      *config.Config
+
+	Config *config.Config
+
 	RedisClient *redis.Client
 	DB          *gorm.DB
 }
@@ -26,64 +29,72 @@ func NewServiceContext(ctx context.Context, c *config.Config) *ServiceContext {
 		Context: ctx,
 		Config:  c,
 	}
-
-	// 初始化 Redis
-	svc.initRedis(c)
-
-	// 初始化 MySQL
-	svc.initDatabase(c)
+	if err := svc.newRedis(c); err != nil {
+		panic(err)
+	}
+	if err := svc.newDB(c); err != nil {
+		panic(err)
+	}
 
 	return svc
 }
 
-func (s *ServiceContext) initRedis(c *config.Config) {
+func (s *ServiceContext) newRedis(c *config.Config) error {
+	slog.Info("redis config", "redis.Addr", c.Redis.Addr)
 	if c.Redis.Addr != "" {
-		s.RedisClient = redis.NewClient(&redis.Options{
-			Addr:     c.Redis.Addr,
-			Password: c.Redis.Password,
-			DB:       c.Redis.DB,
-			PoolSize: c.Redis.PoolSize,
-		})
-
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		defer cancel()
-		if err := s.RedisClient.Ping(ctx).Err(); err != nil {
-			logger.Fatal("redis connection failed", zap.Error(err))
-			s.RedisClient = nil
-		} else {
-			logger.Info("redis connected", zap.String("addr", c.Redis.Addr))
-		}
+		return fmt.Errorf("redis addr not configured")
 	}
+
+	s.RedisClient = redis.NewClient(&redis.Options{
+		Addr:     c.Redis.Addr,
+		Password: c.Redis.Password,
+		DB:       c.Redis.DB,
+		PoolSize: c.Redis.PoolSize,
+	})
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	if err := s.RedisClient.Ping(ctx).Err(); err != nil {
+		slog.Error("redis connection failed", "error", err)
+		s.RedisClient = nil
+		return fmt.Errorf("redis connection failed: %w", err)
+	}
+	slog.Info("redis connected", "addr", c.Redis.Addr)
+	return nil
 }
 
-func (s *ServiceContext) initDatabase(c *config.Config) {
+func (s *ServiceContext) newDB(c *config.Config) error {
+	slog.Info("database config", "dsn", c.Database.DSN, "max_open_conns", c.Database.MaxOpenConns)
 	if c.Database.DSN == "" {
-		logger.Fatal("mysql dsn not configured, offline storage disabled")
-		return
+		slog.Error("mysql dsn not configured, offline storage disabled")
+		return fmt.Errorf("mysql dsn not configured")
 	}
 
 	db, err := gorm.Open(mysql.Open(c.Database.DSN), &gorm.Config{
 		Logger: gormlogger.Default.LogMode(gormlogger.Info),
 	})
 	if err != nil {
-		logger.Fatal("mysql connection failed", zap.Error(err))
-		return
+		slog.Error("mysql connection failed", "error", err)
+		return fmt.Errorf("mysql connection failed: %w", err)
 	}
 
 	sqlDB, err := db.DB()
 	if err != nil {
-		logger.Fatal("get sql.DB failed", zap.Error(err))
-		return
+		slog.Error("get sql.DB failed", "error", err)
+		return fmt.Errorf("get sql.DB failed: %w", err)
 	}
 
 	sqlDB.SetMaxOpenConns(c.Database.MaxOpenConns)
 	sqlDB.SetMaxIdleConns(c.Database.MaxIdleConns)
 	sqlDB.SetConnMaxLifetime(time.Duration(c.Database.ConnMaxLife) * time.Second)
 
+	if err := db.AutoMigrate(&model.OfflineMessageModel{}); err != nil {
+		slog.Error("mysql migration failed", "error", err)
+		return fmt.Errorf("mysql migration failed: %w", err)
+	}
 	s.DB = db
-	logger.Info("mysql connected",
-		zap.String("dsn", c.Database.DSN),
-		zap.Int("max_open_conns", c.Database.MaxOpenConns))
+	slog.Info("mysql connected", "dsn", c.Database.DSN, "max_open_conns", c.Database.MaxOpenConns)
+
+	return nil
 }
 
 func (s *ServiceContext) Close() {

@@ -1,13 +1,12 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
 	"github.com/vadam-zhan/long-gw/gateway/internal/transport"
-	"go.uber.org/zap"
 )
 
 // WsHandler WebSocket 处理
@@ -32,7 +31,7 @@ func NewWsHandler() *WsHandler {
 func (h *WsHandler) UpgradeHandler(c *gin.Context) *websocket.Conn {
 	rawConn, err := h.upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
-		logger.Error("ws upgrade failed", zap.Error(err))
+		slog.Error("ws upgrade failed", "error", err)
 		return nil
 	}
 	return rawConn

@@ -2,10 +2,9 @@ package gatewaygrpc
 
 import (
 	"context"
+	"log/slog"
 
 	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
-	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
-	"go.uber.org/zap"
 )
 
 // GrpcServer gRPC 服务端实现
@@ -20,11 +19,10 @@ func NewGrpcServer() *GrpcServer {
 
 // PushMessage 处理推送消息请求
 func (s *GrpcServer) PushMessage(ctx context.Context, req *gateway.PushMessageReq) (*gateway.PushMessageResp, error) {
-	logger.Debug("grpc PushMessage received",
-		zap.String("receiver", req.Receiver),
-		zap.Int("payload_len", len(req.Payload)),
-		zap.String("push_type", req.PushType.String()),
-		zap.String("business_type", req.BusinessType.String()))
+	slog.Debug("grpc PushMessage received",
+		"receiver", req.Receiver,
+		"payload_len", len(req.Payload),
+		"business_type", req.BusinessType.String())
 
 	// go session.HandleConnection(transport.NewnGRPCSession(rawConn))
 

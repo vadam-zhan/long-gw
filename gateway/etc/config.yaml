@@ -30,14 +30,17 @@ upstream:
       - "localhost:9092"
     business_topics:
       im:
-        upstream_topic: "gateway-im-upstream"
-        downstream: "gateway-im-downstream"
-      # live:
-      #   upstream_topic: "gateway-live-upstream"
-      #   downstream: "gateway-live-downstream"
-      # message:
-      #   upstream_topic: "gateway-message-upstream"
-      #   downstream: "gateway-message-downstream"
+        upstream: "gw.im.up"
+        dlq: "gw.im.up.DLQ"
+        downstream: "gw.im.down"
+      live:
+        upstream: "gw.live.up"
+        dlq: "gw.live.up.DLQ"
+        downstream: "gw.live.down"
+      message:
+        upstream: "gw.message.up"
+        dlq: "gw.message.up.DLQ"
+        downstream: "gw.message.down"
   grpc:
     business_config:
       im:

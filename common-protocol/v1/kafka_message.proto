@@ -4,38 +4,39 @@ package gateway.v1;
 
 option go_package = "github.com/vadam-zhan/long-gw/proto/v1;gateway";
 
-import "v1/gateway.proto";
 import "v1/message.proto";
-
-// KafkaMessageType defines the direction and purpose of Kafka messages
-enum KafkaMessageType {
-    KafkaMessageType_UNSPECIFIED = 0;
-    // Upstream: gateway -> backend (client message forwarded)
-    UPSTREAM = 1;
-    // Downstream: backend -> gateway (response to be delivered to client)
-    DOWNSTREAM = 2;
-}
 
 // UpstreamKafkaMessage is sent from gateway to backend
 message UpstreamKafkaMessage {
-    string correlation_id = 1;      // UUID for request/response matching
-    string conn_id = 2;            // Connection identifier (for routing back)
-    string user_id = 3;            // Client user ID
-    string device_id = 4;          // Client device ID
-    SignalType original_type = 5;  // Original client message type
-    bytes payload = 6;             // Original message body
-    int64 timestamp = 7;          // Unix timestamp (ms)
-    BusinessType business_type = 8; // 消息属于哪个业务
+    string user_id = 1;                          // 用户 ID
+    string device_id = 2;                       // 设备 ID
+    string biz_code = 3;                         // 业务域标识
+    SignalType original_type = 4;         // 原始消息类型
+    string from = 5;                             // 发送方标识
+    string to = 6;                               // 路由地址
+    QoS qos = 7;                         // QoS 等级
+    bool offline = 8;                            // 离线存储标志
+    string trace_id = 9;                         // 追踪 ID
+    Codec body_codec = 10;               // 编码格式
+    CompressAlgo compress = 11;           // 压缩算法
+    map<string, string> headers = 12;            // 扩展元数据
+    string body_type = 13;                       // 业务子类型
+    bytes payload = 14;                          // 业务载荷
+    map<string, string> body_ext = 15;            // Body 扩展字段
 }
 
 // DownstreamKafkaMessage is sent from backend to gateway
 message DownstreamKafkaMessage {
-    string correlation_id = 1;     // Matches the upstream correlation_id
-    string conn_id = 2;           // Target connection (gateway uses to route)
-    string user_id = 3;           // Target user ID (for validation)
-    string device_id = 4;         // Target device ID (for validation)
-    SignalType target_type = 5;       // Message type to send to client
-    bytes payload = 6;             // Response body for client
-    int64 timestamp = 7;          // Unix timestamp (ms)
-    BusinessType business_type = 8; // 消息属于哪个业务
+    string to = 1;                              // 路由地址 "u:{uid}" | "r:{roomID}" | "t:{topic}"
+    string biz_code = 2;                         // 业务域标识
+    SignalType target_type = 3;           // 投递到客户端的消息类型
+    QoS qos = 4;                         // QoS 等级
+    bool offline = 5;                            // 离线存储标志
+    string trace_id = 6;                         // 追踪 ID
+    Codec body_codec = 7;                 // 编码格式
+    CompressAlgo compress = 8;            // 压缩算法
+    map<string, string> headers = 9;             // 扩展元数据
+    string body_type = 10;                        // 业务子类型
+    bytes payload = 11;                          // 业务载荷
+    map<string, string> body_ext = 12;           // Body 扩展字段
 }

@@ -2,14 +2,13 @@ package kafka
 
 import (
 	"context"
+	"log/slog"
 	"sync"
 
 	"github.com/segmentio/kafka-go"
 	pb "github.com/vadam-zhan/long-gw/common-protocol/v1"
 	"github.com/vadam-zhan/long-gw/gateway/internal/config"
-	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
 	"github.com/vadam-zhan/long-gw/gateway/internal/worker"
-	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -26,9 +25,9 @@ type Consumer struct {
 
 // NewConsumer creates a new Kafka consumer
 func NewConsumer(cfg *config.KafkaConfig, wm *worker.Manager, topics []string) *Consumer {
-	logger.Info("kafka consumer created",
-		zap.Strings("brokers", cfg.Brokers),
-		zap.Strings("topics", topics))
+	slog.Info("kafka consumer created",
+		"brokers", cfg.Brokers,
+		"topics", topics)
 
 	return &Consumer{
 		cfg:       cfg,
@@ -56,16 +55,16 @@ func (c *Consumer) Start(ctx context.Context) error {
 						if ctx.Err() != nil {
 							return
 						}
-						logger.Error("kafka fetch message error", zap.Error(err))
+						slog.Error("kafka fetch message error", "error", err)
 						continue
 					}
 
 					// Deserialize downstream message
 					downstreamMsg := &pb.Message{}
 					if err := proto.Unmarshal(msg.Value, downstreamMsg); err != nil {
-						logger.Error("failed to unmarshal downstream message",
-							zap.Error(err),
-							zap.Int64("offset", msg.Offset))
+						slog.Error("failed to unmarshal downstream message",
+							"error", err,
+							"offset", msg.Offset)
 						// Commit to avoid reprocessing poison messages
 						r.CommitMessages(ctx, msg)
 						continue
@@ -75,10 +74,17 @@ func (c *Consumer) Start(ctx context.Context) error {
 					job := worker.DownstreamJob{
 						Msg: downstreamMsg,
 					}
-					pool, ok := c.wm.GetPool(downstreamMsg.BizCode)
-					if !ok || !pool.SubmitDownstream(job) {
-						logger.Warn("worker pool full, message will be redelivered",
-							zap.Int64("offset", msg.Offset))
+					pool, err := c.wm.GetPool(downstreamMsg.BizCode)
+					if err != nil {
+						slog.Warn("worker pool not found, message will be redelivered",
+							"offset", msg.Offset)
+						// worker pool 拒绝 → 不 commit（消息会被重新投递）
+						// Do NOT commit - message will be redelivered when consumer rebalances
+						continue
+					}
+					if !pool.SubmitDownstream(job) {
+						slog.Warn("worker pool full, message will be redelivered",
+							"offset", msg.Offset)
 						// worker pool 拒绝 → 不 commit（消息会被重新投递）
 						// Do NOT commit - message will be redelivered when consumer rebalances
 						continue
@@ -86,14 +92,14 @@ func (c *Consumer) Start(ctx context.Context) error {
 
 					// Commit only after successfully accepted by worker pool
 					if err := r.CommitMessages(ctx, msg); err != nil {
-						logger.Error("failed to commit message", zap.Error(err))
+						slog.Error("failed to commit message", "error", err)
 					}
 				}
 			}
 		}(topic)
 	}
 
-	logger.Info("kafka consumer started")
+	slog.Info("kafka consumer started")
 	return nil
 }
 

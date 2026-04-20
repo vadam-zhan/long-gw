@@ -1,18 +1,17 @@
 package kafka
 
 import (
+	"log/slog"
+
 	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
 	"github.com/vadam-zhan/long-gw/gateway/internal/config"
-	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
-
-	"go.uber.org/zap"
 )
 
 // stringToBusinessType maps string business type keys to proto BusinessType
 var stringToBusinessType = map[string]gateway.BusinessType{
-	"im":      gateway.BusinessType_BusinessType_IM,
-	"live":    gateway.BusinessType_BusinessType_LIVE,
-	"message": gateway.BusinessType_BusinessType_MESSAGE,
+	"im":      gateway.BusinessType_IM,
+	"live":    gateway.BusinessType_LIVE,
+	"message": gateway.BusinessType_MESSAGE,
 }
 
 // TopicManager 业务类型到 Kafka Topic 的映射管理
@@ -28,10 +27,10 @@ func NewTopicManager(cfg *config.KafkaConfig) *TopicManager {
 
 	for key, topicCfg := range cfg.BusinessTopics {
 		tm.topics[key] = topicCfg
-		logger.Info("registered business topic",
-			zap.String("business", key),
-			zap.String("upstream", topicCfg.UpstreamTopic),
-			zap.String("downstream", topicCfg.DownstreamTopic))
+		slog.Info("registered business topic",
+			"business", key,
+			"upstream", topicCfg.UpstreamTopic,
+			"downstream", topicCfg.DownstreamTopic)
 	}
 
 	return tm
@@ -97,5 +96,5 @@ func StringToProtoBusinessType(s string) gateway.BusinessType {
 	if bt, ok := stringToBusinessType[s]; ok {
 		return bt
 	}
-	return gateway.BusinessType_BusinessType_UNSPECIFIED
+	return gateway.BusinessType_UNSPECIFIED
 }

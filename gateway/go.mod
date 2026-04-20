@@ -12,7 +12,7 @@ require (
 	github.com/soheilhy/cmux v0.1.5
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
-	github.com/vadam-zhan/long-gw/common-protocol v0.0.0-20260420104043-8f61813196b9
+	github.com/vadam-zhan/long-gw/common-protocol v0.0.0-20260420133828-0653039a2d00
 	go.uber.org/zap v1.27.1
 	google.golang.org/grpc v1.80.0
 	google.golang.org/protobuf v1.36.11
@@ -78,4 +78,5 @@ require (
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260120221211-b8f7ae30c516 // indirect
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 )

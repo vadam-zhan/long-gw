@@ -1,13 +1,13 @@
 package cmd
 
 import (
+	"log/slog"
 	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/vadam-zhan/long-gw/gateway/internal/config"
 	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
-	"go.uber.org/zap"
 )
 
 var cfgFile string
@@ -19,37 +19,22 @@ var rootCmd = &cobra.Command{
 		// 加载配置
 		cfg, err := config.Load(cfgFile)
 		if err != nil {
-			logger.Fatal("failed to load config", zap.Error(err))
+			slog.Error("failed to load config", "error", err)
 		}
 
 		// 初始化日志
-		logger.Init(cfg.Log.Level, cfg.Log.Format, cfg.Log.File)
+		logger.Init(cfg.Log.Level, cfg.Log.File)
 
 		// 输出配置信息
-		logger.Info("gateway config loaded",
-			zap.String("addr", cfg.Gateway.Addr),
-			zap.Uint64("max_conn", cfg.Gateway.MaxConnNum),
-			zap.Int("upstream_worker_num", cfg.Gateway.UpstreamWorkerNum),
-			zap.Int("downstream_worker_num", cfg.Gateway.DownstreamWorkerNum))
-		if cfg.Redis.Addr != "" {
-			logger.Info("redis config",
-				zap.String("addr", cfg.Redis.Addr))
-		}
-		if cfg.Database.DSN != "" {
-			logger.Info("database config",
-				zap.String("dsn", cfg.Database.DSN),
-				zap.Int("max_open_conns", cfg.Database.MaxOpenConns))
-		}
-
-		// 初始化AuthHandler
-		// connection.InitAuthHandler(cfg.Auth.Addr)
-		logger.Info("auth handler initialized",
-			zap.String("auth_addr", cfg.Auth.Addr))
+		slog.Info("gateway config loaded", "cfg", cfg)
 
 		// 创建并启动网关
-		gw := NewGatewayServer(cfg)
+		gw, err := NewGatewayServer(cfg)
+		if err != nil {
+			slog.Error("gateway start failed", "error", err)
+		}
 		if err := gw.Start(); err != nil {
-			logger.Fatal("gateway start failed", zap.Error(err))
+			slog.Error("gateway start failed", "error", err)
 		}
 	},
 }

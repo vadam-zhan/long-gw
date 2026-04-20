@@ -2,14 +2,14 @@ package storage
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
-	"gorm.io/gorm"
-
-	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
+	proto "github.com/vadam-zhan/long-gw/common-protocol/v1"
 	"github.com/vadam-zhan/long-gw/gateway/internal/worker/storage/model"
-	"go.uber.org/zap"
+
+	"gorm.io/gorm"
 )
 
 // MySQLStore MySQL 离线消息存储实现
@@ -18,63 +18,54 @@ type MySQLStore struct {
 }
 
 // NewMySQLStore 创建 MySQL 存储实例
-func NewMySQLStore(db *gorm.DB) OfflineStore {
+func NewMySQLStore(db *gorm.DB) *MySQLStore {
 	// 自动迁移表结构
 	db.AutoMigrate(&model.OfflineMessageModel{})
 	return &MySQLStore{db: db}
 }
 
 // Save 保存离线消息
-func (s *MySQLStore) Save(ctx context.Context, msg *OfflineMessage) error {
-	m := &model.OfflineMessageModel{
-		MsgID:      msg.MsgID,
-		UserID:     msg.UserID,
-		DeviceID:   msg.DeviceID,
-		FromUserID: msg.FromUserID,
-		MsgType:    int8(msg.MsgType),
-		RoomType:   msg.RoomType,
-		Payload:    msg.Payload,
-		SeqID:      msg.SeqID,
-	}
+func (s *MySQLStore) Store(ctx context.Context, msg *gateway.Message) error {
+	m := &model.OfflineMessageModel{}
 
 	result := s.db.WithContext(ctx).Create(m)
 	if result.Error != nil {
-		logger.Error("save offline message failed",
-			zap.String("msg_id", msg.MsgID),
-			zap.Error(result.Error))
+		slog.Error("save offline message failed",
+			"msg_id", msg.MsgId,
+			"error", result.Error)
 		return result.Error
 	}
 	return nil
 }
 
-// Get 获取用户离线消息
-func (s *MySQLStore) Get(ctx context.Context, userID string, limit int) ([]*OfflineMessage, error) {
+func (s *MySQLStore) Fetch(ctx context.Context, userID string, afterSeq uint64) ([]*proto.Message, error) {
 	var models []*model.OfflineMessageModel
 
 	result := s.db.WithContext(ctx).
-		Where("user_id = ? AND delivered_at IS NULL", userID).
+		Where("user_id = ? AND seq_id > ?", userID, afterSeq).
 		Order("seq_id ASC").
-		Limit(limit).
 		Find(&models)
 
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	messages := make([]*OfflineMessage, len(models))
-	for i, m := range models {
-		messages[i] = &OfflineMessage{
-			MsgID:      m.MsgID,
-			UserID:     m.UserID,
-			DeviceID:   m.DeviceID,
-			FromUserID: m.FromUserID,
-			MsgType:    gateway.BusinessType(m.MsgType),
-			RoomType:   m.RoomType,
-			Payload:    m.Payload,
-			SeqID:      m.SeqID,
-		}
+	messages := make([]*proto.Message, len(models))
+	for i := range models {
+		messages[i] = &proto.Message{}
 	}
 	return messages, nil
+}
+
+func (s *MySQLStore) Delete(ctx context.Context, msgID string) error {
+	result := s.db.WithContext(ctx).Delete(&model.OfflineMessageModel{MsgID: msgID})
+	if result.Error != nil {
+		slog.Error("delete offline message failed",
+			"msg_id", msgID,
+			"error", result.Error)
+		return result.Error
+	}
+	return nil
 }
 
 // MarkDelivered 标记消息已送达
@@ -86,14 +77,6 @@ func (s *MySQLStore) MarkDelivered(ctx context.Context, msgID string) error {
 	return result.Error
 }
 
-// Delete 删除离线消息
-func (s *MySQLStore) Delete(ctx context.Context, msgID string) error {
-	result := s.db.WithContext(ctx).
-		Where("msg_id = ?", msgID).
-		Delete(&model.OfflineMessageModel{})
-	return result.Error
-}
-
 // Count 获取用户离线消息数量
 func (s *MySQLStore) Count(ctx context.Context, userID string) (int64, error) {
 	var count int64
@@ -102,8 +85,4 @@ func (s *MySQLStore) Count(ctx context.Context, userID string) (int64, error) {
 		Where("user_id = ? AND delivered_at IS NULL", userID).
 		Count(&count)
 	return count, result.Error
-}
-
-func (s *MySQLStore) Store(ctx context.Context, msg *gateway.Message) error {
-	return nil
 }

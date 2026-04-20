@@ -7,8 +7,8 @@ import (
 	"github.com/segmentio/kafka-go"
 
 	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
+	"github.com/vadam-zhan/long-gw/gateway/internal/types"
 	"github.com/vadam-zhan/long-gw/gateway/internal/worker"
-	"github.com/vadam-zhan/long-gw/gateway/internal/worker/storage"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -16,9 +16,9 @@ import (
 type Consumer struct {
 	brokers      []string
 	topics       []string
-	pools        map[gateway.BusinessType]*worker.WorkerPool
+	pools        map[string]*worker.WorkerPool
 	registry     worker.ConnectionRegistry
-	offlineStore storage.OfflineStore
+	offlineStore types.OfflineStore
 	wg           sync.WaitGroup
 }
 
@@ -26,9 +26,9 @@ type Consumer struct {
 func NewConsumer(
 	brokers []string,
 	topics []string,
-	pools map[gateway.BusinessType]*worker.WorkerPool,
+	pools map[string]*worker.WorkerPool,
 	registry worker.ConnectionRegistry,
-	store storage.OfflineStore,
+	store types.OfflineStore,
 ) *Consumer {
 	return &Consumer{
 		brokers:      brokers,
@@ -74,17 +74,16 @@ func (c *Consumer) consumeTopic(ctx context.Context, topic string) {
 				continue
 			}
 
-			downstreamMsg := &gateway.DownstreamKafkaMessage{}
+			downstreamMsg := &gateway.Message{}
 			if err := proto.Unmarshal(msg.Value, downstreamMsg); err != nil {
 				reader.CommitMessages(ctx, msg)
 				continue
 			}
 
 			// 提交到对应业务类型的 pool
-			if pool, ok := c.pools[downstreamMsg.BusinessType]; ok {
+			if pool, ok := c.pools[downstreamMsg.BizCode]; ok {
 				pool.SubmitDownstream(worker.DownstreamJob{
-					Msg:    downstreamMsg,
-					Offset: msg.Offset,
+					Msg: downstreamMsg,
 				})
 			}
 

@@ -1,12 +1,11 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
-	"go.uber.org/zap"
 )
 
 // AdminHandler 管理接口处理
@@ -52,13 +51,13 @@ func (h *AdminHandler) KickHandler(c *gin.Context) {
 	conns, ok := localRouter.GetByUserID(req.UserID)
 	if ok {
 		for _, conn := range conns {
-			conn.Close()
+			conn.Close(nil)
 		}
 	}
 
-	logger.Info("kick user",
-		zap.String("user_id", req.UserID),
-		zap.String("reason", req.Reason))
+	slog.Info("kick user",
+		"user_id", req.UserID,
+		"reason", req.Reason)
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": 0,

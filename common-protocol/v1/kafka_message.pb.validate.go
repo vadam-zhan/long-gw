@@ -57,21 +57,35 @@ func (m *UpstreamKafkaMessage) validate(all bool) error {
 
 	var errors []error
 
-	// no validation rules for CorrelationId
-
-	// no validation rules for ConnId
-
 	// no validation rules for UserId
 
 	// no validation rules for DeviceId
 
+	// no validation rules for BizCode
+
 	// no validation rules for OriginalType
+
+	// no validation rules for From
+
+	// no validation rules for To
+
+	// no validation rules for Qos
+
+	// no validation rules for Offline
+
+	// no validation rules for TraceId
+
+	// no validation rules for BodyCodec
+
+	// no validation rules for Compress
+
+	// no validation rules for Headers
+
+	// no validation rules for BodyType
 
 	// no validation rules for Payload
 
-	// no validation rules for Timestamp
-
-	// no validation rules for BusinessType
+	// no validation rules for BodyExt
 
 	if len(errors) > 0 {
 		return UpstreamKafkaMessageMultiError(errors)
@@ -175,21 +189,29 @@ func (m *DownstreamKafkaMessage) validate(all bool) error {
 
 	var errors []error
 
-	// no validation rules for CorrelationId
+	// no validation rules for To
 
-	// no validation rules for ConnId
-
-	// no validation rules for UserId
-
-	// no validation rules for DeviceId
+	// no validation rules for BizCode
 
 	// no validation rules for TargetType
 
+	// no validation rules for Qos
+
+	// no validation rules for Offline
+
+	// no validation rules for TraceId
+
+	// no validation rules for BodyCodec
+
+	// no validation rules for Compress
+
+	// no validation rules for Headers
+
+	// no validation rules for BodyType
+
 	// no validation rules for Payload
 
-	// no validation rules for Timestamp
-
-	// no validation rules for BusinessType
+	// no validation rules for BodyExt
 
 	if len(errors) > 0 {
 		return DownstreamKafkaMessageMultiError(errors)
