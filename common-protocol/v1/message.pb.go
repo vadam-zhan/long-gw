@@ -7,12 +7,11 @@
 package gateway
 
 import (
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
-
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -25,78 +24,78 @@ const (
 type SignalType int32
 
 const (
-	SignalType_Signal_Type_UNSPECIFIED SignalType = 0
+	SignalType_SignalType_UNSPECIFIED SignalType = 0
 	// ── 控制面 (1–99) ── 网关内部，不转发给业务 ──────────────────────────────
-	SignalType_Signal_Type_HANDSHAKE     SignalType = 1 // Client→Gateway  初始认证握手
-	SignalType_Signal_Type_HANDSHAKE_ACK SignalType = 2 // Gateway→Client  握手结果
-	SignalType_Signal_Type_PING          SignalType = 3 // Client→Gateway  心跳探针
-	SignalType_Signal_Type_PONG          SignalType = 4 // Gateway→Client  心跳回应
-	SignalType_Signal_Type_KICK          SignalType = 5 // Gateway→Client  强制断连通知
-	SignalType_Signal_Type_ERROR         SignalType = 6 // 双向             错误通知
-	SignalType_Signal_Type_ACK           SignalType = 7 // 双向             QoS-1/2 确认帧
+	SignalType_HANDSHAKE     SignalType = 1 // Client→Gateway  初始认证握手
+	SignalType_HANDSHAKE_ACK SignalType = 2 // Gateway→Client  握手结果
+	SignalType_PING          SignalType = 3 // Client→Gateway  心跳探针
+	SignalType_PONG          SignalType = 4 // Gateway→Client  心跳回应
+	SignalType_KICK          SignalType = 5 // Gateway→Client  强制断连通知
+	SignalType_ERROR         SignalType = 6 // 双向             错误通知
+	SignalType_ACK           SignalType = 7 // 双向             QoS-1/2 确认帧
 	// ── 数据面通用 (100) ─────────────────────────────────────────────────────
-	SignalType_Signal_Type_DATA SignalType = 100 // 通用数据帧，BizCode+Body.type 细分路由
+	SignalType_DATA SignalType = 100 // 通用数据帧，BizCode+Body.type 细分路由
 	// ── IM 域 (101–199) ──────────────────────────────────────────────────────
-	SignalType_Signal_Type_IM_CHAT    SignalType = 101 // 单聊 / 群聊消息
-	SignalType_Signal_Type_IM_RECEIPT SignalType = 102 // 投递 / 已读回执
-	SignalType_Signal_Type_IM_REVOKE  SignalType = 103 // 消息撤回
-	SignalType_Signal_Type_IM_TYPING  SignalType = 104 // 正在输入指示
+	SignalType_IM_CHAT    SignalType = 101 // 单聊 / 群聊消息
+	SignalType_IM_RECEIPT SignalType = 102 // 投递 / 已读回执
+	SignalType_IM_REVOKE  SignalType = 103 // 消息撤回
+	SignalType_IM_TYPING  SignalType = 104 // 正在输入指示
 	// ── Push 域 (201–299) ────────────────────────────────────────────────────
-	SignalType_Signal_Type_PUSH_NOTIFY SignalType = 201 // 服务端主动推送
-	SignalType_Signal_Type_PUSH_ACK    SignalType = 202 // 客户端推送确认
+	SignalType_PUSH_NOTIFY SignalType = 201 // 服务端主动推送
+	SignalType_PUSH_ACK    SignalType = 202 // 客户端推送确认
 	// ── Live 域 (301–399) ────────────────────────────────────────────────────
-	SignalType_Signal_Type_LIVE_JOIN    SignalType = 301
-	SignalType_Signal_Type_LIVE_LEAVE   SignalType = 302
-	SignalType_Signal_Type_LIVE_COMMENT SignalType = 303
-	SignalType_Signal_Type_LIVE_GIFT    SignalType = 304
-	SignalType_Signal_Type_LIVE_SIGNAL  SignalType = 305
+	SignalType_LIVE_JOIN    SignalType = 301
+	SignalType_LIVE_LEAVE   SignalType = 302
+	SignalType_LIVE_COMMENT SignalType = 303
+	SignalType_LIVE_GIFT    SignalType = 304
+	SignalType_LIVE_SIGNAL  SignalType = 305
 )
 
 // Enum value maps for SignalType.
 var (
 	SignalType_name = map[int32]string{
-		0:   "Signal_Type_UNSPECIFIED",
-		1:   "Signal_Type_HANDSHAKE",
-		2:   "Signal_Type_HANDSHAKE_ACK",
-		3:   "Signal_Type_PING",
-		4:   "Signal_Type_PONG",
-		5:   "Signal_Type_KICK",
-		6:   "Signal_Type_ERROR",
-		7:   "Signal_Type_ACK",
-		100: "Signal_Type_DATA",
-		101: "Signal_Type_IM_CHAT",
-		102: "Signal_Type_IM_RECEIPT",
-		103: "Signal_Type_IM_REVOKE",
-		104: "Signal_Type_IM_TYPING",
-		201: "Signal_Type_PUSH_NOTIFY",
-		202: "Signal_Type_PUSH_ACK",
-		301: "Signal_Type_LIVE_JOIN",
-		302: "Signal_Type_LIVE_LEAVE",
-		303: "Signal_Type_LIVE_COMMENT",
-		304: "Signal_Type_LIVE_GIFT",
-		305: "Signal_Type_LIVE_SIGNAL",
+		0:   "SignalType_UNSPECIFIED",
+		1:   "HANDSHAKE",
+		2:   "HANDSHAKE_ACK",
+		3:   "PING",
+		4:   "PONG",
+		5:   "KICK",
+		6:   "ERROR",
+		7:   "ACK",
+		100: "DATA",
+		101: "IM_CHAT",
+		102: "IM_RECEIPT",
+		103: "IM_REVOKE",
+		104: "IM_TYPING",
+		201: "PUSH_NOTIFY",
+		202: "PUSH_ACK",
+		301: "LIVE_JOIN",
+		302: "LIVE_LEAVE",
+		303: "LIVE_COMMENT",
+		304: "LIVE_GIFT",
+		305: "LIVE_SIGNAL",
 	}
 	SignalType_value = map[string]int32{
-		"Signal_Type_UNSPECIFIED":   0,
-		"Signal_Type_HANDSHAKE":     1,
-		"Signal_Type_HANDSHAKE_ACK": 2,
-		"Signal_Type_PING":          3,
-		"Signal_Type_PONG":          4,
-		"Signal_Type_KICK":          5,
-		"Signal_Type_ERROR":         6,
-		"Signal_Type_ACK":           7,
-		"Signal_Type_DATA":          100,
-		"Signal_Type_IM_CHAT":       101,
-		"Signal_Type_IM_RECEIPT":    102,
-		"Signal_Type_IM_REVOKE":     103,
-		"Signal_Type_IM_TYPING":     104,
-		"Signal_Type_PUSH_NOTIFY":   201,
-		"Signal_Type_PUSH_ACK":      202,
-		"Signal_Type_LIVE_JOIN":     301,
-		"Signal_Type_LIVE_LEAVE":    302,
-		"Signal_Type_LIVE_COMMENT":  303,
-		"Signal_Type_LIVE_GIFT":     304,
-		"Signal_Type_LIVE_SIGNAL":   305,
+		"SignalType_UNSPECIFIED": 0,
+		"HANDSHAKE":              1,
+		"HANDSHAKE_ACK":          2,
+		"PING":                   3,
+		"PONG":                   4,
+		"KICK":                   5,
+		"ERROR":                  6,
+		"ACK":                    7,
+		"DATA":                   100,
+		"IM_CHAT":                101,
+		"IM_RECEIPT":             102,
+		"IM_REVOKE":              103,
+		"IM_TYPING":              104,
+		"PUSH_NOTIFY":            201,
+		"PUSH_ACK":               202,
+		"LIVE_JOIN":              301,
+		"LIVE_LEAVE":             302,
+		"LIVE_COMMENT":           303,
+		"LIVE_GIFT":              304,
+		"LIVE_SIGNAL":            305,
 	}
 )
 
@@ -131,22 +130,22 @@ func (SignalType) EnumDescriptor() ([]byte, []int) {
 type QoS int32
 
 const (
-	QoS_QOS_AT_MOST_ONCE  QoS = 0 // 最多一次：发完即忘，无 ACK（弹幕、位置）
-	QoS_QOS_AT_LEAST_ONCE QoS = 1 // 至少一次：SDK 重试直到收到 ACK，可能重复（IM）
-	QoS_QOS_EXACTLY_ONCE  QoS = 2 // 恰好一次：接收端去重（金融事件）
+	QoS_AT_MOST_ONCE  QoS = 0 // 最多一次：发完即忘，无 ACK（弹幕、位置）
+	QoS_AT_LEAST_ONCE QoS = 1 // 至少一次：SDK 重试直到收到 ACK，可能重复（IM）
+	QoS_EXACTLY_ONCE  QoS = 2 // 恰好一次：接收端去重（金融事件）
 )
 
 // Enum value maps for QoS.
 var (
 	QoS_name = map[int32]string{
-		0: "QOS_AT_MOST_ONCE",
-		1: "QOS_AT_LEAST_ONCE",
-		2: "QOS_EXACTLY_ONCE",
+		0: "AT_MOST_ONCE",
+		1: "AT_LEAST_ONCE",
+		2: "EXACTLY_ONCE",
 	}
 	QoS_value = map[string]int32{
-		"QOS_AT_MOST_ONCE":  0,
-		"QOS_AT_LEAST_ONCE": 1,
-		"QOS_EXACTLY_ONCE":  2,
+		"AT_MOST_ONCE":  0,
+		"AT_LEAST_ONCE": 1,
+		"EXACTLY_ONCE":  2,
 	}
 )
 
@@ -182,24 +181,24 @@ type Codec int32
 
 const (
 	Codec_Codec_UNSPECIFIED Codec = 0 // 由实现自行约定（历史兼容）
-	Codec_Codec_JSON        Codec = 1 // 调试友好，默认
-	Codec_Codec_PROTOBUF    Codec = 2 // 生产首选，紧凑高效
-	Codec_Codec_MSGPACK     Codec = 3 // 动态语言场景
+	Codec_JSON              Codec = 1 // 调试友好，默认
+	Codec_PROTOBUF          Codec = 2 // 生产首选，紧凑高效
+	Codec_MSGPACK           Codec = 3 // 动态语言场景
 )
 
 // Enum value maps for Codec.
 var (
 	Codec_name = map[int32]string{
 		0: "Codec_UNSPECIFIED",
-		1: "Codec_JSON",
-		2: "Codec_PROTOBUF",
-		3: "Codec_MSGPACK",
+		1: "JSON",
+		2: "PROTOBUF",
+		3: "MSGPACK",
 	}
 	Codec_value = map[string]int32{
 		"Codec_UNSPECIFIED": 0,
-		"Codec_JSON":        1,
-		"Codec_PROTOBUF":    2,
-		"Codec_MSGPACK":     3,
+		"JSON":              1,
+		"PROTOBUF":          2,
+		"MSGPACK":           3,
 	}
 )
 
@@ -234,25 +233,25 @@ func (Codec) EnumDescriptor() ([]byte, []int) {
 type CompressAlgo int32
 
 const (
-	CompressAlgo_Compress_Algo_NONE   CompressAlgo = 0
-	CompressAlgo_Compress_Algo_GZIP   CompressAlgo = 1
-	CompressAlgo_Compress_Algo_ZSTD   CompressAlgo = 2 // 推荐：压缩比与速度最优
-	CompressAlgo_Compress_Algo_SNAPPY CompressAlgo = 3 // 低延迟场景
+	CompressAlgo_NONE   CompressAlgo = 0
+	CompressAlgo_GZIP   CompressAlgo = 1
+	CompressAlgo_ZSTD   CompressAlgo = 2 // 推荐：压缩比与速度最优
+	CompressAlgo_SNAPPY CompressAlgo = 3 // 低延迟场景
 )
 
 // Enum value maps for CompressAlgo.
 var (
 	CompressAlgo_name = map[int32]string{
-		0: "Compress_Algo_NONE",
-		1: "Compress_Algo_GZIP",
-		2: "Compress_Algo_ZSTD",
-		3: "Compress_Algo_SNAPPY",
+		0: "NONE",
+		1: "GZIP",
+		2: "ZSTD",
+		3: "SNAPPY",
 	}
 	CompressAlgo_value = map[string]int32{
-		"Compress_Algo_NONE":   0,
-		"Compress_Algo_GZIP":   1,
-		"Compress_Algo_ZSTD":   2,
-		"Compress_Algo_SNAPPY": 3,
+		"NONE":   0,
+		"GZIP":   1,
+		"ZSTD":   2,
+		"SNAPPY": 3,
 	}
 )
 
@@ -396,7 +395,7 @@ func (x *Message) GetType() SignalType {
 	if x != nil {
 		return x.Type
 	}
-	return SignalType_Signal_Type_UNSPECIFIED
+	return SignalType_SignalType_UNSPECIFIED
 }
 
 func (x *Message) GetMsgId() string {
@@ -438,7 +437,7 @@ func (x *Message) GetQos() QoS {
 	if x != nil {
 		return x.Qos
 	}
-	return QoS_QOS_AT_MOST_ONCE
+	return QoS_AT_MOST_ONCE
 }
 
 func (x *Message) GetAckId() string {
@@ -487,7 +486,7 @@ func (x *Message) GetCompress() CompressAlgo {
 	if x != nil {
 		return x.Compress
 	}
-	return CompressAlgo_Compress_Algo_NONE
+	return CompressAlgo_NONE
 }
 
 func (x *Message) GetHeaders() map[string]string {
@@ -2029,44 +2028,46 @@ const file_v1_message_proto_rawDesc = "" +
 	"\tgift_name\x18\x03 \x01(\tR\bgiftName\x12\x14\n" +
 	"\x05count\x18\x04 \x01(\x05R\x05count\x12\x1d\n" +
 	"\n" +
-	"total_cost\x18\x05 \x01(\x03R\ttotalCost*\x9d\x04\n" +
+	"total_cost\x18\x05 \x01(\x03R\ttotalCost*\xb8\x02\n" +
 	"\n" +
-	"SignalType\x12\x1b\n" +
-	"\x17Signal_Type_UNSPECIFIED\x10\x00\x12\x19\n" +
-	"\x15Signal_Type_HANDSHAKE\x10\x01\x12\x1d\n" +
-	"\x19Signal_Type_HANDSHAKE_ACK\x10\x02\x12\x14\n" +
-	"\x10Signal_Type_PING\x10\x03\x12\x14\n" +
-	"\x10Signal_Type_PONG\x10\x04\x12\x14\n" +
-	"\x10Signal_Type_KICK\x10\x05\x12\x15\n" +
-	"\x11Signal_Type_ERROR\x10\x06\x12\x13\n" +
-	"\x0fSignal_Type_ACK\x10\a\x12\x14\n" +
-	"\x10Signal_Type_DATA\x10d\x12\x17\n" +
-	"\x13Signal_Type_IM_CHAT\x10e\x12\x1a\n" +
-	"\x16Signal_Type_IM_RECEIPT\x10f\x12\x19\n" +
-	"\x15Signal_Type_IM_REVOKE\x10g\x12\x19\n" +
-	"\x15Signal_Type_IM_TYPING\x10h\x12\x1c\n" +
-	"\x17Signal_Type_PUSH_NOTIFY\x10\xc9\x01\x12\x19\n" +
-	"\x14Signal_Type_PUSH_ACK\x10\xca\x01\x12\x1a\n" +
-	"\x15Signal_Type_LIVE_JOIN\x10\xad\x02\x12\x1b\n" +
-	"\x16Signal_Type_LIVE_LEAVE\x10\xae\x02\x12\x1d\n" +
-	"\x18Signal_Type_LIVE_COMMENT\x10\xaf\x02\x12\x1a\n" +
-	"\x15Signal_Type_LIVE_GIFT\x10\xb0\x02\x12\x1c\n" +
-	"\x17Signal_Type_LIVE_SIGNAL\x10\xb1\x02*H\n" +
-	"\x03QoS\x12\x14\n" +
-	"\x10QOS_AT_MOST_ONCE\x10\x00\x12\x15\n" +
-	"\x11QOS_AT_LEAST_ONCE\x10\x01\x12\x14\n" +
-	"\x10QOS_EXACTLY_ONCE\x10\x02*U\n" +
+	"SignalType\x12\x1a\n" +
+	"\x16SignalType_UNSPECIFIED\x10\x00\x12\r\n" +
+	"\tHANDSHAKE\x10\x01\x12\x11\n" +
+	"\rHANDSHAKE_ACK\x10\x02\x12\b\n" +
+	"\x04PING\x10\x03\x12\b\n" +
+	"\x04PONG\x10\x04\x12\b\n" +
+	"\x04KICK\x10\x05\x12\t\n" +
+	"\x05ERROR\x10\x06\x12\a\n" +
+	"\x03ACK\x10\a\x12\b\n" +
+	"\x04DATA\x10d\x12\v\n" +
+	"\aIM_CHAT\x10e\x12\x0e\n" +
+	"\n" +
+	"IM_RECEIPT\x10f\x12\r\n" +
+	"\tIM_REVOKE\x10g\x12\r\n" +
+	"\tIM_TYPING\x10h\x12\x10\n" +
+	"\vPUSH_NOTIFY\x10\xc9\x01\x12\r\n" +
+	"\bPUSH_ACK\x10\xca\x01\x12\x0e\n" +
+	"\tLIVE_JOIN\x10\xad\x02\x12\x0f\n" +
+	"\n" +
+	"LIVE_LEAVE\x10\xae\x02\x12\x11\n" +
+	"\fLIVE_COMMENT\x10\xaf\x02\x12\x0e\n" +
+	"\tLIVE_GIFT\x10\xb0\x02\x12\x10\n" +
+	"\vLIVE_SIGNAL\x10\xb1\x02*<\n" +
+	"\x03QoS\x12\x10\n" +
+	"\fAT_MOST_ONCE\x10\x00\x12\x11\n" +
+	"\rAT_LEAST_ONCE\x10\x01\x12\x10\n" +
+	"\fEXACTLY_ONCE\x10\x02*C\n" +
 	"\x05Codec\x12\x15\n" +
-	"\x11Codec_UNSPECIFIED\x10\x00\x12\x0e\n" +
+	"\x11Codec_UNSPECIFIED\x10\x00\x12\b\n" +
+	"\x04JSON\x10\x01\x12\f\n" +
+	"\bPROTOBUF\x10\x02\x12\v\n" +
+	"\aMSGPACK\x10\x03*8\n" +
+	"\fCompressAlgo\x12\b\n" +
+	"\x04NONE\x10\x00\x12\b\n" +
+	"\x04GZIP\x10\x01\x12\b\n" +
+	"\x04ZSTD\x10\x02\x12\n" +
 	"\n" +
-	"Codec_JSON\x10\x01\x12\x12\n" +
-	"\x0eCodec_PROTOBUF\x10\x02\x12\x11\n" +
-	"\rCodec_MSGPACK\x10\x03*p\n" +
-	"\fCompressAlgo\x12\x16\n" +
-	"\x12Compress_Algo_NONE\x10\x00\x12\x16\n" +
-	"\x12Compress_Algo_GZIP\x10\x01\x12\x16\n" +
-	"\x12Compress_Algo_ZSTD\x10\x02\x12\x18\n" +
-	"\x14Compress_Algo_SNAPPY\x10\x03B0Z.github.com/vadam-zhan/long-gw/proto/v1;gatewayb\x06proto3"
+	"\x06SNAPPY\x10\x03B0Z.github.com/vadam-zhan/long-gw/proto/v1;gatewayb\x06proto3"
 
 var (
 	file_v1_message_proto_rawDescOnce sync.Once

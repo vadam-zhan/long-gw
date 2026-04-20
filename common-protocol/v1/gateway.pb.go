@@ -25,25 +25,25 @@ const (
 type BusinessType int32
 
 const (
-	BusinessType_BusinessType_UNSPECIFIED BusinessType = 0
-	BusinessType_BusinessType_IM          BusinessType = 1 // IM 业务
-	BusinessType_BusinessType_LIVE        BusinessType = 2 // 直播业务
-	BusinessType_BusinessType_MESSAGE     BusinessType = 3 // 消息中心业务
+	BusinessType_UNSPECIFIED BusinessType = 0
+	BusinessType_IM          BusinessType = 1 // IM 业务
+	BusinessType_LIVE        BusinessType = 2 // 直播业务
+	BusinessType_MESSAGE     BusinessType = 3 // 消息中心业务
 )
 
 // Enum value maps for BusinessType.
 var (
 	BusinessType_name = map[int32]string{
-		0: "BusinessType_UNSPECIFIED",
-		1: "BusinessType_IM",
-		2: "BusinessType_LIVE",
-		3: "BusinessType_MESSAGE",
+		0: "UNSPECIFIED",
+		1: "IM",
+		2: "LIVE",
+		3: "MESSAGE",
 	}
 	BusinessType_value = map[string]int32{
-		"BusinessType_UNSPECIFIED": 0,
-		"BusinessType_IM":          1,
-		"BusinessType_LIVE":        2,
-		"BusinessType_MESSAGE":     3,
+		"UNSPECIFIED": 0,
+		"IM":          1,
+		"LIVE":        2,
+		"MESSAGE":     3,
 	}
 )
 
@@ -131,7 +131,7 @@ func (x *PushMessageReq) GetBusinessType() BusinessType {
 	if x != nil {
 		return x.BusinessType
 	}
-	return BusinessType_BusinessType_UNSPECIFIED
+	return BusinessType_UNSPECIFIED
 }
 
 type PushMessageResp struct {
@@ -198,12 +198,12 @@ const file_v1_gateway_proto_rawDesc = "" +
 	"\rbusiness_type\x18\x04 \x01(\x0e2\x18.gateway.v1.BusinessTypeR\fbusinessType\"E\n" +
 	"\x0fPushMessageResp\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage*r\n" +
-	"\fBusinessType\x12\x1c\n" +
-	"\x18BusinessType_UNSPECIFIED\x10\x00\x12\x13\n" +
-	"\x0fBusinessType_IM\x10\x01\x12\x15\n" +
-	"\x11BusinessType_LIVE\x10\x02\x12\x18\n" +
-	"\x14BusinessType_MESSAGE\x10\x032Q\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage*>\n" +
+	"\fBusinessType\x12\x0f\n" +
+	"\vUNSPECIFIED\x10\x00\x12\x06\n" +
+	"\x02IM\x10\x01\x12\b\n" +
+	"\x04LIVE\x10\x02\x12\v\n" +
+	"\aMESSAGE\x10\x032Q\n" +
 	"\aGateway\x12F\n" +
 	"\vPushMessage\x12\x1a.gateway.v1.PushMessageReq\x1a\x1b.gateway.v1.PushMessageRespB0Z.github.com/vadam-zhan/long-gw/proto/v1;gatewayb\x06proto3"
 

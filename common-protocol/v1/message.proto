@@ -9,7 +9,7 @@ option go_package = "github.com/vadam-zhan/long-gw/proto/v1;gateway";
 // ─────────────────────────────────────────────────────────────────────────────
 
 enum SignalType {
-    UNSPECIFIED = 0;
+    SignalType_UNSPECIFIED = 0;
 
     // ── 控制面 (1–99) ── 网关内部，不转发给业务 ──────────────────────────────
     HANDSHAKE     = 1;  // Client→Gateway  初始认证握手
@@ -53,7 +53,7 @@ enum QoS {
 
 // Codec 编码格式：作用于 Body.payload 字节的序列化方式
 enum Codec {
-  UNSPECIFIED = 0;  // 由实现自行约定（历史兼容）
+  Codec_UNSPECIFIED = 0;  // 由实现自行约定（历史兼容）
   JSON        = 1;  // 调试友好，默认
   PROTOBUF    = 2;  // 生产首选，紧凑高效
   MSGPACK     = 3;  // 动态语言场景

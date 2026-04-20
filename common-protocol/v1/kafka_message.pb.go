@@ -25,24 +25,24 @@ const (
 type KafkaMessageType int32
 
 const (
-	KafkaMessageType_KAFKA_MSG_UNSPECIFIED KafkaMessageType = 0
+	KafkaMessageType_KafkaMessageType_UNSPECIFIED KafkaMessageType = 0
 	// Upstream: gateway -> backend (client message forwarded)
-	KafkaMessageType_KAFKA_MSG_UPSTREAM KafkaMessageType = 1
+	KafkaMessageType_UPSTREAM KafkaMessageType = 1
 	// Downstream: backend -> gateway (response to be delivered to client)
-	KafkaMessageType_KAFKA_MSG_DOWNSTREAM KafkaMessageType = 2
+	KafkaMessageType_DOWNSTREAM KafkaMessageType = 2
 )
 
 // Enum value maps for KafkaMessageType.
 var (
 	KafkaMessageType_name = map[int32]string{
-		0: "KAFKA_MSG_UNSPECIFIED",
-		1: "KAFKA_MSG_UPSTREAM",
-		2: "KAFKA_MSG_DOWNSTREAM",
+		0: "KafkaMessageType_UNSPECIFIED",
+		1: "UPSTREAM",
+		2: "DOWNSTREAM",
 	}
 	KafkaMessageType_value = map[string]int32{
-		"KAFKA_MSG_UNSPECIFIED": 0,
-		"KAFKA_MSG_UPSTREAM":    1,
-		"KAFKA_MSG_DOWNSTREAM":  2,
+		"KafkaMessageType_UNSPECIFIED": 0,
+		"UPSTREAM":                     1,
+		"DOWNSTREAM":                   2,
 	}
 )
 
@@ -150,7 +150,7 @@ func (x *UpstreamKafkaMessage) GetOriginalType() SignalType {
 	if x != nil {
 		return x.OriginalType
 	}
-	return SignalType_Signal_Type_UNSPECIFIED
+	return SignalType_SignalType_UNSPECIFIED
 }
 
 func (x *UpstreamKafkaMessage) GetPayload() []byte {
@@ -171,7 +171,7 @@ func (x *UpstreamKafkaMessage) GetBusinessType() BusinessType {
 	if x != nil {
 		return x.BusinessType
 	}
-	return BusinessType_BusinessType_UNSPECIFIED
+	return BusinessType_UNSPECIFIED
 }
 
 // DownstreamKafkaMessage is sent from backend to gateway
@@ -251,7 +251,7 @@ func (x *DownstreamKafkaMessage) GetTargetType() SignalType {
 	if x != nil {
 		return x.TargetType
 	}
-	return SignalType_Signal_Type_UNSPECIFIED
+	return SignalType_SignalType_UNSPECIFIED
 }
 
 func (x *DownstreamKafkaMessage) GetPayload() []byte {
@@ -272,7 +272,7 @@ func (x *DownstreamKafkaMessage) GetBusinessType() BusinessType {
 	if x != nil {
 		return x.BusinessType
 	}
-	return BusinessType_BusinessType_UNSPECIFIED
+	return BusinessType_UNSPECIFIED
 }
 
 var File_v1_kafka_message_proto protoreflect.FileDescriptor
@@ -299,11 +299,12 @@ const file_v1_kafka_message_proto_rawDesc = "" +
 	"targetType\x12\x18\n" +
 	"\apayload\x18\x06 \x01(\fR\apayload\x12\x1c\n" +
 	"\ttimestamp\x18\a \x01(\x03R\ttimestamp\x12=\n" +
-	"\rbusiness_type\x18\b \x01(\x0e2\x18.gateway.v1.BusinessTypeR\fbusinessType*_\n" +
-	"\x10KafkaMessageType\x12\x19\n" +
-	"\x15KAFKA_MSG_UNSPECIFIED\x10\x00\x12\x16\n" +
-	"\x12KAFKA_MSG_UPSTREAM\x10\x01\x12\x18\n" +
-	"\x14KAFKA_MSG_DOWNSTREAM\x10\x02B0Z.github.com/vadam-zhan/long-gw/proto/v1;gatewayb\x06proto3"
+	"\rbusiness_type\x18\b \x01(\x0e2\x18.gateway.v1.BusinessTypeR\fbusinessType*R\n" +
+	"\x10KafkaMessageType\x12 \n" +
+	"\x1cKafkaMessageType_UNSPECIFIED\x10\x00\x12\f\n" +
+	"\bUPSTREAM\x10\x01\x12\x0e\n" +
+	"\n" +
+	"DOWNSTREAM\x10\x02B0Z.github.com/vadam-zhan/long-gw/proto/v1;gatewayb\x06proto3"
 
 var (
 	file_v1_kafka_message_proto_rawDescOnce sync.Once

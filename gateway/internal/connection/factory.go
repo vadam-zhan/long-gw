@@ -142,7 +142,7 @@ func (f *Factory) doHandshake(ctx context.Context, tp transport.Transport) (auth
 	if err != nil {
 		return authInfo{}, nil, fmt.Errorf("decode auth request: %w", err)
 	}
-	if msg.Type != gateway.MsgType_MSG_TYPE_HANDSHAKE {
+	if msg.Type != gateway.SignalType_Signal_Type_HANDSHAKE {
 		return authInfo{}, nil, fmt.Errorf("expected AuthRequest, got %v", msg.Type)
 	}
 
