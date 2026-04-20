@@ -3,17 +3,10 @@ package upstream
 import (
 	"context"
 
-	"github.com/vadam-zhan/long-gw/gateway/internal/types"
+	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
 )
 
-// Sender 上行消息发送接口
-type Sender interface {
-	// Send 发送上行消息
-	Send(ctx context.Context, req *types.UpstreamRequest) error
-
-	// Kind 返回发送器类型
-	Kind() types.UpstreamKind
-
-	Close()
+// UpstreamSender
+type UpstreamSender interface {
+	Send(ctx context.Context, msg *gateway.Message) error
 }
-

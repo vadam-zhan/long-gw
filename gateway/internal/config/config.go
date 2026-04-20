@@ -9,12 +9,14 @@ import (
 
 // Config 应用配置
 type Config struct {
-	Gateway  GatewayConfig  `json:"gateway" mapstructure:"gateway"`
-	Redis    RedisConfig    `json:"redis" mapstructure:"redis"`
-	Upstream InteractConfig `json:"upstream" mapstructure:"upstream"`
-	Auth     AuthConfig     `json:"auth" mapstructure:"auth"`
-	Log      LogConfig      `json:"log" mapstructure:"log"`
-	Database DatabaseConfig `json:"database" mapstructure:"database"`
+	Gateway  GatewayConfig         `json:"gateway" mapstructure:"gateway"`
+	Redis    RedisConfig           `json:"redis" mapstructure:"redis"`
+	Session  SessionConfig         `json:"session" mapstructure:"session"`
+	Workers  map[string]PoolConfig `json:"workers" mapstructure:"workers"`
+	Upstream InteractConfig        `json:"upstream" mapstructure:"upstream"`
+	Auth     AuthConfig            `json:"auth" mapstructure:"auth"`
+	Log      LogConfig             `json:"log" mapstructure:"log"`
+	Database DatabaseConfig        `json:"database" mapstructure:"database"`
 }
 
 // DatabaseConfig MySQL 数据库配置
@@ -35,6 +37,18 @@ type GatewayConfig struct {
 	WriteBufSize        int           `json:"write_buf_size" mapstructure:"write_buf_size"`
 	Profile             ProfileConfig `json:"profile" mapstructure:"profile"`
 	Metrics             MetricsConfig `json:"metrics" mapstructure:"metrics"`
+}
+
+type PoolConfig struct {
+	BizCode           string `json:"biz_code" mapstructure:"biz_code"` // im live message
+	UpstreamWorkers   int    `json:"upstream_workers"  mapstructure:"upstream_workers"`
+	UpstreamChanCap   int    `json:"upstream_chan_cap"  mapstructure:"upstream_chan_cap"`
+	DownstreamWorkers int    `json:"downstream_workers"  mapstructure:"downstream_workers"`
+	DownstreamChanCap int    `json:"downstream_chan_cap" mapstructure:"downstream_chan_cap"`
+}
+
+type SessionConfig struct {
+	SuspendTTL int `json:"suspend_ttl" mapstructure:"suspend_ttl"`
 }
 
 // ProfileConfig pprof配置

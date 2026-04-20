@@ -9,36 +9,36 @@ option go_package = "github.com/vadam-zhan/long-gw/proto/v1;gateway";
 // ─────────────────────────────────────────────────────────────────────────────
 
 enum SignalType {
-    Signal_Type_UNSPECIFIED = 0;
+    UNSPECIFIED = 0;
 
     // ── 控制面 (1–99) ── 网关内部，不转发给业务 ──────────────────────────────
-    Signal_Type_HANDSHAKE     = 1;  // Client→Gateway  初始认证握手
-    Signal_Type_HANDSHAKE_ACK = 2;  // Gateway→Client  握手结果
-    Signal_Type_PING          = 3;  // Client→Gateway  心跳探针
-    Signal_Type_PONG          = 4;  // Gateway→Client  心跳回应
-    Signal_Type_KICK          = 5;  // Gateway→Client  强制断连通知
-    Signal_Type_ERROR         = 6;  // 双向             错误通知
-    Signal_Type_ACK           = 7;  // 双向             QoS-1/2 确认帧
+    HANDSHAKE     = 1;  // Client→Gateway  初始认证握手
+    HANDSHAKE_ACK = 2;  // Gateway→Client  握手结果
+    PING          = 3;  // Client→Gateway  心跳探针
+    PONG          = 4;  // Gateway→Client  心跳回应
+    KICK          = 5;  // Gateway→Client  强制断连通知
+    ERROR         = 6;  // 双向             错误通知
+    ACK           = 7;  // 双向             QoS-1/2 确认帧
 
     // ── 数据面通用 (100) ─────────────────────────────────────────────────────
-    Signal_Type_DATA = 100;         // 通用数据帧，BizCode+Body.type 细分路由
+    DATA = 100;         // 通用数据帧，BizCode+Body.type 细分路由
 
     // ── IM 域 (101–199) ──────────────────────────────────────────────────────
-    Signal_Type_IM_CHAT    = 101;   // 单聊 / 群聊消息
-    Signal_Type_IM_RECEIPT = 102;   // 投递 / 已读回执
-    Signal_Type_IM_REVOKE  = 103;   // 消息撤回
-    Signal_Type_IM_TYPING  = 104;   // 正在输入指示
+    IM_CHAT    = 101;   // 单聊 / 群聊消息
+    IM_RECEIPT = 102;   // 投递 / 已读回执
+    IM_REVOKE  = 103;   // 消息撤回
+    IM_TYPING  = 104;   // 正在输入指示
 
     // ── Push 域 (201–299) ────────────────────────────────────────────────────
-    Signal_Type_PUSH_NOTIFY = 201;  // 服务端主动推送
-    Signal_Type_PUSH_ACK    = 202;  // 客户端推送确认
+    PUSH_NOTIFY = 201;  // 服务端主动推送
+    PUSH_ACK    = 202;  // 客户端推送确认
 
     // ── Live 域 (301–399) ────────────────────────────────────────────────────
-    Signal_Type_LIVE_JOIN    = 301;
-    Signal_Type_LIVE_LEAVE   = 302;
-    Signal_Type_LIVE_COMMENT = 303;
-    Signal_Type_LIVE_GIFT    = 304;
-    Signal_Type_LIVE_SIGNAL  = 305;
+    LIVE_JOIN    = 301;
+    LIVE_LEAVE   = 302;
+    LIVE_COMMENT = 303;
+    LIVE_GIFT    = 304;
+    LIVE_SIGNAL  = 305;
 
     // ── 自定义扩展 (1000+) ───────────────────────────────────────────────────
     // 业务团队在 1000 以上自由分配，网关按 biz_code 路由，不感知具体类型
@@ -46,25 +46,25 @@ enum SignalType {
 
 // QoS 投递保证等级，语义对齐 MQTT
 enum QoS {
-  QOS_AT_MOST_ONCE  = 0;  // 最多一次：发完即忘，无 ACK（弹幕、位置）
-  QOS_AT_LEAST_ONCE = 1;  // 至少一次：SDK 重试直到收到 ACK，可能重复（IM）
-  QOS_EXACTLY_ONCE  = 2;  // 恰好一次：接收端去重（金融事件）
+  AT_MOST_ONCE  = 0;  // 最多一次：发完即忘，无 ACK（弹幕、位置）
+  AT_LEAST_ONCE = 1;  // 至少一次：SDK 重试直到收到 ACK，可能重复（IM）
+  EXACTLY_ONCE  = 2;  // 恰好一次：接收端去重（金融事件）
 }
 
 // Codec 编码格式：作用于 Body.payload 字节的序列化方式
 enum Codec {
-  Codec_UNSPECIFIED = 0;  // 由实现自行约定（历史兼容）
-  Codec_JSON        = 1;  // 调试友好，默认
-  Codec_PROTOBUF    = 2;  // 生产首选，紧凑高效
-  Codec_MSGPACK     = 3;  // 动态语言场景
+  UNSPECIFIED = 0;  // 由实现自行约定（历史兼容）
+  JSON        = 1;  // 调试友好，默认
+  PROTOBUF    = 2;  // 生产首选，紧凑高效
+  MSGPACK     = 3;  // 动态语言场景
 }
 
 // CompressAlgo 压缩算法：作用于编码后的 payload 字节
 enum CompressAlgo {
-  Compress_Algo_NONE   = 0;
-  Compress_Algo_GZIP   = 1;
-  Compress_Algo_ZSTD   = 2;  // 推荐：压缩比与速度最优
-  Compress_Algo_SNAPPY = 3;  // 低延迟场景
+  NONE   = 0;
+  GZIP   = 1;
+  ZSTD   = 2;  // 推荐：压缩比与速度最优
+  SNAPPY = 3;  // 低延迟场景
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

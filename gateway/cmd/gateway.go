@@ -10,14 +10,22 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/gin-gonic/gin"
 	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
 	"github.com/vadam-zhan/long-gw/gateway/internal/config"
-	"github.com/vadam-zhan/long-gw/gateway/internal/transport"
+	"github.com/vadam-zhan/long-gw/gateway/internal/connection"
+	connection_handler "github.com/vadam-zhan/long-gw/gateway/internal/connection/handler"
+	"github.com/vadam-zhan/long-gw/gateway/internal/handler"
 	gatewaygrpc "github.com/vadam-zhan/long-gw/gateway/internal/handler/gatewaygrpc"
 	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
+	"github.com/vadam-zhan/long-gw/gateway/internal/logic/codec"
 	"github.com/vadam-zhan/long-gw/gateway/internal/metrics"
+	"github.com/vadam-zhan/long-gw/gateway/internal/router"
 	"github.com/vadam-zhan/long-gw/gateway/internal/session"
 	"github.com/vadam-zhan/long-gw/gateway/internal/svc"
+	"github.com/vadam-zhan/long-gw/gateway/internal/transport"
+	"github.com/vadam-zhan/long-gw/gateway/internal/worker"
+	"github.com/vadam-zhan/long-gw/gateway/internal/worker/storage"
 
 	"github.com/soheilhy/cmux"
 	"go.uber.org/zap"
@@ -27,12 +35,53 @@ import (
 // NewGatewayServer 创建网关服务器
 func NewGatewayServer(cfg *config.Config) *GatewayServer {
 	ctx, cancel := context.WithCancel(context.Background())
-	svc := svc.NewServiceContext(ctx, cfg)
-	return &GatewayServer{
+	gs := &GatewayServer{
 		ctx:    ctx,
 		cancel: cancel,
-		svc:    svc,
 	}
+	svc := svc.NewServiceContext(ctx, cfg)
+	gs.svc = svc
+	gs.localRouter = router.NewLocalRouter()
+	gs.distRouter = router.NewDistributedRouter(svc.RedisClient, cfg.Gateway.Addr)
+
+	offlineStore := storage.NewMySQLStore(svc.DB)
+
+	gs.sessionRegistry = session.NewSessionRegistry(
+		session.WithLocalRouter(gs.localRouter),
+		// session.WithDistRouter(gs.distRouter),
+		session.WithOfflineStore(offlineStore),
+		session.SetSuspendTTL(cfg.Session.SuspendTTL),
+		session.WithServiceContext(gs.svc),
+	)
+
+	gs.workerManager = worker.NewManager()
+	for bizCode, poolCfg := range cfg.Workers {
+		gs.workerManager.CreatePool(&worker.PoolConfig{
+			BizCode:           bizCode,
+			UpstreamWorkers:   poolCfg.UpstreamWorkers,
+			DownstreamWorkers: poolCfg.DownstreamWorkers,
+			UpstreamChanCap:   poolCfg.UpstreamChanCap,
+			DownstreamChanCap: poolCfg.DownstreamChanCap,
+			OfflineStore:      offlineStore,
+			Router:            gs.localRouter,
+		})
+	}
+
+	gs.ackRetrier = &session.AckRetrier{}
+
+	gs.codec = codec.NewCodec(codec.DefaultConfig())
+
+	// 初始化 connectionFactory
+	gs.connFactory = connection.NewFactory(&connection.FactoryDeps{
+		Codec:        gs.codec,
+		ConnRegistry: connection.NewRegistry(),
+		HandlerReg:   connection_handler.NewRegistry(connection_handler.NewAuthVerifier(cfg.Auth.Addr)),
+	})
+
+	// gs.adminHandler = handler.NewAdminHandler(sess)
+	gs.wsHandler = handler.NewWsHandler()
+
+	return gs
 }
 
 // Start 启动网关服务
@@ -59,9 +108,7 @@ func (s *GatewayServer) Start() error {
 	wg.Go(func() {
 		defer wg.Done()
 		// 设置 HTTP/WS 路由
-		session := session.NewSession(s.svc)
-		s.sessions = append(s.sessions, session)
-		ginEngine := session.SetupGinRouter()
+		ginEngine := s.SetupGinRouter()
 		httpSrv := &http.Server{Handler: ginEngine.Handler()}
 		if err := httpSrv.Serve(httpListener); err != nil && err != http.ErrServerClosed {
 			logger.Error("http serve failed", zap.Error(err))
@@ -127,8 +174,6 @@ func (s *GatewayServer) Start() error {
 // acceptTCP 接受TCP连接
 func (s *GatewayServer) acceptTCP(listener net.Listener) {
 	logger.Info("tcp acceptor started")
-	session := session.NewSession(s.svc)
-	s.sessions = append(s.sessions, session)
 	for {
 		select {
 		case <-s.ctx.Done():
@@ -143,9 +188,63 @@ func (s *GatewayServer) acceptTCP(listener net.Listener) {
 			logger.Debug("new tcp connection", zap.String("remote", rawConn.RemoteAddr().String()))
 
 			// 使用独立goroutine处理，HandleConnection 会管理自己的生命周期
-			go session.HandleConnection(transport.NewTCPTransport(rawConn))
+			go s.HandleConnection(transport.NewTCPTransport(rawConn))
 		}
 	}
+}
+
+// SetupGinRouter 配置HTTP路由
+func (s *GatewayServer) SetupGinRouter() *gin.Engine {
+	r := gin.New()
+	r.Use(gin.Logger())
+	r.Use(gin.Recovery())
+
+	// 管理接口
+	adminG := r.Group("/v1/admin")
+	{
+		adminG.GET("/health", s.adminHandler.HealthHandler)
+		adminG.GET("/stats", s.adminHandler.StatsHandler)
+		adminG.POST("/kick", s.adminHandler.KickHandler)
+	}
+
+	// WebSocket接口
+	wgG := r.Group("/v1/ws")
+	{
+		wgG.GET("/connect", s.wsUpgradeHandler)
+	}
+
+	return r
+}
+
+func (s *GatewayServer) wsUpgradeHandler(c *gin.Context) {
+	rawConn := s.wsHandler.UpgradeHandler(c)
+	if rawConn == nil {
+		return
+	}
+
+	tp := transport.NewWSTransport(rawConn)
+	logger.Info("new ws connection", zap.String("remote", tp.RemoteAddr()))
+	go s.HandleConnection(tp)
+}
+
+func (s *GatewayServer) HandleConnection(tp transport.Transport) {
+
+	conn, err := s.connFactory.Create(s.ctx, tp)
+	if err != nil {
+		return
+	}
+
+	s.connFactory.Run(s.ctx, conn)
+
+	sess := s.sessionRegistry.GetOrCreate(conn.UserID, conn.DeviceID)
+
+	// 处理踢人（同设备旧 Session）
+	if oldConn := sess.GetConn(); oldConn != nil {
+		oldConn.Close(&gateway.KickPayload{Code: 4002, Reason: "login from another device"})
+	}
+
+	sess.AttachConn(conn)
+
 }
 
 // serveGRPC 启动 gRPC 服务
@@ -162,9 +261,7 @@ func (s *GatewayServer) serveGRPC(listener net.Listener) {
 
 // cleanTimeoutLoop 清理session中超时连接
 func (s *GatewayServer) cleanTimeoutLoop() {
-	for _, sess := range s.sessions {
-		go sess.CleanTimeoutLoop()
-	}
+
 }
 
 // Stop 优雅关闭网关服务
@@ -174,10 +271,7 @@ func (s *GatewayServer) Stop() {
 	if s.metricsCollector != nil {
 		s.metricsCollector.Stop()
 	}
-	// 关闭 session
-	for _, sess := range s.sessions {
-		sess.Close()
-	}
+
 	// 关闭监听
 	if s.listener != nil {
 		_ = s.listener.Close()

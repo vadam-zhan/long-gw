@@ -6,7 +6,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/vadam-zhan/long-gw/gateway/internal/config"
-	"github.com/vadam-zhan/long-gw/gateway/internal/connection"
 	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
 	"go.uber.org/zap"
 )
@@ -43,7 +42,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		// 初始化AuthHandler
-		connection.InitAuthHandler(cfg.Auth.Addr)
+		// connection.InitAuthHandler(cfg.Auth.Addr)
 		logger.Info("auth handler initialized",
 			zap.String("auth_addr", cfg.Auth.Addr))
 

@@ -6,10 +6,10 @@ option go_package = "github.com/vadam-zhan/long-gw/proto/v1;gateway";
 
 // 多个业务方: IM、直播、消息中心等，用于管理多个业务方的 worker 池
 enum BusinessType {
-    BusinessType_UNSPECIFIED = 0;
-    BusinessType_IM = 1; // IM 业务
-    BusinessType_LIVE = 2; // 直播业务
-    BusinessType_MESSAGE = 3; // 消息中心业务
+    UNSPECIFIED = 0;
+    IM = 1; // IM 业务
+    LIVE = 2; // 直播业务
+    MESSAGE = 3; // 消息中心业务
 }
 
 message PushMessageReq {

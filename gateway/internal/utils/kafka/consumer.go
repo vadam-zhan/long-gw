@@ -17,7 +17,7 @@ import (
 type Consumer struct {
 	cfg       *config.KafkaConfig
 	ReaderMap map[string]*kafka.Reader
-	wm        *worker.WorkerManager
+	wm        *worker.Manager
 	cancel    context.CancelFunc
 	wg        sync.WaitGroup
 	topics    []string
@@ -25,7 +25,7 @@ type Consumer struct {
 }
 
 // NewConsumer creates a new Kafka consumer
-func NewConsumer(cfg *config.KafkaConfig, wm *worker.WorkerManager, topics []string) *Consumer {
+func NewConsumer(cfg *config.KafkaConfig, wm *worker.Manager, topics []string) *Consumer {
 	logger.Info("kafka consumer created",
 		zap.Strings("brokers", cfg.Brokers),
 		zap.Strings("topics", topics))
@@ -61,7 +61,7 @@ func (c *Consumer) Start(ctx context.Context) error {
 					}
 
 					// Deserialize downstream message
-					downstreamMsg := &pb.DownstreamKafkaMessage{}
+					downstreamMsg := &pb.Message{}
 					if err := proto.Unmarshal(msg.Value, downstreamMsg); err != nil {
 						logger.Error("failed to unmarshal downstream message",
 							zap.Error(err),
@@ -73,13 +73,11 @@ func (c *Consumer) Start(ctx context.Context) error {
 
 					// Submit to worker pool
 					job := worker.DownstreamJob{
-						Msg:    downstreamMsg,
-						Offset: msg.Offset,
+						Msg: downstreamMsg,
 					}
-					pool, ok := c.wm.GetPool(downstreamMsg.BusinessType)
+					pool, ok := c.wm.GetPool(downstreamMsg.BizCode)
 					if !ok || !pool.SubmitDownstream(job) {
 						logger.Warn("worker pool full, message will be redelivered",
-							zap.String("correlation_id", downstreamMsg.CorrelationId),
 							zap.Int64("offset", msg.Offset))
 						// worker pool 拒绝 → 不 commit（消息会被重新投递）
 						// Do NOT commit - message will be redelivered when consumer rebalances

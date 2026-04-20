@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
+	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
 	pb "github.com/vadam-zhan/long-gw/common-protocol/v1"
 	"github.com/vadam-zhan/long-gw/gateway/internal/logger"
 	"github.com/vadam-zhan/long-gw/gateway/internal/types"
@@ -28,6 +29,11 @@ func NewKafkaSender(brokers []string, topic string) *KafkaSender {
 		topic:     topic,
 		writerMap: make(map[string]*kafka.Writer),
 	}
+}
+
+func (s *KafkaSender) Publish(ctx context.Context, msg *gateway.Message) error {
+
+	return nil
 }
 
 // Send 发送上行消息到 Kafka

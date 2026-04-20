@@ -13,7 +13,7 @@ type SessionAccessor interface {
 // LocalRouterAccessor 本地路由访问接口
 type LocalRouterAccessor interface {
 	Count() (userCount, deviceCount uint)
-	GetByUserID(userID string) ([]router.ConnectionInterface, bool)
+	GetByUserID(userID string) ([]router.SessionInterface, bool)
 }
 
 // KickAccessor 用于踢人操作的接口

@@ -9,11 +9,11 @@ import "v1/message.proto";
 
 // KafkaMessageType defines the direction and purpose of Kafka messages
 enum KafkaMessageType {
-    KAFKA_MSG_UNSPECIFIED = 0;
+    UNSPECIFIED = 0;
     // Upstream: gateway -> backend (client message forwarded)
-    KAFKA_MSG_UPSTREAM = 1;
+    UPSTREAM = 1;
     // Downstream: backend -> gateway (response to be delivered to client)
-    KAFKA_MSG_DOWNSTREAM = 2;
+    DOWNSTREAM = 2;
 }
 
 // UpstreamKafkaMessage is sent from gateway to backend

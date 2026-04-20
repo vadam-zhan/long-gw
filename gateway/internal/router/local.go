@@ -1,126 +1,158 @@
 package router
 
 import (
-	"maps"
 	"sync"
 
-	"github.com/vadam-zhan/long-gw/gateway/internal/consts"
+	"github.com/vadam-zhan/long-gw/gateway/internal/session"
 )
 
 // LocalRouter 本地路由中心
 type LocalRouter struct {
-	mux          sync.RWMutex
-	userIDConns  map[string][]ConnectionInterface
-	deviceIDConn map[string]ConnectionInterface
+	mu sync.RWMutex
+
+	// userConns: userID → {deviceID → *Session}
+	// Used for user-level fan-out ("u:{uid}").
+	userConns map[string]map[string]*session.Session
+
+	// deviceConn: deviceID → *session (single session per device)
+	// Used to kick the old session when a device reconnects.
+	deviceConn map[string]*session.Session
+
+	// rooms: roomID → {SessionID → *Session}
+	// Used for room broadcast ("r:{roomID}").
+	rooms map[string]map[string]*session.Session
+
+	// topics: topic → {SessionID → *Session}
+	// Used for pub/sub ("t:{topic}") and group routing ("g:{groupID}").
+	topics map[string]map[string]*session.Session
 }
 
 func NewLocalRouter() *LocalRouter {
 	return &LocalRouter{
-		userIDConns:  make(map[string][]ConnectionInterface),
-		deviceIDConn: make(map[string]ConnectionInterface),
+		userConns:  make(map[string]map[string]*session.Session),
+		deviceConn: make(map[string]*session.Session),
+		rooms:      make(map[string]map[string]*session.Session),
+		topics:     make(map[string]map[string]*session.Session),
 	}
 }
 
 // Register 注册连接
-func (lr *LocalRouter) Register(userID, deviceID string, conn ConnectionInterface) {
-	lr.mux.Lock()
-	defer lr.mux.Unlock()
+func (r *LocalRouter) RegisterSession(userID, deviceID string, sess *session.Session) (kicked *session.Session) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-	// 单端登录：踢掉同设备旧连接
-	if oldConn, ok := lr.deviceIDConn[deviceID]; ok {
-		oldConn.Close()
-		lr.removeConnLocked(oldConn)
+	// Kick old session for same device.
+	if old, ok := r.deviceConn[sess.DeviceID()]; ok && old.SessionID() != sess.SessionID() {
+		kicked = old
 	}
+	r.deviceConn[sess.DeviceID()] = sess
 
-	// 注册设备映射
-	lr.deviceIDConn[deviceID] = conn
+	// Register in user fan-out index.
+	if r.userConns[userID] == nil {
+		r.userConns[userID] = make(map[string]*session.Session)
+	}
+	r.userConns[userID][sess.DeviceID()] = sess
+	return
+}
 
-	// 注册用户映射（支持多端）
-	conns := lr.userIDConns[userID]
-	// 限制多端登录数量
-	if len(conns) >= consts.MaxMultiLogin {
-		// 踢掉最早的连接
-		if len(conns) > 0 {
-			conns[0].Close()
-			lr.removeConnLocked(conns[0])
+func (r *LocalRouter) UnregisterSession(userID, deviceID string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	delete(r.deviceConn, deviceID)
+	if devs, ok := r.userConns[userID]; ok {
+		delete(devs, deviceID)
+		if len(devs) == 0 {
+			delete(r.userConns, userID)
 		}
 	}
-	conns = append(lr.userIDConns[userID], conn)
-	lr.userIDConns[userID] = conns
 }
 
-// UnRegister 注销连接
-func (lr *LocalRouter) UnRegister(conn ConnectionInterface) {
-	lr.mux.Lock()
-	defer lr.mux.Unlock()
-	lr.removeConnLocked(conn)
+// JoinRoom adds conn to a room broadcast group.
+func (r *LocalRouter) JoinRoom(roomID string, sess *session.Session) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.rooms[roomID] == nil {
+		r.rooms[roomID] = make(map[string]*session.Session)
+	}
+	r.rooms[roomID][sess.SessionID()] = sess
 }
 
-func (lr *LocalRouter) removeConnLocked(conn ConnectionInterface) {
-	userID, deviceID := conn.GetUserInfo()
-
-	// 移除设备映射
-	if oldConn, ok := lr.deviceIDConn[deviceID]; ok && oldConn == conn {
-		delete(lr.deviceIDConn, deviceID)
-	}
-
-	// 移除用户映射
-	conns, ok := lr.userIDConns[userID]
-	if !ok {
-		return
-	}
-	newConns := make([]ConnectionInterface, 0, len(conns)-1)
-	for _, c := range conns {
-		if c != conn {
-			newConns = append(newConns, c)
+// LeaveRoom removes conn from a room broadcast group.
+func (r *LocalRouter) LeaveRoom(roomID string, sess *session.Session) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if m, ok := r.rooms[roomID]; ok {
+		delete(m, sess.SessionID())
+		if len(m) == 0 {
+			delete(r.rooms, roomID)
 		}
 	}
-	if len(newConns) == 0 {
-		delete(lr.userIDConns, userID)
-	} else {
-		lr.userIDConns[userID] = newConns
+}
+
+func (r *LocalRouter) Subscribe(topic string, sess *session.Session) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.topics[topic] == nil {
+		r.topics[topic] = make(map[string]*session.Session)
 	}
+	r.topics[topic][sess.SessionID()] = sess
 }
 
-// GetByUserID 根据用户ID获取连接列表（多端推送）
-func (lr *LocalRouter) GetByUserID(userID string) ([]ConnectionInterface, bool) {
-	lr.mux.Lock()
-	defer lr.mux.Unlock()
-	conns, ok := lr.userIDConns[userID]
-	return conns, ok
-}
-
-// GetByDeviceID 根据设备ID获取单连接（精准推送）
-func (lr *LocalRouter) GetByDeviceID(deviceID string) (ConnectionInterface, bool) {
-	lr.mux.Lock()
-	defer lr.mux.Unlock()
-	conn, ok := lr.deviceIDConn[deviceID]
-	return conn, ok
-}
-
-// Count 获取连接数统计
-func (lr *LocalRouter) Count() (userCount, deviceCount uint) {
-	lr.mux.Lock()
-	defer lr.mux.Unlock()
-	return uint(len(lr.userIDConns)), uint(len(lr.deviceIDConn))
-}
-
-// CleanTimeout 清理超时连接
-func (lr *LocalRouter) CleanTimeout() int {
-	lr.mux.RLock()
-	deviceConns := make(map[string]ConnectionInterface, len(lr.deviceIDConn))
-	maps.Copy(deviceConns, lr.deviceIDConn)
-	lr.mux.RUnlock()
-
-	var cleaned int
-	for deviceID, conn := range deviceConns {
-		if conn.IsTimeout() {
-			lr.mux.Lock()
-			conn.Close()
-			delete(lr.deviceIDConn, deviceID)
-			cleaned++
-			lr.mux.Unlock()
+func (r *LocalRouter) Unsubscribe(topic string, sess *session.Session) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if m, ok := r.topics[topic]; ok {
+		delete(m, sess.SessionID())
+		if len(m) == 0 {
+			delete(r.topics, topic)
 		}
 	}
-	return cleaned
+}
+
+// UnregisterAll 关闭时清理所有 room/topic 注册
+func (r *LocalRouter) UnregisterAll(sess *session.Session) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, v := range r.rooms {
+		for sessionID := range v {
+			if sessionID == sess.SessionID() {
+				delete(v, sessionID)
+			}
+		}
+	}
+	for _, v := range r.topics {
+		for sessionID := range v {
+			if sessionID == sess.SessionID() {
+				delete(v, sessionID)
+			}
+		}
+	}
+}
+
+func (r *LocalRouter) Resolve(to string) ([]*session.Session, bool) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	var conns []*session.Session
+	if m, ok := r.userConns[to]; ok {
+		for _, conn := range m {
+			conns = append(conns, conn)
+		}
+	}
+	if m, ok := r.rooms[to]; ok {
+		for _, conn := range m {
+			conns = append(conns, conn)
+		}
+	}
+	if m, ok := r.topics[to]; ok {
+		for _, conn := range m {
+			conns = append(conns, conn)
+		}
+	}
+
+	if len(conns) == 0 {
+		return nil, false
+	}
+	return conns, true
 }

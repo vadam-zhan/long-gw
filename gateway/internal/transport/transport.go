@@ -21,25 +21,25 @@ var marshalOpts = proto.MarshalOptions{
 	UseCachedSize: true,
 }
 
-const (
-	// 半包处理超时时间
-	ConnReadTimeout = 10 * time.Second
-)
-
-// Transport 传输层接口，纯I/O操作
+// Transport is the minimal I/O contract the Connection layer depends on.
+// Implementations must be safe for concurrent reads and concurrent writes,
+// but a read and a write may happen simultaneously from different goroutines.
 type Transport interface {
-	// Read 读取ClientSignal
-	Read(ctx context.Context) (*gateway.ClientSignal, error)
+	// Read blocks until a complete framed message is available and returns its bytes.
+	// Returns (nil, io.EOF) on clean close, (nil, err) on error.
+	Read(ctx context.Context) ([]byte, error)
 
-	// SetReadDeadline 设置读取超时时间
-	SetReadDeadline(t time.Time) error
+	// Write sends a framed message. Implementations must ensure atomicity —
+	// partial writes must not interleave with other goroutines' writes.
+	Write(ctx context.Context, data []byte) error
 
-	// Write 写入ClientSignal数据
-	Write(ctx context.Context, data *gateway.ClientSignal) error
+	// Close tears down the underlying connection. Safe to call multiple times.
+	Close()
 
-	// Close 关闭连接
-	Close() error
-
-	// RemoteAddr 返回对端地址
+	// RemoteAddr returns the peer address string (for logging / rate-limiting).
 	RemoteAddr() string
+
+	// SetReadDeadline sets an absolute deadline for the next Read call.
+	// Used by the heartbeat watchdog to enforce the Ping timeout.
+	SetReadDeadline(t time.Time) error
 }
