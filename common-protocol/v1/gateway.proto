@@ -12,27 +12,9 @@ enum BusinessType {
     BusinessType_MESSAGE = 3; // 消息中心业务
 }
 
-// 下行推送，主要包括 单播推送和组播推送
-enum DownStreamPushType {
-    DownStreamPushType_UNSPECIFIED = 0;
-    DownStreamPushType_SINGLE = 1; // 单播推送
-    DownStreamPushType_GROUP = 2; // 组播推送
-}
-
-// 长连接状态，用于管理长连接的生命周期
-enum ConnState {
-    ConnState_UNSPECIFIED = 0; // 未初始化
-    ConnState_CONNECTING = 1; // 连接中
-    ConnState_CONNECTED = 2; // 已连接
-    ConnState_DISCONNECTED = 3; // 已断开
-    ConnState_AUTHENTICATED = 4; // 已认证
-    ConnState_AUTHENTICATION_FAILED = 5; // 认证失败
-}
-
 message PushMessageReq {
     string receiver = 1; // 接收者 ID
     bytes payload = 2; // 业务载荷
-    DownStreamPushType push_type = 3; // 推送类型
     BusinessType business_type = 4; // 业务类型
 }
 

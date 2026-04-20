@@ -8,37 +8,37 @@ option go_package = "github.com/vadam-zhan/long-gw/proto/v1;gateway";
 // 枚举：消息类型
 // ─────────────────────────────────────────────────────────────────────────────
 
-enum MsgType {
-    MSG_TYPE_UNSPECIFIED = 0;
+enum SignalType {
+    Signal_Type_UNSPECIFIED = 0;
 
     // ── 控制面 (1–99) ── 网关内部，不转发给业务 ──────────────────────────────
-    MSG_TYPE_HANDSHAKE     = 1;  // Client→Gateway  初始认证握手
-    MSG_TYPE_HANDSHAKE_ACK = 2;  // Gateway→Client  握手结果
-    MSG_TYPE_PING          = 3;  // Client→Gateway  心跳探针
-    MSG_TYPE_PONG          = 4;  // Gateway→Client  心跳回应
-    MSG_TYPE_KICK          = 5;  // Gateway→Client  强制断连通知
-    MSG_TYPE_ERROR         = 6;  // 双向             错误通知
-    MSG_TYPE_ACK           = 7;  // 双向             QoS-1/2 确认帧
+    Signal_Type_HANDSHAKE     = 1;  // Client→Gateway  初始认证握手
+    Signal_Type_HANDSHAKE_ACK = 2;  // Gateway→Client  握手结果
+    Signal_Type_PING          = 3;  // Client→Gateway  心跳探针
+    Signal_Type_PONG          = 4;  // Gateway→Client  心跳回应
+    Signal_Type_KICK          = 5;  // Gateway→Client  强制断连通知
+    Signal_Type_ERROR         = 6;  // 双向             错误通知
+    Signal_Type_ACK           = 7;  // 双向             QoS-1/2 确认帧
 
     // ── 数据面通用 (100) ─────────────────────────────────────────────────────
-    MSG_TYPE_DATA = 100;         // 通用数据帧，BizCode+Body.type 细分路由
+    Signal_Type_DATA = 100;         // 通用数据帧，BizCode+Body.type 细分路由
 
     // ── IM 域 (101–199) ──────────────────────────────────────────────────────
-    MSG_TYPE_IM_CHAT    = 101;   // 单聊 / 群聊消息
-    MSG_TYPE_IM_RECEIPT = 102;   // 投递 / 已读回执
-    MSG_TYPE_IM_REVOKE  = 103;   // 消息撤回
-    MSG_TYPE_IM_TYPING  = 104;   // 正在输入指示
+    Signal_Type_IM_CHAT    = 101;   // 单聊 / 群聊消息
+    Signal_Type_IM_RECEIPT = 102;   // 投递 / 已读回执
+    Signal_Type_IM_REVOKE  = 103;   // 消息撤回
+    Signal_Type_IM_TYPING  = 104;   // 正在输入指示
 
     // ── Push 域 (201–299) ────────────────────────────────────────────────────
-    MSG_TYPE_PUSH_NOTIFY = 201;  // 服务端主动推送
-    MSG_TYPE_PUSH_ACK    = 202;  // 客户端推送确认
+    Signal_Type_PUSH_NOTIFY = 201;  // 服务端主动推送
+    Signal_Type_PUSH_ACK    = 202;  // 客户端推送确认
 
     // ── Live 域 (301–399) ────────────────────────────────────────────────────
-    MSG_TYPE_LIVE_JOIN    = 301;
-    MSG_TYPE_LIVE_LEAVE   = 302;
-    MSG_TYPE_LIVE_COMMENT = 303;
-    MSG_TYPE_LIVE_GIFT    = 304;
-    MSG_TYPE_LIVE_SIGNAL  = 305;
+    Signal_Type_LIVE_JOIN    = 301;
+    Signal_Type_LIVE_LEAVE   = 302;
+    Signal_Type_LIVE_COMMENT = 303;
+    Signal_Type_LIVE_GIFT    = 304;
+    Signal_Type_LIVE_SIGNAL  = 305;
 
     // ── 自定义扩展 (1000+) ───────────────────────────────────────────────────
     // 业务团队在 1000 以上自由分配，网关按 biz_code 路由，不感知具体类型
@@ -53,18 +53,18 @@ enum QoS {
 
 // Codec 编码格式：作用于 Body.payload 字节的序列化方式
 enum Codec {
-  CODEC_UNSPECIFIED = 0;  // 由实现自行约定（历史兼容）
-  CODEC_JSON        = 1;  // 调试友好，默认
-  CODEC_PROTOBUF    = 2;  // 生产首选，紧凑高效
-  CODEC_MSGPACK     = 3;  // 动态语言场景
+  Codec_UNSPECIFIED = 0;  // 由实现自行约定（历史兼容）
+  Codec_JSON        = 1;  // 调试友好，默认
+  Codec_PROTOBUF    = 2;  // 生产首选，紧凑高效
+  Codec_MSGPACK     = 3;  // 动态语言场景
 }
 
 // CompressAlgo 压缩算法：作用于编码后的 payload 字节
 enum CompressAlgo {
-  COMPRESS_NONE   = 0;
-  COMPRESS_GZIP   = 1;
-  COMPRESS_ZSTD   = 2;  // 推荐：压缩比与速度最优
-  COMPRESS_SNAPPY = 3;  // 低延迟场景
+  Compress_Algo_NONE   = 0;
+  Compress_Algo_GZIP   = 1;
+  Compress_Algo_ZSTD   = 2;  // 推荐：压缩比与速度最优
+  Compress_Algo_SNAPPY = 3;  // 低延迟场景
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -75,7 +75,7 @@ message Message {
   // ── 帧身份 ──────────────────────────────────────────────────────────────
   // version: 协议版本，用于平滑升级。当前 = 1。
   uint32  version   = 1;
-  MsgType type      = 2;
+  SignalType type      = 2;
 
   // msg_id: 发送方生成的全局唯一 ID（UUID v4 或雪花 ID）。
   //   用途：① ACK 关联  ② 幂等去重（QoS-2）  ③ 追踪日志关联
@@ -177,8 +177,11 @@ message WellKnownPayload {
     HandshakePayload    handshake     = 1;
     HandshakeAckPayload handshake_ack = 2;
     KickPayload         kick          = 3;
-    ErrorPayload        error         = 4;
-    AckPayload          ack           = 5;
+    KickResponsePayload kick_response = 4;
+    ErrorPayload        error         = 5;
+    AckPayload          ack           = 6;
+    AuthRequestPayload  auth_request  = 7;
+    AuthResponsePayload auth_response = 8;
 
     // ── IM 域 ────────────────────────────────────────────────────────────
     IMChatPayload    im_chat    = 10;
@@ -227,10 +230,33 @@ message HandshakeAckPayload {
   repeated string extensions = 7;
 }
 
+message AuthRequestPayload {
+  string token = 1;  // 客户端提供的认证令牌
+  string app_id = 2;  // 应用 ID
+  string device_id = 3;  // 设备 ID
+  string device_type = 4;  // 设备类型
+  string biz_code = 5;  // 业务代码
+}
+
+message AuthResponsePayload {
+    uint32 code = 1; // 响应，0 = 鉴权成功，非0 失败
+    string msg = 2; // 状态描述
+    bool result = 3; // 鉴权结果，true = 鉴权成功，false = 鉴权失败
+    uint32 heartbeat_internal = 4; // 服务端强制的心跳间隔（单位秒，默认 30s）
+    string session_id = 5; // 会话ID
+    uint32 max_body_size = 6; // 最大 body
+    uint64 replay_from = 7;
+}
+
 message KickPayload {
   int32  code             = 1;  // 机器可读错误码
   string reason           = 2;  // 人类可读原因（调试用）
   int32  reconnect_after  = 3;  // >0 表示建议客户端等待 N 秒后重连（灰度发布用）
+}
+
+message KickResponsePayload {
+    uint32 code = 1; // 响应，0 = 登出成功，非0 失败
+    string msg = 2; // 状态描述
 }
 
 message ErrorPayload {

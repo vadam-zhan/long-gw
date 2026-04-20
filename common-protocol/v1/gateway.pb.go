@@ -74,120 +74,10 @@ func (BusinessType) EnumDescriptor() ([]byte, []int) {
 	return file_v1_gateway_proto_rawDescGZIP(), []int{0}
 }
 
-// 下行推送，主要包括 单播推送和组播推送
-type DownStreamPushType int32
-
-const (
-	DownStreamPushType_DownStreamPushType_UNSPECIFIED DownStreamPushType = 0
-	DownStreamPushType_DownStreamPushType_SINGLE      DownStreamPushType = 1 // 单播推送
-	DownStreamPushType_DownStreamPushType_GROUP       DownStreamPushType = 2 // 组播推送
-)
-
-// Enum value maps for DownStreamPushType.
-var (
-	DownStreamPushType_name = map[int32]string{
-		0: "DownStreamPushType_UNSPECIFIED",
-		1: "DownStreamPushType_SINGLE",
-		2: "DownStreamPushType_GROUP",
-	}
-	DownStreamPushType_value = map[string]int32{
-		"DownStreamPushType_UNSPECIFIED": 0,
-		"DownStreamPushType_SINGLE":      1,
-		"DownStreamPushType_GROUP":       2,
-	}
-)
-
-func (x DownStreamPushType) Enum() *DownStreamPushType {
-	p := new(DownStreamPushType)
-	*p = x
-	return p
-}
-
-func (x DownStreamPushType) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (DownStreamPushType) Descriptor() protoreflect.EnumDescriptor {
-	return file_v1_gateway_proto_enumTypes[1].Descriptor()
-}
-
-func (DownStreamPushType) Type() protoreflect.EnumType {
-	return &file_v1_gateway_proto_enumTypes[1]
-}
-
-func (x DownStreamPushType) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use DownStreamPushType.Descriptor instead.
-func (DownStreamPushType) EnumDescriptor() ([]byte, []int) {
-	return file_v1_gateway_proto_rawDescGZIP(), []int{1}
-}
-
-// 长连接状态，用于管理长连接的生命周期
-type ConnState int32
-
-const (
-	ConnState_ConnState_UNSPECIFIED           ConnState = 0 // 未初始化
-	ConnState_ConnState_CONNECTING            ConnState = 1 // 连接中
-	ConnState_ConnState_CONNECTED             ConnState = 2 // 已连接
-	ConnState_ConnState_DISCONNECTED          ConnState = 3 // 已断开
-	ConnState_ConnState_AUTHENTICATED         ConnState = 4 // 已认证
-	ConnState_ConnState_AUTHENTICATION_FAILED ConnState = 5 // 认证失败
-)
-
-// Enum value maps for ConnState.
-var (
-	ConnState_name = map[int32]string{
-		0: "ConnState_UNSPECIFIED",
-		1: "ConnState_CONNECTING",
-		2: "ConnState_CONNECTED",
-		3: "ConnState_DISCONNECTED",
-		4: "ConnState_AUTHENTICATED",
-		5: "ConnState_AUTHENTICATION_FAILED",
-	}
-	ConnState_value = map[string]int32{
-		"ConnState_UNSPECIFIED":           0,
-		"ConnState_CONNECTING":            1,
-		"ConnState_CONNECTED":             2,
-		"ConnState_DISCONNECTED":          3,
-		"ConnState_AUTHENTICATED":         4,
-		"ConnState_AUTHENTICATION_FAILED": 5,
-	}
-)
-
-func (x ConnState) Enum() *ConnState {
-	p := new(ConnState)
-	*p = x
-	return p
-}
-
-func (x ConnState) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (ConnState) Descriptor() protoreflect.EnumDescriptor {
-	return file_v1_gateway_proto_enumTypes[2].Descriptor()
-}
-
-func (ConnState) Type() protoreflect.EnumType {
-	return &file_v1_gateway_proto_enumTypes[2]
-}
-
-func (x ConnState) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use ConnState.Descriptor instead.
-func (ConnState) EnumDescriptor() ([]byte, []int) {
-	return file_v1_gateway_proto_rawDescGZIP(), []int{2}
-}
-
 type PushMessageReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Receiver      string                 `protobuf:"bytes,1,opt,name=receiver,proto3" json:"receiver,omitempty"`                                                           // 接收者 ID
 	Payload       []byte                 `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`                                                             // 业务载荷
-	PushType      DownStreamPushType     `protobuf:"varint,3,opt,name=push_type,json=pushType,proto3,enum=gateway.v1.DownStreamPushType" json:"push_type,omitempty"`       // 推送类型
 	BusinessType  BusinessType           `protobuf:"varint,4,opt,name=business_type,json=businessType,proto3,enum=gateway.v1.BusinessType" json:"business_type,omitempty"` // 业务类型
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -235,13 +125,6 @@ func (x *PushMessageReq) GetPayload() []byte {
 		return x.Payload
 	}
 	return nil
-}
-
-func (x *PushMessageReq) GetPushType() DownStreamPushType {
-	if x != nil {
-		return x.PushType
-	}
-	return DownStreamPushType_DownStreamPushType_UNSPECIFIED
 }
 
 func (x *PushMessageReq) GetBusinessType() BusinessType {
@@ -308,11 +191,10 @@ var File_v1_gateway_proto protoreflect.FileDescriptor
 const file_v1_gateway_proto_rawDesc = "" +
 	"\n" +
 	"\x10v1/gateway.proto\x12\n" +
-	"gateway.v1\"\xc2\x01\n" +
+	"gateway.v1\"\x85\x01\n" +
 	"\x0ePushMessageReq\x12\x1a\n" +
 	"\breceiver\x18\x01 \x01(\tR\breceiver\x12\x18\n" +
-	"\apayload\x18\x02 \x01(\fR\apayload\x12;\n" +
-	"\tpush_type\x18\x03 \x01(\x0e2\x1e.gateway.v1.DownStreamPushTypeR\bpushType\x12=\n" +
+	"\apayload\x18\x02 \x01(\fR\apayload\x12=\n" +
 	"\rbusiness_type\x18\x04 \x01(\x0e2\x18.gateway.v1.BusinessTypeR\fbusinessType\"E\n" +
 	"\x0fPushMessageResp\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
@@ -321,18 +203,7 @@ const file_v1_gateway_proto_rawDesc = "" +
 	"\x18BusinessType_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fBusinessType_IM\x10\x01\x12\x15\n" +
 	"\x11BusinessType_LIVE\x10\x02\x12\x18\n" +
-	"\x14BusinessType_MESSAGE\x10\x03*u\n" +
-	"\x12DownStreamPushType\x12\"\n" +
-	"\x1eDownStreamPushType_UNSPECIFIED\x10\x00\x12\x1d\n" +
-	"\x19DownStreamPushType_SINGLE\x10\x01\x12\x1c\n" +
-	"\x18DownStreamPushType_GROUP\x10\x02*\xb7\x01\n" +
-	"\tConnState\x12\x19\n" +
-	"\x15ConnState_UNSPECIFIED\x10\x00\x12\x18\n" +
-	"\x14ConnState_CONNECTING\x10\x01\x12\x17\n" +
-	"\x13ConnState_CONNECTED\x10\x02\x12\x1a\n" +
-	"\x16ConnState_DISCONNECTED\x10\x03\x12\x1b\n" +
-	"\x17ConnState_AUTHENTICATED\x10\x04\x12#\n" +
-	"\x1fConnState_AUTHENTICATION_FAILED\x10\x052Q\n" +
+	"\x14BusinessType_MESSAGE\x10\x032Q\n" +
 	"\aGateway\x12F\n" +
 	"\vPushMessage\x12\x1a.gateway.v1.PushMessageReq\x1a\x1b.gateway.v1.PushMessageRespB0Z.github.com/vadam-zhan/long-gw/proto/v1;gatewayb\x06proto3"
 
@@ -348,25 +219,22 @@ func file_v1_gateway_proto_rawDescGZIP() []byte {
 	return file_v1_gateway_proto_rawDescData
 }
 
-var file_v1_gateway_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_v1_gateway_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_v1_gateway_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_v1_gateway_proto_goTypes = []any{
 	(BusinessType)(0),       // 0: gateway.v1.BusinessType
-	(DownStreamPushType)(0), // 1: gateway.v1.DownStreamPushType
-	(ConnState)(0),          // 2: gateway.v1.ConnState
-	(*PushMessageReq)(nil),  // 3: gateway.v1.PushMessageReq
-	(*PushMessageResp)(nil), // 4: gateway.v1.PushMessageResp
+	(*PushMessageReq)(nil),  // 1: gateway.v1.PushMessageReq
+	(*PushMessageResp)(nil), // 2: gateway.v1.PushMessageResp
 }
 var file_v1_gateway_proto_depIdxs = []int32{
-	1, // 0: gateway.v1.PushMessageReq.push_type:type_name -> gateway.v1.DownStreamPushType
-	0, // 1: gateway.v1.PushMessageReq.business_type:type_name -> gateway.v1.BusinessType
-	3, // 2: gateway.v1.Gateway.PushMessage:input_type -> gateway.v1.PushMessageReq
-	4, // 3: gateway.v1.Gateway.PushMessage:output_type -> gateway.v1.PushMessageResp
-	3, // [3:4] is the sub-list for method output_type
-	2, // [2:3] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	0, // 0: gateway.v1.PushMessageReq.business_type:type_name -> gateway.v1.BusinessType
+	1, // 1: gateway.v1.Gateway.PushMessage:input_type -> gateway.v1.PushMessageReq
+	2, // 2: gateway.v1.Gateway.PushMessage:output_type -> gateway.v1.PushMessageResp
+	2, // [2:3] is the sub-list for method output_type
+	1, // [1:2] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_v1_gateway_proto_init() }
@@ -379,7 +247,7 @@ func file_v1_gateway_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_v1_gateway_proto_rawDesc), len(file_v1_gateway_proto_rawDesc)),
-			NumEnums:      3,
+			NumEnums:      1,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   1,

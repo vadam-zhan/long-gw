@@ -444,6 +444,47 @@ func (m *WellKnownPayload) validate(all bool) error {
 			}
 		}
 
+	case *WellKnownPayload_KickResponse:
+		if v == nil {
+			err := WellKnownPayloadValidationError{
+				field:  "Content",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+		if all {
+			switch v := interface{}(m.GetKickResponse()).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, WellKnownPayloadValidationError{
+						field:  "KickResponse",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, WellKnownPayloadValidationError{
+						field:  "KickResponse",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(m.GetKickResponse()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return WellKnownPayloadValidationError{
+					field:  "KickResponse",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
 	case *WellKnownPayload_Error:
 		if v == nil {
 			err := WellKnownPayloadValidationError{
@@ -520,6 +561,88 @@ func (m *WellKnownPayload) validate(all bool) error {
 			if err := v.Validate(); err != nil {
 				return WellKnownPayloadValidationError{
 					field:  "Ack",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	case *WellKnownPayload_AuthRequest:
+		if v == nil {
+			err := WellKnownPayloadValidationError{
+				field:  "Content",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+		if all {
+			switch v := interface{}(m.GetAuthRequest()).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, WellKnownPayloadValidationError{
+						field:  "AuthRequest",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, WellKnownPayloadValidationError{
+						field:  "AuthRequest",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(m.GetAuthRequest()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return WellKnownPayloadValidationError{
+					field:  "AuthRequest",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	case *WellKnownPayload_AuthResponse:
+		if v == nil {
+			err := WellKnownPayloadValidationError{
+				field:  "Content",
+				reason: "oneof value cannot be a typed-nil",
+			}
+			if !all {
+				return err
+			}
+			errors = append(errors, err)
+		}
+
+		if all {
+			switch v := interface{}(m.GetAuthResponse()).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, WellKnownPayloadValidationError{
+						field:  "AuthResponse",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, WellKnownPayloadValidationError{
+						field:  "AuthResponse",
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(m.GetAuthResponse()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return WellKnownPayloadValidationError{
+					field:  "AuthResponse",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
@@ -1092,6 +1215,234 @@ var _ interface {
 	ErrorName() string
 } = HandshakeAckPayloadValidationError{}
 
+// Validate checks the field values on AuthRequestPayload with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *AuthRequestPayload) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on AuthRequestPayload with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// AuthRequestPayloadMultiError, or nil if none found.
+func (m *AuthRequestPayload) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *AuthRequestPayload) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Token
+
+	// no validation rules for AppId
+
+	// no validation rules for DeviceId
+
+	// no validation rules for DeviceType
+
+	// no validation rules for BizCode
+
+	if len(errors) > 0 {
+		return AuthRequestPayloadMultiError(errors)
+	}
+
+	return nil
+}
+
+// AuthRequestPayloadMultiError is an error wrapping multiple validation errors
+// returned by AuthRequestPayload.ValidateAll() if the designated constraints
+// aren't met.
+type AuthRequestPayloadMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m AuthRequestPayloadMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m AuthRequestPayloadMultiError) AllErrors() []error { return m }
+
+// AuthRequestPayloadValidationError is the validation error returned by
+// AuthRequestPayload.Validate if the designated constraints aren't met.
+type AuthRequestPayloadValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e AuthRequestPayloadValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e AuthRequestPayloadValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e AuthRequestPayloadValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e AuthRequestPayloadValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e AuthRequestPayloadValidationError) ErrorName() string {
+	return "AuthRequestPayloadValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e AuthRequestPayloadValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sAuthRequestPayload.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = AuthRequestPayloadValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = AuthRequestPayloadValidationError{}
+
+// Validate checks the field values on AuthResponsePayload with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *AuthResponsePayload) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on AuthResponsePayload with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// AuthResponsePayloadMultiError, or nil if none found.
+func (m *AuthResponsePayload) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *AuthResponsePayload) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Code
+
+	// no validation rules for Msg
+
+	// no validation rules for Result
+
+	// no validation rules for HeartbeatInternal
+
+	// no validation rules for SessionId
+
+	// no validation rules for MaxBodySize
+
+	// no validation rules for ReplayFrom
+
+	if len(errors) > 0 {
+		return AuthResponsePayloadMultiError(errors)
+	}
+
+	return nil
+}
+
+// AuthResponsePayloadMultiError is an error wrapping multiple validation
+// errors returned by AuthResponsePayload.ValidateAll() if the designated
+// constraints aren't met.
+type AuthResponsePayloadMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m AuthResponsePayloadMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m AuthResponsePayloadMultiError) AllErrors() []error { return m }
+
+// AuthResponsePayloadValidationError is the validation error returned by
+// AuthResponsePayload.Validate if the designated constraints aren't met.
+type AuthResponsePayloadValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e AuthResponsePayloadValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e AuthResponsePayloadValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e AuthResponsePayloadValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e AuthResponsePayloadValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e AuthResponsePayloadValidationError) ErrorName() string {
+	return "AuthResponsePayloadValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e AuthResponsePayloadValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sAuthResponsePayload.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = AuthResponsePayloadValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = AuthResponsePayloadValidationError{}
+
 // Validate checks the field values on KickPayload with the rules defined in
 // the proto definition for this message. If any rules are violated, the first
 // error encountered is returned, or nil if there are no violations.
@@ -1196,6 +1547,112 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = KickPayloadValidationError{}
+
+// Validate checks the field values on KickResponsePayload with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *KickResponsePayload) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on KickResponsePayload with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// KickResponsePayloadMultiError, or nil if none found.
+func (m *KickResponsePayload) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *KickResponsePayload) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Code
+
+	// no validation rules for Msg
+
+	if len(errors) > 0 {
+		return KickResponsePayloadMultiError(errors)
+	}
+
+	return nil
+}
+
+// KickResponsePayloadMultiError is an error wrapping multiple validation
+// errors returned by KickResponsePayload.ValidateAll() if the designated
+// constraints aren't met.
+type KickResponsePayloadMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m KickResponsePayloadMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m KickResponsePayloadMultiError) AllErrors() []error { return m }
+
+// KickResponsePayloadValidationError is the validation error returned by
+// KickResponsePayload.Validate if the designated constraints aren't met.
+type KickResponsePayloadValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e KickResponsePayloadValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e KickResponsePayloadValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e KickResponsePayloadValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e KickResponsePayloadValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e KickResponsePayloadValidationError) ErrorName() string {
+	return "KickResponsePayloadValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e KickResponsePayloadValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sKickResponsePayload.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = KickResponsePayloadValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = KickResponsePayloadValidationError{}
 
 // Validate checks the field values on ErrorPayload with the rules defined in
 // the proto definition for this message. If any rules are violated, the first

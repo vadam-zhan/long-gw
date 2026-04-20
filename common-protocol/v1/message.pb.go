@@ -21,108 +21,108 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type MsgType int32
+type SignalType int32
 
 const (
-	MsgType_MSG_TYPE_UNSPECIFIED MsgType = 0
+	SignalType_Signal_Type_UNSPECIFIED SignalType = 0
 	// ── 控制面 (1–99) ── 网关内部，不转发给业务 ──────────────────────────────
-	MsgType_MSG_TYPE_HANDSHAKE     MsgType = 1 // Client→Gateway  初始认证握手
-	MsgType_MSG_TYPE_HANDSHAKE_ACK MsgType = 2 // Gateway→Client  握手结果
-	MsgType_MSG_TYPE_PING          MsgType = 3 // Client→Gateway  心跳探针
-	MsgType_MSG_TYPE_PONG          MsgType = 4 // Gateway→Client  心跳回应
-	MsgType_MSG_TYPE_KICK          MsgType = 5 // Gateway→Client  强制断连通知
-	MsgType_MSG_TYPE_ERROR         MsgType = 6 // 双向             错误通知
-	MsgType_MSG_TYPE_ACK           MsgType = 7 // 双向             QoS-1/2 确认帧
+	SignalType_Signal_Type_HANDSHAKE     SignalType = 1 // Client→Gateway  初始认证握手
+	SignalType_Signal_Type_HANDSHAKE_ACK SignalType = 2 // Gateway→Client  握手结果
+	SignalType_Signal_Type_PING          SignalType = 3 // Client→Gateway  心跳探针
+	SignalType_Signal_Type_PONG          SignalType = 4 // Gateway→Client  心跳回应
+	SignalType_Signal_Type_KICK          SignalType = 5 // Gateway→Client  强制断连通知
+	SignalType_Signal_Type_ERROR         SignalType = 6 // 双向             错误通知
+	SignalType_Signal_Type_ACK           SignalType = 7 // 双向             QoS-1/2 确认帧
 	// ── 数据面通用 (100) ─────────────────────────────────────────────────────
-	MsgType_MSG_TYPE_DATA MsgType = 100 // 通用数据帧，BizCode+Body.type 细分路由
+	SignalType_Signal_Type_DATA SignalType = 100 // 通用数据帧，BizCode+Body.type 细分路由
 	// ── IM 域 (101–199) ──────────────────────────────────────────────────────
-	MsgType_MSG_TYPE_IM_CHAT    MsgType = 101 // 单聊 / 群聊消息
-	MsgType_MSG_TYPE_IM_RECEIPT MsgType = 102 // 投递 / 已读回执
-	MsgType_MSG_TYPE_IM_REVOKE  MsgType = 103 // 消息撤回
-	MsgType_MSG_TYPE_IM_TYPING  MsgType = 104 // 正在输入指示
+	SignalType_Signal_Type_IM_CHAT    SignalType = 101 // 单聊 / 群聊消息
+	SignalType_Signal_Type_IM_RECEIPT SignalType = 102 // 投递 / 已读回执
+	SignalType_Signal_Type_IM_REVOKE  SignalType = 103 // 消息撤回
+	SignalType_Signal_Type_IM_TYPING  SignalType = 104 // 正在输入指示
 	// ── Push 域 (201–299) ────────────────────────────────────────────────────
-	MsgType_MSG_TYPE_PUSH_NOTIFY MsgType = 201 // 服务端主动推送
-	MsgType_MSG_TYPE_PUSH_ACK    MsgType = 202 // 客户端推送确认
+	SignalType_Signal_Type_PUSH_NOTIFY SignalType = 201 // 服务端主动推送
+	SignalType_Signal_Type_PUSH_ACK    SignalType = 202 // 客户端推送确认
 	// ── Live 域 (301–399) ────────────────────────────────────────────────────
-	MsgType_MSG_TYPE_LIVE_JOIN    MsgType = 301
-	MsgType_MSG_TYPE_LIVE_LEAVE   MsgType = 302
-	MsgType_MSG_TYPE_LIVE_COMMENT MsgType = 303
-	MsgType_MSG_TYPE_LIVE_GIFT    MsgType = 304
-	MsgType_MSG_TYPE_LIVE_SIGNAL  MsgType = 305
+	SignalType_Signal_Type_LIVE_JOIN    SignalType = 301
+	SignalType_Signal_Type_LIVE_LEAVE   SignalType = 302
+	SignalType_Signal_Type_LIVE_COMMENT SignalType = 303
+	SignalType_Signal_Type_LIVE_GIFT    SignalType = 304
+	SignalType_Signal_Type_LIVE_SIGNAL  SignalType = 305
 )
 
-// Enum value maps for MsgType.
+// Enum value maps for SignalType.
 var (
-	MsgType_name = map[int32]string{
-		0:   "MSG_TYPE_UNSPECIFIED",
-		1:   "MSG_TYPE_HANDSHAKE",
-		2:   "MSG_TYPE_HANDSHAKE_ACK",
-		3:   "MSG_TYPE_PING",
-		4:   "MSG_TYPE_PONG",
-		5:   "MSG_TYPE_KICK",
-		6:   "MSG_TYPE_ERROR",
-		7:   "MSG_TYPE_ACK",
-		100: "MSG_TYPE_DATA",
-		101: "MSG_TYPE_IM_CHAT",
-		102: "MSG_TYPE_IM_RECEIPT",
-		103: "MSG_TYPE_IM_REVOKE",
-		104: "MSG_TYPE_IM_TYPING",
-		201: "MSG_TYPE_PUSH_NOTIFY",
-		202: "MSG_TYPE_PUSH_ACK",
-		301: "MSG_TYPE_LIVE_JOIN",
-		302: "MSG_TYPE_LIVE_LEAVE",
-		303: "MSG_TYPE_LIVE_COMMENT",
-		304: "MSG_TYPE_LIVE_GIFT",
-		305: "MSG_TYPE_LIVE_SIGNAL",
+	SignalType_name = map[int32]string{
+		0:   "Signal_Type_UNSPECIFIED",
+		1:   "Signal_Type_HANDSHAKE",
+		2:   "Signal_Type_HANDSHAKE_ACK",
+		3:   "Signal_Type_PING",
+		4:   "Signal_Type_PONG",
+		5:   "Signal_Type_KICK",
+		6:   "Signal_Type_ERROR",
+		7:   "Signal_Type_ACK",
+		100: "Signal_Type_DATA",
+		101: "Signal_Type_IM_CHAT",
+		102: "Signal_Type_IM_RECEIPT",
+		103: "Signal_Type_IM_REVOKE",
+		104: "Signal_Type_IM_TYPING",
+		201: "Signal_Type_PUSH_NOTIFY",
+		202: "Signal_Type_PUSH_ACK",
+		301: "Signal_Type_LIVE_JOIN",
+		302: "Signal_Type_LIVE_LEAVE",
+		303: "Signal_Type_LIVE_COMMENT",
+		304: "Signal_Type_LIVE_GIFT",
+		305: "Signal_Type_LIVE_SIGNAL",
 	}
-	MsgType_value = map[string]int32{
-		"MSG_TYPE_UNSPECIFIED":   0,
-		"MSG_TYPE_HANDSHAKE":     1,
-		"MSG_TYPE_HANDSHAKE_ACK": 2,
-		"MSG_TYPE_PING":          3,
-		"MSG_TYPE_PONG":          4,
-		"MSG_TYPE_KICK":          5,
-		"MSG_TYPE_ERROR":         6,
-		"MSG_TYPE_ACK":           7,
-		"MSG_TYPE_DATA":          100,
-		"MSG_TYPE_IM_CHAT":       101,
-		"MSG_TYPE_IM_RECEIPT":    102,
-		"MSG_TYPE_IM_REVOKE":     103,
-		"MSG_TYPE_IM_TYPING":     104,
-		"MSG_TYPE_PUSH_NOTIFY":   201,
-		"MSG_TYPE_PUSH_ACK":      202,
-		"MSG_TYPE_LIVE_JOIN":     301,
-		"MSG_TYPE_LIVE_LEAVE":    302,
-		"MSG_TYPE_LIVE_COMMENT":  303,
-		"MSG_TYPE_LIVE_GIFT":     304,
-		"MSG_TYPE_LIVE_SIGNAL":   305,
+	SignalType_value = map[string]int32{
+		"Signal_Type_UNSPECIFIED":   0,
+		"Signal_Type_HANDSHAKE":     1,
+		"Signal_Type_HANDSHAKE_ACK": 2,
+		"Signal_Type_PING":          3,
+		"Signal_Type_PONG":          4,
+		"Signal_Type_KICK":          5,
+		"Signal_Type_ERROR":         6,
+		"Signal_Type_ACK":           7,
+		"Signal_Type_DATA":          100,
+		"Signal_Type_IM_CHAT":       101,
+		"Signal_Type_IM_RECEIPT":    102,
+		"Signal_Type_IM_REVOKE":     103,
+		"Signal_Type_IM_TYPING":     104,
+		"Signal_Type_PUSH_NOTIFY":   201,
+		"Signal_Type_PUSH_ACK":      202,
+		"Signal_Type_LIVE_JOIN":     301,
+		"Signal_Type_LIVE_LEAVE":    302,
+		"Signal_Type_LIVE_COMMENT":  303,
+		"Signal_Type_LIVE_GIFT":     304,
+		"Signal_Type_LIVE_SIGNAL":   305,
 	}
 )
 
-func (x MsgType) Enum() *MsgType {
-	p := new(MsgType)
+func (x SignalType) Enum() *SignalType {
+	p := new(SignalType)
 	*p = x
 	return p
 }
 
-func (x MsgType) String() string {
+func (x SignalType) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (MsgType) Descriptor() protoreflect.EnumDescriptor {
+func (SignalType) Descriptor() protoreflect.EnumDescriptor {
 	return file_v1_message_proto_enumTypes[0].Descriptor()
 }
 
-func (MsgType) Type() protoreflect.EnumType {
+func (SignalType) Type() protoreflect.EnumType {
 	return &file_v1_message_proto_enumTypes[0]
 }
 
-func (x MsgType) Number() protoreflect.EnumNumber {
+func (x SignalType) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use MsgType.Descriptor instead.
-func (MsgType) EnumDescriptor() ([]byte, []int) {
+// Deprecated: Use SignalType.Descriptor instead.
+func (SignalType) EnumDescriptor() ([]byte, []int) {
 	return file_v1_message_proto_rawDescGZIP(), []int{0}
 }
 
@@ -180,25 +180,25 @@ func (QoS) EnumDescriptor() ([]byte, []int) {
 type Codec int32
 
 const (
-	Codec_CODEC_UNSPECIFIED Codec = 0 // 由实现自行约定（历史兼容）
-	Codec_CODEC_JSON        Codec = 1 // 调试友好，默认
-	Codec_CODEC_PROTOBUF    Codec = 2 // 生产首选，紧凑高效
-	Codec_CODEC_MSGPACK     Codec = 3 // 动态语言场景
+	Codec_Codec_UNSPECIFIED Codec = 0 // 由实现自行约定（历史兼容）
+	Codec_Codec_JSON        Codec = 1 // 调试友好，默认
+	Codec_Codec_PROTOBUF    Codec = 2 // 生产首选，紧凑高效
+	Codec_Codec_MSGPACK     Codec = 3 // 动态语言场景
 )
 
 // Enum value maps for Codec.
 var (
 	Codec_name = map[int32]string{
-		0: "CODEC_UNSPECIFIED",
-		1: "CODEC_JSON",
-		2: "CODEC_PROTOBUF",
-		3: "CODEC_MSGPACK",
+		0: "Codec_UNSPECIFIED",
+		1: "Codec_JSON",
+		2: "Codec_PROTOBUF",
+		3: "Codec_MSGPACK",
 	}
 	Codec_value = map[string]int32{
-		"CODEC_UNSPECIFIED": 0,
-		"CODEC_JSON":        1,
-		"CODEC_PROTOBUF":    2,
-		"CODEC_MSGPACK":     3,
+		"Codec_UNSPECIFIED": 0,
+		"Codec_JSON":        1,
+		"Codec_PROTOBUF":    2,
+		"Codec_MSGPACK":     3,
 	}
 )
 
@@ -233,25 +233,25 @@ func (Codec) EnumDescriptor() ([]byte, []int) {
 type CompressAlgo int32
 
 const (
-	CompressAlgo_COMPRESS_NONE   CompressAlgo = 0
-	CompressAlgo_COMPRESS_GZIP   CompressAlgo = 1
-	CompressAlgo_COMPRESS_ZSTD   CompressAlgo = 2 // 推荐：压缩比与速度最优
-	CompressAlgo_COMPRESS_SNAPPY CompressAlgo = 3 // 低延迟场景
+	CompressAlgo_Compress_Algo_NONE   CompressAlgo = 0
+	CompressAlgo_Compress_Algo_GZIP   CompressAlgo = 1
+	CompressAlgo_Compress_Algo_ZSTD   CompressAlgo = 2 // 推荐：压缩比与速度最优
+	CompressAlgo_Compress_Algo_SNAPPY CompressAlgo = 3 // 低延迟场景
 )
 
 // Enum value maps for CompressAlgo.
 var (
 	CompressAlgo_name = map[int32]string{
-		0: "COMPRESS_NONE",
-		1: "COMPRESS_GZIP",
-		2: "COMPRESS_ZSTD",
-		3: "COMPRESS_SNAPPY",
+		0: "Compress_Algo_NONE",
+		1: "Compress_Algo_GZIP",
+		2: "Compress_Algo_ZSTD",
+		3: "Compress_Algo_SNAPPY",
 	}
 	CompressAlgo_value = map[string]int32{
-		"COMPRESS_NONE":   0,
-		"COMPRESS_GZIP":   1,
-		"COMPRESS_ZSTD":   2,
-		"COMPRESS_SNAPPY": 3,
+		"Compress_Algo_NONE":   0,
+		"Compress_Algo_GZIP":   1,
+		"Compress_Algo_ZSTD":   2,
+		"Compress_Algo_SNAPPY": 3,
 	}
 )
 
@@ -286,8 +286,8 @@ type Message struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ── 帧身份 ──────────────────────────────────────────────────────────────
 	// version: 协议版本，用于平滑升级。当前 = 1。
-	Version uint32  `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
-	Type    MsgType `protobuf:"varint,2,opt,name=type,proto3,enum=gateway.v1.MsgType" json:"type,omitempty"`
+	Version uint32     `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
+	Type    SignalType `protobuf:"varint,2,opt,name=type,proto3,enum=gateway.v1.SignalType" json:"type,omitempty"`
 	// msg_id: 发送方生成的全局唯一 ID（UUID v4 或雪花 ID）。
 	//
 	//	用途：① ACK 关联  ② 幂等去重（QoS-2）  ③ 追踪日志关联
@@ -391,11 +391,11 @@ func (x *Message) GetVersion() uint32 {
 	return 0
 }
 
-func (x *Message) GetType() MsgType {
+func (x *Message) GetType() SignalType {
 	if x != nil {
 		return x.Type
 	}
-	return MsgType_MSG_TYPE_UNSPECIFIED
+	return SignalType_Signal_Type_UNSPECIFIED
 }
 
 func (x *Message) GetMsgId() string {
@@ -479,14 +479,14 @@ func (x *Message) GetBodyCodec() Codec {
 	if x != nil {
 		return x.BodyCodec
 	}
-	return Codec_CODEC_UNSPECIFIED
+	return Codec_Codec_UNSPECIFIED
 }
 
 func (x *Message) GetCompress() CompressAlgo {
 	if x != nil {
 		return x.Compress
 	}
-	return CompressAlgo_COMPRESS_NONE
+	return CompressAlgo_Compress_Algo_NONE
 }
 
 func (x *Message) GetHeaders() map[string]string {
@@ -585,8 +585,11 @@ type WellKnownPayload struct {
 	//	*WellKnownPayload_Handshake
 	//	*WellKnownPayload_HandshakeAck
 	//	*WellKnownPayload_Kick
+	//	*WellKnownPayload_KickResponse
 	//	*WellKnownPayload_Error
 	//	*WellKnownPayload_Ack
+	//	*WellKnownPayload_AuthRequest
+	//	*WellKnownPayload_AuthResponse
 	//	*WellKnownPayload_ImChat
 	//	*WellKnownPayload_ImReceipt
 	//	*WellKnownPayload_ImRevoke
@@ -663,6 +666,15 @@ func (x *WellKnownPayload) GetKick() *KickPayload {
 	return nil
 }
 
+func (x *WellKnownPayload) GetKickResponse() *KickResponsePayload {
+	if x != nil {
+		if x, ok := x.Content.(*WellKnownPayload_KickResponse); ok {
+			return x.KickResponse
+		}
+	}
+	return nil
+}
+
 func (x *WellKnownPayload) GetError() *ErrorPayload {
 	if x != nil {
 		if x, ok := x.Content.(*WellKnownPayload_Error); ok {
@@ -676,6 +688,24 @@ func (x *WellKnownPayload) GetAck() *AckPayload {
 	if x != nil {
 		if x, ok := x.Content.(*WellKnownPayload_Ack); ok {
 			return x.Ack
+		}
+	}
+	return nil
+}
+
+func (x *WellKnownPayload) GetAuthRequest() *AuthRequestPayload {
+	if x != nil {
+		if x, ok := x.Content.(*WellKnownPayload_AuthRequest); ok {
+			return x.AuthRequest
+		}
+	}
+	return nil
+}
+
+func (x *WellKnownPayload) GetAuthResponse() *AuthResponsePayload {
+	if x != nil {
+		if x, ok := x.Content.(*WellKnownPayload_AuthResponse); ok {
+			return x.AuthResponse
 		}
 	}
 	return nil
@@ -761,12 +791,24 @@ type WellKnownPayload_Kick struct {
 	Kick *KickPayload `protobuf:"bytes,3,opt,name=kick,proto3,oneof"`
 }
 
+type WellKnownPayload_KickResponse struct {
+	KickResponse *KickResponsePayload `protobuf:"bytes,4,opt,name=kick_response,json=kickResponse,proto3,oneof"`
+}
+
 type WellKnownPayload_Error struct {
-	Error *ErrorPayload `protobuf:"bytes,4,opt,name=error,proto3,oneof"`
+	Error *ErrorPayload `protobuf:"bytes,5,opt,name=error,proto3,oneof"`
 }
 
 type WellKnownPayload_Ack struct {
-	Ack *AckPayload `protobuf:"bytes,5,opt,name=ack,proto3,oneof"`
+	Ack *AckPayload `protobuf:"bytes,6,opt,name=ack,proto3,oneof"`
+}
+
+type WellKnownPayload_AuthRequest struct {
+	AuthRequest *AuthRequestPayload `protobuf:"bytes,7,opt,name=auth_request,json=authRequest,proto3,oneof"`
+}
+
+type WellKnownPayload_AuthResponse struct {
+	AuthResponse *AuthResponsePayload `protobuf:"bytes,8,opt,name=auth_response,json=authResponse,proto3,oneof"`
 }
 
 type WellKnownPayload_ImChat struct {
@@ -808,9 +850,15 @@ func (*WellKnownPayload_HandshakeAck) isWellKnownPayload_Content() {}
 
 func (*WellKnownPayload_Kick) isWellKnownPayload_Content() {}
 
+func (*WellKnownPayload_KickResponse) isWellKnownPayload_Content() {}
+
 func (*WellKnownPayload_Error) isWellKnownPayload_Content() {}
 
 func (*WellKnownPayload_Ack) isWellKnownPayload_Content() {}
+
+func (*WellKnownPayload_AuthRequest) isWellKnownPayload_Content() {}
+
+func (*WellKnownPayload_AuthResponse) isWellKnownPayload_Content() {}
 
 func (*WellKnownPayload_ImChat) isWellKnownPayload_Content() {}
 
@@ -1007,6 +1055,174 @@ func (x *HandshakeAckPayload) GetExtensions() []string {
 	return nil
 }
 
+type AuthRequestPayload struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`                             // 客户端提供的认证令牌
+	AppId         string                 `protobuf:"bytes,2,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`                // 应用 ID
+	DeviceId      string                 `protobuf:"bytes,3,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`       // 设备 ID
+	DeviceType    string                 `protobuf:"bytes,4,opt,name=device_type,json=deviceType,proto3" json:"device_type,omitempty"` // 设备类型
+	BizCode       string                 `protobuf:"bytes,5,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`          // 业务代码
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuthRequestPayload) Reset() {
+	*x = AuthRequestPayload{}
+	mi := &file_v1_message_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthRequestPayload) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthRequestPayload) ProtoMessage() {}
+
+func (x *AuthRequestPayload) ProtoReflect() protoreflect.Message {
+	mi := &file_v1_message_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuthRequestPayload.ProtoReflect.Descriptor instead.
+func (*AuthRequestPayload) Descriptor() ([]byte, []int) {
+	return file_v1_message_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *AuthRequestPayload) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+func (x *AuthRequestPayload) GetAppId() string {
+	if x != nil {
+		return x.AppId
+	}
+	return ""
+}
+
+func (x *AuthRequestPayload) GetDeviceId() string {
+	if x != nil {
+		return x.DeviceId
+	}
+	return ""
+}
+
+func (x *AuthRequestPayload) GetDeviceType() string {
+	if x != nil {
+		return x.DeviceType
+	}
+	return ""
+}
+
+func (x *AuthRequestPayload) GetBizCode() string {
+	if x != nil {
+		return x.BizCode
+	}
+	return ""
+}
+
+type AuthResponsePayload struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Code              uint32                 `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`                                                    // 响应，0 = 鉴权成功，非0 失败
+	Msg               string                 `protobuf:"bytes,2,opt,name=msg,proto3" json:"msg,omitempty"`                                                       // 状态描述
+	Result            bool                   `protobuf:"varint,3,opt,name=result,proto3" json:"result,omitempty"`                                                // 鉴权结果，true = 鉴权成功，false = 鉴权失败
+	HeartbeatInternal uint32                 `protobuf:"varint,4,opt,name=heartbeat_internal,json=heartbeatInternal,proto3" json:"heartbeat_internal,omitempty"` // 服务端强制的心跳间隔（单位秒，默认 30s）
+	SessionId         string                 `protobuf:"bytes,5,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`                          // 会话ID
+	MaxBodySize       uint32                 `protobuf:"varint,6,opt,name=max_body_size,json=maxBodySize,proto3" json:"max_body_size,omitempty"`                 // 最大 body
+	ReplayFrom        uint64                 `protobuf:"varint,7,opt,name=replay_from,json=replayFrom,proto3" json:"replay_from,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *AuthResponsePayload) Reset() {
+	*x = AuthResponsePayload{}
+	mi := &file_v1_message_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthResponsePayload) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthResponsePayload) ProtoMessage() {}
+
+func (x *AuthResponsePayload) ProtoReflect() protoreflect.Message {
+	mi := &file_v1_message_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuthResponsePayload.ProtoReflect.Descriptor instead.
+func (*AuthResponsePayload) Descriptor() ([]byte, []int) {
+	return file_v1_message_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *AuthResponsePayload) GetCode() uint32 {
+	if x != nil {
+		return x.Code
+	}
+	return 0
+}
+
+func (x *AuthResponsePayload) GetMsg() string {
+	if x != nil {
+		return x.Msg
+	}
+	return ""
+}
+
+func (x *AuthResponsePayload) GetResult() bool {
+	if x != nil {
+		return x.Result
+	}
+	return false
+}
+
+func (x *AuthResponsePayload) GetHeartbeatInternal() uint32 {
+	if x != nil {
+		return x.HeartbeatInternal
+	}
+	return 0
+}
+
+func (x *AuthResponsePayload) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *AuthResponsePayload) GetMaxBodySize() uint32 {
+	if x != nil {
+		return x.MaxBodySize
+	}
+	return 0
+}
+
+func (x *AuthResponsePayload) GetReplayFrom() uint64 {
+	if x != nil {
+		return x.ReplayFrom
+	}
+	return 0
+}
+
 type KickPayload struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Code           int32                  `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`                                           // 机器可读错误码
@@ -1018,7 +1234,7 @@ type KickPayload struct {
 
 func (x *KickPayload) Reset() {
 	*x = KickPayload{}
-	mi := &file_v1_message_proto_msgTypes[5]
+	mi := &file_v1_message_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1030,7 +1246,7 @@ func (x *KickPayload) String() string {
 func (*KickPayload) ProtoMessage() {}
 
 func (x *KickPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_message_proto_msgTypes[5]
+	mi := &file_v1_message_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1043,7 +1259,7 @@ func (x *KickPayload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KickPayload.ProtoReflect.Descriptor instead.
 func (*KickPayload) Descriptor() ([]byte, []int) {
-	return file_v1_message_proto_rawDescGZIP(), []int{5}
+	return file_v1_message_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *KickPayload) GetCode() int32 {
@@ -1067,6 +1283,58 @@ func (x *KickPayload) GetReconnectAfter() int32 {
 	return 0
 }
 
+type KickResponsePayload struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Code          uint32                 `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"` // 响应，0 = 登出成功，非0 失败
+	Msg           string                 `protobuf:"bytes,2,opt,name=msg,proto3" json:"msg,omitempty"`    // 状态描述
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KickResponsePayload) Reset() {
+	*x = KickResponsePayload{}
+	mi := &file_v1_message_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KickResponsePayload) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KickResponsePayload) ProtoMessage() {}
+
+func (x *KickResponsePayload) ProtoReflect() protoreflect.Message {
+	mi := &file_v1_message_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KickResponsePayload.ProtoReflect.Descriptor instead.
+func (*KickResponsePayload) Descriptor() ([]byte, []int) {
+	return file_v1_message_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *KickResponsePayload) GetCode() uint32 {
+	if x != nil {
+		return x.Code
+	}
+	return 0
+}
+
+func (x *KickResponsePayload) GetMsg() string {
+	if x != nil {
+		return x.Msg
+	}
+	return ""
+}
+
 type ErrorPayload struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Code          int32                  `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
@@ -1078,7 +1346,7 @@ type ErrorPayload struct {
 
 func (x *ErrorPayload) Reset() {
 	*x = ErrorPayload{}
-	mi := &file_v1_message_proto_msgTypes[6]
+	mi := &file_v1_message_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1090,7 +1358,7 @@ func (x *ErrorPayload) String() string {
 func (*ErrorPayload) ProtoMessage() {}
 
 func (x *ErrorPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_message_proto_msgTypes[6]
+	mi := &file_v1_message_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1103,7 +1371,7 @@ func (x *ErrorPayload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ErrorPayload.ProtoReflect.Descriptor instead.
 func (*ErrorPayload) Descriptor() ([]byte, []int) {
-	return file_v1_message_proto_rawDescGZIP(), []int{6}
+	return file_v1_message_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ErrorPayload) GetCode() int32 {
@@ -1137,7 +1405,7 @@ type AckPayload struct {
 
 func (x *AckPayload) Reset() {
 	*x = AckPayload{}
-	mi := &file_v1_message_proto_msgTypes[7]
+	mi := &file_v1_message_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1149,7 +1417,7 @@ func (x *AckPayload) String() string {
 func (*AckPayload) ProtoMessage() {}
 
 func (x *AckPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_message_proto_msgTypes[7]
+	mi := &file_v1_message_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1162,7 +1430,7 @@ func (x *AckPayload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AckPayload.ProtoReflect.Descriptor instead.
 func (*AckPayload) Descriptor() ([]byte, []int) {
-	return file_v1_message_proto_rawDescGZIP(), []int{7}
+	return file_v1_message_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *AckPayload) GetRefMsgId() string {
@@ -1199,7 +1467,7 @@ type IMChatPayload struct {
 
 func (x *IMChatPayload) Reset() {
 	*x = IMChatPayload{}
-	mi := &file_v1_message_proto_msgTypes[8]
+	mi := &file_v1_message_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1211,7 +1479,7 @@ func (x *IMChatPayload) String() string {
 func (*IMChatPayload) ProtoMessage() {}
 
 func (x *IMChatPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_message_proto_msgTypes[8]
+	mi := &file_v1_message_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1224,7 +1492,7 @@ func (x *IMChatPayload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IMChatPayload.ProtoReflect.Descriptor instead.
 func (*IMChatPayload) Descriptor() ([]byte, []int) {
-	return file_v1_message_proto_rawDescGZIP(), []int{8}
+	return file_v1_message_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *IMChatPayload) GetConvId() string {
@@ -1275,7 +1543,7 @@ type IMReceiptPayload struct {
 
 func (x *IMReceiptPayload) Reset() {
 	*x = IMReceiptPayload{}
-	mi := &file_v1_message_proto_msgTypes[9]
+	mi := &file_v1_message_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1287,7 +1555,7 @@ func (x *IMReceiptPayload) String() string {
 func (*IMReceiptPayload) ProtoMessage() {}
 
 func (x *IMReceiptPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_message_proto_msgTypes[9]
+	mi := &file_v1_message_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1300,7 +1568,7 @@ func (x *IMReceiptPayload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IMReceiptPayload.ProtoReflect.Descriptor instead.
 func (*IMReceiptPayload) Descriptor() ([]byte, []int) {
-	return file_v1_message_proto_rawDescGZIP(), []int{9}
+	return file_v1_message_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *IMReceiptPayload) GetConvId() string {
@@ -1341,7 +1609,7 @@ type IMRevokePayload struct {
 
 func (x *IMRevokePayload) Reset() {
 	*x = IMRevokePayload{}
-	mi := &file_v1_message_proto_msgTypes[10]
+	mi := &file_v1_message_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1353,7 +1621,7 @@ func (x *IMRevokePayload) String() string {
 func (*IMRevokePayload) ProtoMessage() {}
 
 func (x *IMRevokePayload) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_message_proto_msgTypes[10]
+	mi := &file_v1_message_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1366,7 +1634,7 @@ func (x *IMRevokePayload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IMRevokePayload.ProtoReflect.Descriptor instead.
 func (*IMRevokePayload) Descriptor() ([]byte, []int) {
-	return file_v1_message_proto_rawDescGZIP(), []int{10}
+	return file_v1_message_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *IMRevokePayload) GetConvId() string {
@@ -1401,7 +1669,7 @@ type PushNotifyPayload struct {
 
 func (x *PushNotifyPayload) Reset() {
 	*x = PushNotifyPayload{}
-	mi := &file_v1_message_proto_msgTypes[11]
+	mi := &file_v1_message_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1413,7 +1681,7 @@ func (x *PushNotifyPayload) String() string {
 func (*PushNotifyPayload) ProtoMessage() {}
 
 func (x *PushNotifyPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_message_proto_msgTypes[11]
+	mi := &file_v1_message_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1426,7 +1694,7 @@ func (x *PushNotifyPayload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PushNotifyPayload.ProtoReflect.Descriptor instead.
 func (*PushNotifyPayload) Descriptor() ([]byte, []int) {
-	return file_v1_message_proto_rawDescGZIP(), []int{11}
+	return file_v1_message_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *PushNotifyPayload) GetTitle() string {
@@ -1489,7 +1757,7 @@ type LiveCommentPayload struct {
 
 func (x *LiveCommentPayload) Reset() {
 	*x = LiveCommentPayload{}
-	mi := &file_v1_message_proto_msgTypes[12]
+	mi := &file_v1_message_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1501,7 +1769,7 @@ func (x *LiveCommentPayload) String() string {
 func (*LiveCommentPayload) ProtoMessage() {}
 
 func (x *LiveCommentPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_message_proto_msgTypes[12]
+	mi := &file_v1_message_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1514,7 +1782,7 @@ func (x *LiveCommentPayload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LiveCommentPayload.ProtoReflect.Descriptor instead.
 func (*LiveCommentPayload) Descriptor() ([]byte, []int) {
-	return file_v1_message_proto_rawDescGZIP(), []int{12}
+	return file_v1_message_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *LiveCommentPayload) GetRoomId() string {
@@ -1551,7 +1819,7 @@ type LiveGiftPayload struct {
 
 func (x *LiveGiftPayload) Reset() {
 	*x = LiveGiftPayload{}
-	mi := &file_v1_message_proto_msgTypes[13]
+	mi := &file_v1_message_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1563,7 +1831,7 @@ func (x *LiveGiftPayload) String() string {
 func (*LiveGiftPayload) ProtoMessage() {}
 
 func (x *LiveGiftPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_v1_message_proto_msgTypes[13]
+	mi := &file_v1_message_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1576,7 +1844,7 @@ func (x *LiveGiftPayload) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LiveGiftPayload.ProtoReflect.Descriptor instead.
 func (*LiveGiftPayload) Descriptor() ([]byte, []int) {
-	return file_v1_message_proto_rawDescGZIP(), []int{13}
+	return file_v1_message_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *LiveGiftPayload) GetRoomId() string {
@@ -1619,10 +1887,10 @@ var File_v1_message_proto protoreflect.FileDescriptor
 const file_v1_message_proto_rawDesc = "" +
 	"\n" +
 	"\x10v1/message.proto\x12\n" +
-	"gateway.v1\"\xe9\x04\n" +
+	"gateway.v1\"\xec\x04\n" +
 	"\aMessage\x12\x18\n" +
-	"\aversion\x18\x01 \x01(\rR\aversion\x12'\n" +
-	"\x04type\x18\x02 \x01(\x0e2\x13.gateway.v1.MsgTypeR\x04type\x12\x15\n" +
+	"\aversion\x18\x01 \x01(\rR\aversion\x12*\n" +
+	"\x04type\x18\x02 \x01(\x0e2\x16.gateway.v1.SignalTypeR\x04type\x12\x15\n" +
 	"\x06msg_id\x18\x03 \x01(\tR\x05msgId\x12\x15\n" +
 	"\x06seq_id\x18\x04 \x01(\x04R\x05seqId\x12\x1c\n" +
 	"\ttimestamp\x18\x05 \x01(\x03R\ttimestamp\x12\x12\n" +
@@ -1649,13 +1917,16 @@ const file_v1_message_proto_rawDesc = "" +
 	"\x03ext\x18\x03 \x03(\v2\x19.gateway.v1.Body.ExtEntryR\x03ext\x1a6\n" +
 	"\bExtEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xb8\x05\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x8d\a\n" +
 	"\x10WellKnownPayload\x12<\n" +
 	"\thandshake\x18\x01 \x01(\v2\x1c.gateway.v1.HandshakePayloadH\x00R\thandshake\x12F\n" +
 	"\rhandshake_ack\x18\x02 \x01(\v2\x1f.gateway.v1.HandshakeAckPayloadH\x00R\fhandshakeAck\x12-\n" +
-	"\x04kick\x18\x03 \x01(\v2\x17.gateway.v1.KickPayloadH\x00R\x04kick\x120\n" +
-	"\x05error\x18\x04 \x01(\v2\x18.gateway.v1.ErrorPayloadH\x00R\x05error\x12*\n" +
-	"\x03ack\x18\x05 \x01(\v2\x16.gateway.v1.AckPayloadH\x00R\x03ack\x124\n" +
+	"\x04kick\x18\x03 \x01(\v2\x17.gateway.v1.KickPayloadH\x00R\x04kick\x12F\n" +
+	"\rkick_response\x18\x04 \x01(\v2\x1f.gateway.v1.KickResponsePayloadH\x00R\fkickResponse\x120\n" +
+	"\x05error\x18\x05 \x01(\v2\x18.gateway.v1.ErrorPayloadH\x00R\x05error\x12*\n" +
+	"\x03ack\x18\x06 \x01(\v2\x16.gateway.v1.AckPayloadH\x00R\x03ack\x12C\n" +
+	"\fauth_request\x18\a \x01(\v2\x1e.gateway.v1.AuthRequestPayloadH\x00R\vauthRequest\x12F\n" +
+	"\rauth_response\x18\b \x01(\v2\x1f.gateway.v1.AuthResponsePayloadH\x00R\fauthResponse\x124\n" +
 	"\aim_chat\x18\n" +
 	" \x01(\v2\x19.gateway.v1.IMChatPayloadH\x00R\x06imChat\x12=\n" +
 	"\n" +
@@ -1687,11 +1958,31 @@ const file_v1_message_proto_rawDesc = "" +
 	"replayFrom\x12\x1e\n" +
 	"\n" +
 	"extensions\x18\a \x03(\tR\n" +
-	"extensions\"b\n" +
+	"extensions\"\x9a\x01\n" +
+	"\x12AuthRequestPayload\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\x12\x15\n" +
+	"\x06app_id\x18\x02 \x01(\tR\x05appId\x12\x1b\n" +
+	"\tdevice_id\x18\x03 \x01(\tR\bdeviceId\x12\x1f\n" +
+	"\vdevice_type\x18\x04 \x01(\tR\n" +
+	"deviceType\x12\x19\n" +
+	"\bbiz_code\x18\x05 \x01(\tR\abizCode\"\xe6\x01\n" +
+	"\x13AuthResponsePayload\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\rR\x04code\x12\x10\n" +
+	"\x03msg\x18\x02 \x01(\tR\x03msg\x12\x16\n" +
+	"\x06result\x18\x03 \x01(\bR\x06result\x12-\n" +
+	"\x12heartbeat_internal\x18\x04 \x01(\rR\x11heartbeatInternal\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x05 \x01(\tR\tsessionId\x12\"\n" +
+	"\rmax_body_size\x18\x06 \x01(\rR\vmaxBodySize\x12\x1f\n" +
+	"\vreplay_from\x18\a \x01(\x04R\n" +
+	"replayFrom\"b\n" +
 	"\vKickPayload\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\x05R\x04code\x12\x16\n" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\x12'\n" +
-	"\x0freconnect_after\x18\x03 \x01(\x05R\x0ereconnectAfter\"Z\n" +
+	"\x0freconnect_after\x18\x03 \x01(\x05R\x0ereconnectAfter\";\n" +
+	"\x13KickResponsePayload\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\rR\x04code\x12\x10\n" +
+	"\x03msg\x18\x02 \x01(\tR\x03msg\"Z\n" +
 	"\fErrorPayload\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\x05R\x04code\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12\x1c\n" +
@@ -1737,43 +2028,44 @@ const file_v1_message_proto_rawDesc = "" +
 	"\tgift_name\x18\x03 \x01(\tR\bgiftName\x12\x14\n" +
 	"\x05count\x18\x04 \x01(\x05R\x05count\x12\x1d\n" +
 	"\n" +
-	"total_cost\x18\x05 \x01(\x03R\ttotalCost*\xde\x03\n" +
-	"\aMsgType\x12\x18\n" +
-	"\x14MSG_TYPE_UNSPECIFIED\x10\x00\x12\x16\n" +
-	"\x12MSG_TYPE_HANDSHAKE\x10\x01\x12\x1a\n" +
-	"\x16MSG_TYPE_HANDSHAKE_ACK\x10\x02\x12\x11\n" +
-	"\rMSG_TYPE_PING\x10\x03\x12\x11\n" +
-	"\rMSG_TYPE_PONG\x10\x04\x12\x11\n" +
-	"\rMSG_TYPE_KICK\x10\x05\x12\x12\n" +
-	"\x0eMSG_TYPE_ERROR\x10\x06\x12\x10\n" +
-	"\fMSG_TYPE_ACK\x10\a\x12\x11\n" +
-	"\rMSG_TYPE_DATA\x10d\x12\x14\n" +
-	"\x10MSG_TYPE_IM_CHAT\x10e\x12\x17\n" +
-	"\x13MSG_TYPE_IM_RECEIPT\x10f\x12\x16\n" +
-	"\x12MSG_TYPE_IM_REVOKE\x10g\x12\x16\n" +
-	"\x12MSG_TYPE_IM_TYPING\x10h\x12\x19\n" +
-	"\x14MSG_TYPE_PUSH_NOTIFY\x10\xc9\x01\x12\x16\n" +
-	"\x11MSG_TYPE_PUSH_ACK\x10\xca\x01\x12\x17\n" +
-	"\x12MSG_TYPE_LIVE_JOIN\x10\xad\x02\x12\x18\n" +
-	"\x13MSG_TYPE_LIVE_LEAVE\x10\xae\x02\x12\x1a\n" +
-	"\x15MSG_TYPE_LIVE_COMMENT\x10\xaf\x02\x12\x17\n" +
-	"\x12MSG_TYPE_LIVE_GIFT\x10\xb0\x02\x12\x19\n" +
-	"\x14MSG_TYPE_LIVE_SIGNAL\x10\xb1\x02*H\n" +
+	"total_cost\x18\x05 \x01(\x03R\ttotalCost*\x9d\x04\n" +
+	"\n" +
+	"SignalType\x12\x1b\n" +
+	"\x17Signal_Type_UNSPECIFIED\x10\x00\x12\x19\n" +
+	"\x15Signal_Type_HANDSHAKE\x10\x01\x12\x1d\n" +
+	"\x19Signal_Type_HANDSHAKE_ACK\x10\x02\x12\x14\n" +
+	"\x10Signal_Type_PING\x10\x03\x12\x14\n" +
+	"\x10Signal_Type_PONG\x10\x04\x12\x14\n" +
+	"\x10Signal_Type_KICK\x10\x05\x12\x15\n" +
+	"\x11Signal_Type_ERROR\x10\x06\x12\x13\n" +
+	"\x0fSignal_Type_ACK\x10\a\x12\x14\n" +
+	"\x10Signal_Type_DATA\x10d\x12\x17\n" +
+	"\x13Signal_Type_IM_CHAT\x10e\x12\x1a\n" +
+	"\x16Signal_Type_IM_RECEIPT\x10f\x12\x19\n" +
+	"\x15Signal_Type_IM_REVOKE\x10g\x12\x19\n" +
+	"\x15Signal_Type_IM_TYPING\x10h\x12\x1c\n" +
+	"\x17Signal_Type_PUSH_NOTIFY\x10\xc9\x01\x12\x19\n" +
+	"\x14Signal_Type_PUSH_ACK\x10\xca\x01\x12\x1a\n" +
+	"\x15Signal_Type_LIVE_JOIN\x10\xad\x02\x12\x1b\n" +
+	"\x16Signal_Type_LIVE_LEAVE\x10\xae\x02\x12\x1d\n" +
+	"\x18Signal_Type_LIVE_COMMENT\x10\xaf\x02\x12\x1a\n" +
+	"\x15Signal_Type_LIVE_GIFT\x10\xb0\x02\x12\x1c\n" +
+	"\x17Signal_Type_LIVE_SIGNAL\x10\xb1\x02*H\n" +
 	"\x03QoS\x12\x14\n" +
 	"\x10QOS_AT_MOST_ONCE\x10\x00\x12\x15\n" +
 	"\x11QOS_AT_LEAST_ONCE\x10\x01\x12\x14\n" +
 	"\x10QOS_EXACTLY_ONCE\x10\x02*U\n" +
 	"\x05Codec\x12\x15\n" +
-	"\x11CODEC_UNSPECIFIED\x10\x00\x12\x0e\n" +
+	"\x11Codec_UNSPECIFIED\x10\x00\x12\x0e\n" +
 	"\n" +
-	"CODEC_JSON\x10\x01\x12\x12\n" +
-	"\x0eCODEC_PROTOBUF\x10\x02\x12\x11\n" +
-	"\rCODEC_MSGPACK\x10\x03*\\\n" +
-	"\fCompressAlgo\x12\x11\n" +
-	"\rCOMPRESS_NONE\x10\x00\x12\x11\n" +
-	"\rCOMPRESS_GZIP\x10\x01\x12\x11\n" +
-	"\rCOMPRESS_ZSTD\x10\x02\x12\x13\n" +
-	"\x0fCOMPRESS_SNAPPY\x10\x03B0Z.github.com/vadam-zhan/long-gw/proto/v1;gatewayb\x06proto3"
+	"Codec_JSON\x10\x01\x12\x12\n" +
+	"\x0eCodec_PROTOBUF\x10\x02\x12\x11\n" +
+	"\rCodec_MSGPACK\x10\x03*p\n" +
+	"\fCompressAlgo\x12\x16\n" +
+	"\x12Compress_Algo_NONE\x10\x00\x12\x16\n" +
+	"\x12Compress_Algo_GZIP\x10\x01\x12\x16\n" +
+	"\x12Compress_Algo_ZSTD\x10\x02\x12\x18\n" +
+	"\x14Compress_Algo_SNAPPY\x10\x03B0Z.github.com/vadam-zhan/long-gw/proto/v1;gatewayb\x06proto3"
 
 var (
 	file_v1_message_proto_rawDescOnce sync.Once
@@ -1788,9 +2080,9 @@ func file_v1_message_proto_rawDescGZIP() []byte {
 }
 
 var file_v1_message_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_v1_message_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_v1_message_proto_msgTypes = make([]protoimpl.MessageInfo, 20)
 var file_v1_message_proto_goTypes = []any{
-	(MsgType)(0),                // 0: gateway.v1.MsgType
+	(SignalType)(0),             // 0: gateway.v1.SignalType
 	(QoS)(0),                    // 1: gateway.v1.QoS
 	(Codec)(0),                  // 2: gateway.v1.Codec
 	(CompressAlgo)(0),           // 3: gateway.v1.CompressAlgo
@@ -1799,44 +2091,50 @@ var file_v1_message_proto_goTypes = []any{
 	(*WellKnownPayload)(nil),    // 6: gateway.v1.WellKnownPayload
 	(*HandshakePayload)(nil),    // 7: gateway.v1.HandshakePayload
 	(*HandshakeAckPayload)(nil), // 8: gateway.v1.HandshakeAckPayload
-	(*KickPayload)(nil),         // 9: gateway.v1.KickPayload
-	(*ErrorPayload)(nil),        // 10: gateway.v1.ErrorPayload
-	(*AckPayload)(nil),          // 11: gateway.v1.AckPayload
-	(*IMChatPayload)(nil),       // 12: gateway.v1.IMChatPayload
-	(*IMReceiptPayload)(nil),    // 13: gateway.v1.IMReceiptPayload
-	(*IMRevokePayload)(nil),     // 14: gateway.v1.IMRevokePayload
-	(*PushNotifyPayload)(nil),   // 15: gateway.v1.PushNotifyPayload
-	(*LiveCommentPayload)(nil),  // 16: gateway.v1.LiveCommentPayload
-	(*LiveGiftPayload)(nil),     // 17: gateway.v1.LiveGiftPayload
-	nil,                         // 18: gateway.v1.Message.HeadersEntry
-	nil,                         // 19: gateway.v1.Body.ExtEntry
-	nil,                         // 20: gateway.v1.PushNotifyPayload.DataEntry
+	(*AuthRequestPayload)(nil),  // 9: gateway.v1.AuthRequestPayload
+	(*AuthResponsePayload)(nil), // 10: gateway.v1.AuthResponsePayload
+	(*KickPayload)(nil),         // 11: gateway.v1.KickPayload
+	(*KickResponsePayload)(nil), // 12: gateway.v1.KickResponsePayload
+	(*ErrorPayload)(nil),        // 13: gateway.v1.ErrorPayload
+	(*AckPayload)(nil),          // 14: gateway.v1.AckPayload
+	(*IMChatPayload)(nil),       // 15: gateway.v1.IMChatPayload
+	(*IMReceiptPayload)(nil),    // 16: gateway.v1.IMReceiptPayload
+	(*IMRevokePayload)(nil),     // 17: gateway.v1.IMRevokePayload
+	(*PushNotifyPayload)(nil),   // 18: gateway.v1.PushNotifyPayload
+	(*LiveCommentPayload)(nil),  // 19: gateway.v1.LiveCommentPayload
+	(*LiveGiftPayload)(nil),     // 20: gateway.v1.LiveGiftPayload
+	nil,                         // 21: gateway.v1.Message.HeadersEntry
+	nil,                         // 22: gateway.v1.Body.ExtEntry
+	nil,                         // 23: gateway.v1.PushNotifyPayload.DataEntry
 }
 var file_v1_message_proto_depIdxs = []int32{
-	0,  // 0: gateway.v1.Message.type:type_name -> gateway.v1.MsgType
+	0,  // 0: gateway.v1.Message.type:type_name -> gateway.v1.SignalType
 	1,  // 1: gateway.v1.Message.qos:type_name -> gateway.v1.QoS
 	2,  // 2: gateway.v1.Message.body_codec:type_name -> gateway.v1.Codec
 	3,  // 3: gateway.v1.Message.compress:type_name -> gateway.v1.CompressAlgo
-	18, // 4: gateway.v1.Message.headers:type_name -> gateway.v1.Message.HeadersEntry
+	21, // 4: gateway.v1.Message.headers:type_name -> gateway.v1.Message.HeadersEntry
 	5,  // 5: gateway.v1.Message.body:type_name -> gateway.v1.Body
-	19, // 6: gateway.v1.Body.ext:type_name -> gateway.v1.Body.ExtEntry
+	22, // 6: gateway.v1.Body.ext:type_name -> gateway.v1.Body.ExtEntry
 	7,  // 7: gateway.v1.WellKnownPayload.handshake:type_name -> gateway.v1.HandshakePayload
 	8,  // 8: gateway.v1.WellKnownPayload.handshake_ack:type_name -> gateway.v1.HandshakeAckPayload
-	9,  // 9: gateway.v1.WellKnownPayload.kick:type_name -> gateway.v1.KickPayload
-	10, // 10: gateway.v1.WellKnownPayload.error:type_name -> gateway.v1.ErrorPayload
-	11, // 11: gateway.v1.WellKnownPayload.ack:type_name -> gateway.v1.AckPayload
-	12, // 12: gateway.v1.WellKnownPayload.im_chat:type_name -> gateway.v1.IMChatPayload
-	13, // 13: gateway.v1.WellKnownPayload.im_receipt:type_name -> gateway.v1.IMReceiptPayload
-	14, // 14: gateway.v1.WellKnownPayload.im_revoke:type_name -> gateway.v1.IMRevokePayload
-	15, // 15: gateway.v1.WellKnownPayload.push_notify:type_name -> gateway.v1.PushNotifyPayload
-	16, // 16: gateway.v1.WellKnownPayload.live_comment:type_name -> gateway.v1.LiveCommentPayload
-	17, // 17: gateway.v1.WellKnownPayload.live_gift:type_name -> gateway.v1.LiveGiftPayload
-	20, // 18: gateway.v1.PushNotifyPayload.data:type_name -> gateway.v1.PushNotifyPayload.DataEntry
-	19, // [19:19] is the sub-list for method output_type
-	19, // [19:19] is the sub-list for method input_type
-	19, // [19:19] is the sub-list for extension type_name
-	19, // [19:19] is the sub-list for extension extendee
-	0,  // [0:19] is the sub-list for field type_name
+	11, // 9: gateway.v1.WellKnownPayload.kick:type_name -> gateway.v1.KickPayload
+	12, // 10: gateway.v1.WellKnownPayload.kick_response:type_name -> gateway.v1.KickResponsePayload
+	13, // 11: gateway.v1.WellKnownPayload.error:type_name -> gateway.v1.ErrorPayload
+	14, // 12: gateway.v1.WellKnownPayload.ack:type_name -> gateway.v1.AckPayload
+	9,  // 13: gateway.v1.WellKnownPayload.auth_request:type_name -> gateway.v1.AuthRequestPayload
+	10, // 14: gateway.v1.WellKnownPayload.auth_response:type_name -> gateway.v1.AuthResponsePayload
+	15, // 15: gateway.v1.WellKnownPayload.im_chat:type_name -> gateway.v1.IMChatPayload
+	16, // 16: gateway.v1.WellKnownPayload.im_receipt:type_name -> gateway.v1.IMReceiptPayload
+	17, // 17: gateway.v1.WellKnownPayload.im_revoke:type_name -> gateway.v1.IMRevokePayload
+	18, // 18: gateway.v1.WellKnownPayload.push_notify:type_name -> gateway.v1.PushNotifyPayload
+	19, // 19: gateway.v1.WellKnownPayload.live_comment:type_name -> gateway.v1.LiveCommentPayload
+	20, // 20: gateway.v1.WellKnownPayload.live_gift:type_name -> gateway.v1.LiveGiftPayload
+	23, // 21: gateway.v1.PushNotifyPayload.data:type_name -> gateway.v1.PushNotifyPayload.DataEntry
+	22, // [22:22] is the sub-list for method output_type
+	22, // [22:22] is the sub-list for method input_type
+	22, // [22:22] is the sub-list for extension type_name
+	22, // [22:22] is the sub-list for extension extendee
+	0,  // [0:22] is the sub-list for field type_name
 }
 
 func init() { file_v1_message_proto_init() }
@@ -1848,8 +2146,11 @@ func file_v1_message_proto_init() {
 		(*WellKnownPayload_Handshake)(nil),
 		(*WellKnownPayload_HandshakeAck)(nil),
 		(*WellKnownPayload_Kick)(nil),
+		(*WellKnownPayload_KickResponse)(nil),
 		(*WellKnownPayload_Error)(nil),
 		(*WellKnownPayload_Ack)(nil),
+		(*WellKnownPayload_AuthRequest)(nil),
+		(*WellKnownPayload_AuthResponse)(nil),
 		(*WellKnownPayload_ImChat)(nil),
 		(*WellKnownPayload_ImReceipt)(nil),
 		(*WellKnownPayload_ImRevoke)(nil),
@@ -1864,7 +2165,7 @@ func file_v1_message_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_v1_message_proto_rawDesc), len(file_v1_message_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   17,
+			NumMessages:   20,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

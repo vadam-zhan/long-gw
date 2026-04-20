@@ -150,7 +150,7 @@ func (x *UpstreamKafkaMessage) GetOriginalType() SignalType {
 	if x != nil {
 		return x.OriginalType
 	}
-	return SignalType_SIGNAL_TYPE_UNSPECIFIED
+	return SignalType_Signal_Type_UNSPECIFIED
 }
 
 func (x *UpstreamKafkaMessage) GetPayload() []byte {
@@ -251,7 +251,7 @@ func (x *DownstreamKafkaMessage) GetTargetType() SignalType {
 	if x != nil {
 		return x.TargetType
 	}
-	return SignalType_SIGNAL_TYPE_UNSPECIFIED
+	return SignalType_Signal_Type_UNSPECIFIED
 }
 
 func (x *DownstreamKafkaMessage) GetPayload() []byte {
@@ -280,7 +280,7 @@ var File_v1_kafka_message_proto protoreflect.FileDescriptor
 const file_v1_kafka_message_proto_rawDesc = "" +
 	"\n" +
 	"\x16v1/kafka_message.proto\x12\n" +
-	"gateway.v1\x1a\x10v1/gateway.proto\x1a\x0fv1/signal.proto\"\xc0\x02\n" +
+	"gateway.v1\x1a\x10v1/gateway.proto\x1a\x10v1/message.proto\"\xc0\x02\n" +
 	"\x14UpstreamKafkaMessage\x12%\n" +
 	"\x0ecorrelation_id\x18\x01 \x01(\tR\rcorrelationId\x12\x17\n" +
 	"\aconn_id\x18\x02 \x01(\tR\x06connId\x12\x17\n" +
@@ -344,7 +344,7 @@ func file_v1_kafka_message_proto_init() {
 		return
 	}
 	file_v1_gateway_proto_init()
-	file_v1_signal_proto_init()
+	file_v1_message_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

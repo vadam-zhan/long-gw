@@ -61,8 +61,6 @@ func (m *PushMessageReq) validate(all bool) error {
 
 	// no validation rules for Payload
 
-	// no validation rules for PushType
-
 	// no validation rules for BusinessType
 
 	if len(errors) > 0 {

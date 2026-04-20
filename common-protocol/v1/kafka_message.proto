@@ -5,7 +5,7 @@ package gateway.v1;
 option go_package = "github.com/vadam-zhan/long-gw/proto/v1;gateway";
 
 import "v1/gateway.proto";
-import "v1/signal.proto";
+import "v1/message.proto";
 
 // KafkaMessageType defines the direction and purpose of Kafka messages
 enum KafkaMessageType {
