@@ -9,9 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
-	"github.com/vadam-zhan/long-gw/gateway/internal/connection"
-	"github.com/vadam-zhan/long-gw/gateway/internal/svc"
+	gateway "github.com/vadam-zhan/long-gw/common-protocol/gen/gateway/v1"
 	"github.com/vadam-zhan/long-gw/gateway/internal/types"
 )
 
@@ -50,7 +48,7 @@ import (
 //	Upstream:   Session.SubmitUpstream(msg) → WorkerManager.SubmitUpstream(biz, session, msg)
 //	Downstream: WorkerPool.downstreamWorker → router.Resolve(To) → []Session → session.Submit(msg)
 //	Reconnect:  Factory calls session.AttachConn(newConn), which re-subscribes and replays
-//	QoS-1:      Session.retryLoop() retransmits pendingAcks entries on a ticker
+//	QoS-1:      delivery/ack Tracker 负责重试调度 (PR-2 接入)
 */
 
 // State encodes the session lifecycle phase.
@@ -62,14 +60,6 @@ const (
 	StateSuspended
 	StateClosed
 )
-
-type SessionDeps struct {
-	// LocalRouter        *router.LocalRouter
-	// DistributionRouter *router.DistributedRouter
-	ConnectionFactory *connection.Factory
-	OfflineStore      types.OfflineStore
-	AckRetrier        AckRetrier // 全局重试器，per-gateway 而非 per-session
-}
 
 // subscriptionSet：跨重连持久的订阅状态
 // ─────────────────────────────────────────────────────────────────────
@@ -104,11 +94,8 @@ func (s *subscriptionSet) snapshot() (rooms, topics []string) {
 }
 
 type Session struct {
-	ctx    context.Context
-	cancel context.CancelFunc
-
 	// 稳定身份 (跨重连不变)
-	sessionID  string // sha256(userID+":"+deviceID)[:8]
+	sessionID  string // sha256(userID+":"+deviceID)[:16] (32 hex chars)
 	AppID      string // 应用ID
 	userID     string // 用户ID - token 中
 	deviceID   string // 设备ID
@@ -121,11 +108,6 @@ type Session struct {
 	connMu sync.RWMutex
 	conn   types.ConnSubmitter // nil 表示 Suspended 状态
 
-	// QoS-1 重试队列
-	// 存储已发送但未收到 ACK 的消息。
-	// retryLoop 定期扫描并通过当前 conn 重发。
-	pendingAcks sync.Map // msgID string → *pendingEntry
-
 	// 订阅状态（跨重连持久）
 	// AttachConn 时恢复到 LocalRouter
 	subs subscriptionSet
@@ -137,20 +119,30 @@ type Session struct {
 	state       atomic.Uint32
 	suspendedAt atomic.Int64
 
+	// QoS-1 待确认消息（仅被动存储，定时逻辑由 Registry 的 Scanner 集中处理）
+	pendingAcks sync.Map // msgID string -> *pendingEntry
+
 	deps Deps
 
+	// TODO(PR-5): connCount 应在 Factory 中维护，而非 Session。
+	// 当前仅用于 admin stats，AttachConn/DetachConn 中未更新。
 	connCount uint
 	countMux  sync.Mutex
-
-	svc *svc.ServiceContext
 
 	once sync.Once
 }
 
-func NewSession(svc *svc.ServiceContext, userID, deviceID, appID, deviceType, bizCode string, deps Deps) *Session {
-	ctx, cancel := context.WithCancel(context.Background())
+// pendingEntry：QoS-1 消息投递状态（Session 包私有，避免对外暴露）
+type pendingEntry struct {
+	msg         *gateway.Message
+	retryCount  int
+	firstSentAt time.Time
+	lastRetryAt time.Time
+}
+
+func NewSession(sessionID, userID, deviceID, appID, deviceType, bizCode string, deps Deps) *Session {
 	sess := &Session{
-		svc:        svc,
+		sessionID:  sessionID,
 		AppID:      appID,
 		userID:     userID,
 		deviceID:   deviceID,
@@ -158,12 +150,8 @@ func NewSession(svc *svc.ServiceContext, userID, deviceID, appID, deviceType, bi
 		BizCode:    bizCode,
 		subs:       newSubscriptionSet(),
 		deps:       deps,
-		ctx:        ctx,
-		cancel:     cancel,
 	}
 	sess.state.Store(uint32(StateAuthenticating))
-	go sess.retryLoop()       // QoS-1 重试后台任务
-	go sess.suspendWatchdog() // Suspended 超时关闭后台任务
 
 	return sess
 }
@@ -179,7 +167,7 @@ func NewSession(svc *svc.ServiceContext, userID, deviceID, appID, deviceType, bi
 //  1. 替换物理连接（原子操作：connMu 保护）
 //  2. 状态 → Active，清除 suspendedAt
 //  3. 恢复订阅到 LocalRouter（JoinRoom/Subscribe）
-//  4. 将 pendingAcks 中所有 QoS-1 消息刷入新连接（重发未确认消息）
+//  4. PR-2: 由 delivery/ack Tracker 负责重发未确认消息
 //
 // 返回值 lastSeq：Factory 用它触发离线消息重放
 //
@@ -208,25 +196,31 @@ func (s *Session) AttachConn(conn types.ConnSubmitter) (lastSeq uint64) {
 		s.deps.LocalRouter.Subscribe(t, s)
 	}
 
-	// ② 刷入 pendingAcks：将所有未 ACK 的 QoS-1 消息发到新连接
-	// 这确保了断线期间未确认的消息在重连后能继续投递
+	// ② 重连后重发所有未确认的 QoS-1 消息
+	// 由 Session 自己 flush，不依赖外部，避免 import delivery/ack
 	var flushed int
 	s.pendingAcks.Range(func(k, v any) bool {
 		entry := v.(*pendingEntry)
 		entry.retryCount++
 		entry.lastRetryAt = time.Now()
 
-		// 标记重试次数，让客户端和服务端都能检测到重传
 		if entry.msg.Headers == nil {
 			entry.msg.Headers = make(map[string]string)
 		}
 		entry.msg.Headers["x-retry-count"] = strconv.Itoa(entry.retryCount)
 
-		// 直接调 conn.Submit（绕过 Session.Submit，避免重复加入 pendingAcks）
 		conn.Submit(entry.msg)
 		flushed++
+
+		// 重新注册 ACK 超时 timer
+		if s.deps.Acker != nil {
+			s.deps.Acker.Track(entry.msg, s)
+		}
 		return true
 	})
+	if flushed > 0 {
+		slog.Info("session: flushed pending acks", "sid", s.sessionID, "count", flushed)
+	}
 
 	return s.lastDeliveredSeq.Load()
 }
@@ -240,13 +234,12 @@ func (s *Session) AttachConn(conn types.ConnSubmitter) (lastSeq uint64) {
 // 执行流程：
 //  1. 置 conn = nil（Suspended 状态的标志）
 //  2. 从 LocalRouter 清理 room/topic 索引
-//     （注意：subscriptionSet 中的记录保留，用于重连时恢复）
+//		（注意：subscriptionSet 中的记录保留，用于重连时恢复）
 //  3. 状态 → Suspended，记录 suspendedAt
 //
 // Suspended 状态下：
 //   - Submit(msg) 会走 handleUndelivered：QoS-1 消息存 OfflineStore
-//   - retryLoop 继续运行，但 conn=nil 时跳过重发
-//   - suspendWatchdog 计时，超过 SuspendTTL 后调用 Close
+//   - PR-3: suspendWatchdog 由 timer 统一调度，不再 per-session goroutine
 //
 // ═══════════════════════════════════════════════════════════════════════
 func (s *Session) DetachConn() {
@@ -264,10 +257,14 @@ func (s *Session) DetachConn() {
 	s.state.Store(uint32(StateSuspended))
 	s.suspendedAt.Store(time.Now().UnixMilli())
 
+	// TODO(PR-3): 接入 Timer 做 Suspend TTL 超时检测
+	// if s.deps.Timer != nil && s.deps.SuspendTTL > 0 {
+	//     s.deps.Timer.Schedule(TaskSessionSuspend, ...)
+	// }
+
 	slog.Info("session: suspended",
 		"sid", s.sessionID,
 		"uid", s.UserID,
-		"pending_acks", s.pendingAckCount(),
 	)
 }
 
@@ -310,7 +307,6 @@ func (s *Session) SubmitUpstream(msg *gateway.Message) error {
 // 调用方：
 //   - downlink.FanOutStage：sess.Submit(msg)
 //   - Worker.upstreamWorker：job.Sess.Submit(errMsg) [Kafka 失败时]
-//   - Session.retryLoop：conn.Submit(entry.msg) [QoS-1 重试]
 //
 // 数据流（成功路径）：
 //
@@ -330,7 +326,7 @@ func (s *Session) SubmitUpstream(msg *gateway.Message) error {
 //
 // QoS-1 追踪：
 //
-//	成功投递后，将消息加入 pendingAcks。
+//	成功投递后，PR-2 将由 delivery/ack Tracker 接管 pending ACK 管理。
 //	等待客户端发送 MessageAck → AckHandler.Handle → sess.Ack(msgID)。
 //
 // ═══════════════════════════════════════════════════════════════════════
@@ -353,14 +349,14 @@ func (s *Session) Submit(msg *gateway.Message) bool {
 		// 投递成功
 		s.lastDeliveredSeq.Store(msg.SeqId)
 
-		// QoS-1：加入重试队列，等待客户端 ACK
-		// 未收到 ACK 时，retryLoop 会重发
-		if msg.Qos == gateway.QoS_AT_LEAST_ONCE {
+		// QoS-1 追踪：记录 pending ack，由 Scanner 集中调度超时重试
+		if s.deps.Acker != nil && msg.Delivery != nil && msg.Delivery.Qos == gateway.QosClass_AT_LEAST_ONCE {
 			s.pendingAcks.Store(msg.MsgId, &pendingEntry{
 				msg:         msg,
 				firstSentAt: time.Now(),
 				lastRetryAt: time.Now(),
 			})
+			s.deps.Acker.Track(msg, s)
 		}
 	} else {
 		// 投递失败（writeCh 满，背压）
@@ -376,11 +372,12 @@ func (s *Session) Submit(msg *gateway.Message) bool {
 // 客户端收到消息后发送 MessageAck。
 // 调用链：Connection.readLoop → HandlerRegistry → AckHandler.Handle → sess.Ack(msgID)
 //
-// Ack 将消息从 pendingAcks 中移除，停止重试。
+// PR-2: Ack 将委托给 delivery/ack Tracker 取消超时任务。
 // ═══════════════════════════════════════════════════════════════════════
 func (s *Session) Ack(msgID string) {
-	if _, loaded := s.pendingAcks.LoadAndDelete(msgID); loaded {
-		slog.Debug("session: QoS-1 acked", "mid", msgID, "sid", s.sessionID)
+	s.pendingAcks.Delete(msgID)
+	if s.deps.Acker != nil {
+		s.deps.Acker.Done(msgID, s.sessionID)
 	}
 }
 
@@ -436,28 +433,15 @@ func (s *Session) GetLocalRouter() types.LocalRouterOps {
 	return s.deps.LocalRouter
 }
 
-// CleanTimeoutLoop 定期清理超时连接
-func (s *Session) CleanTimeoutLoop() {
-	ticker := time.NewTicker(30 * time.Second)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-s.ctx.Done():
-			return
-		case <-ticker.C:
-			// cleaned := s.localRouter.CleanTimeout()
-			// if cleaned > 0 {
-			// 	logger.Info("cleaned timeout connections", zap.Int("count", cleaned))
-			// }
-		}
-	}
-}
-
 // Close 永久关闭 Session（登出或 Suspend TTL 超时）。
-func (s *Session) Close(kick *gateway.KickPayload) {
+func (s *Session) Close(kick *gateway.KickRequest) {
 	s.once.Do(func() {
 		s.state.Store(uint32(StateClosed))
-		s.cancel() // 停止 retryLoop 和 suspendWatchdog
+
+		// TODO(PR-3): 取消可能存在的 suspend timer
+		// if s.deps.Timer != nil {
+		//     s.deps.Timer.Cancel("suspend:" + s.sessionID)
+		// }
 
 		s.connMu.RLock()
 		conn := s.conn
@@ -468,6 +452,14 @@ func (s *Session) Close(kick *gateway.KickPayload) {
 			s.deps.LocalRouter.UnregisterAll(s)
 		}
 		s.deps.LocalRouter.UnregisterSession(s.userID, s.deviceID)
+
+		// 清理 ACK Scanner 中的 pending timer
+		if s.deps.Acker != nil {
+			s.deps.Acker.CancelAll(s.sessionID)
+		}
+		// 清空本地 pendingAcks（Session 即将被 GC）
+		s.pendingAcks = sync.Map{}
+
 		slog.Info("session: closed", "sid", s.sessionID, "uid", s.UserID)
 	})
 }
@@ -478,129 +470,51 @@ func (s *Session) DeviceID() string  { return s.deviceID }
 func (s *Session) State() State      { return State(s.state.Load()) }
 func (s *Session) IsActive() bool    { return s.State() == StateActive }
 
-func (s *Session) pendingAckCount() int {
-	n := 0
-	s.pendingAcks.Range(func(_, _ any) bool { n++; return true })
-	return n
-}
-
-// GetConnCount returns current connection count
+// GetConnCount returns current connection count.
+// TODO(PR-5): 当前未在 AttachConn/DetachConn 中维护，始终返回 0。
+// 应在 Factory 层维护或正确更新。
 func (s *Session) GetConnCount() uint {
 	s.countMux.Lock()
 	defer s.countMux.Unlock()
 	return s.connCount
 }
 
-// ─────────────────────────────────────────────────────────────────────
-// retryLoop：QoS-1 重试后台 goroutine
-//
-// 与 Connection 的交互：
-//
-//	每个重试周期：
-//	  - 读取 s.conn（RLock）
-//	  - 如果 conn != nil && conn.IsActive()：conn.Submit(entry.msg)
-//	  - conn.Submit 写入 writeCh → WriteLoop → TCP
-//
-// 注意：retryLoop 直接调 conn.Submit，绕过 Session.Submit，
-// 避免重复加入 pendingAcks（消息已经在队列里了）。
-// ─────────────────────────────────────────────────────────────────────
-func (s *Session) retryLoop() {
-	interval := s.deps.RetryInterval
-	if interval == 0 {
-		interval = 5 * time.Second
-	}
-	maxRetries := s.deps.MaxRetries
-	if maxRetries == 0 {
-		maxRetries = 5
-	}
-
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-s.ctx.Done():
-			return
-		case <-ticker.C:
-			if s.State() != StateActive {
-				continue // Suspended：无法重发，等重连
-			}
-
-			s.pendingAcks.Range(func(k, v any) bool {
-				entry := v.(*pendingEntry)
-				entry.retryCount++
-
-				if entry.retryCount > maxRetries {
-					slog.Warn("session: QoS-1 give up",
-						"mid", entry.msg.MsgId,
-						"sid", s.sessionID,
-						"retries", entry.retryCount,
-					)
-					s.pendingAcks.Delete(k)
-					return true
-				}
-
-				entry.lastRetryAt = time.Now()
-				if entry.msg.Headers == nil {
-					entry.msg.Headers = make(map[string]string)
-				}
-				entry.msg.Headers["x-retry-count"] = strconv.Itoa(entry.retryCount)
-
-				// 直接操作 conn，不经 Session.Submit（避免重复加入 pendingAcks）
-				s.connMu.RLock()
-				conn := s.conn
-				s.connMu.RUnlock()
-
-				if conn != nil && conn.IsActive() {
-					if !conn.Submit(entry.msg) {
-						// writeCh 满：此轮不重发，下轮再试
-						slog.Debug("session: retry skipped, writeCh full",
-							"mid", entry.msg.MsgId)
-					}
-				}
-				return true
-			})
-		}
-	}
+// PendingAckSnapshot 返回当前所有待确认消息的副本。
+// 由 Registry 的 Scanner 回调在重试调度时读取。
+func (s *Session) PendingAckSnapshot() map[string]*pendingEntry {
+	result := make(map[string]*pendingEntry)
+	s.pendingAcks.Range(func(k, v any) bool {
+		result[k.(string)] = v.(*pendingEntry)
+		return true
+	})
+	return result
 }
 
-// suspendWatchdog：超时关闭 Suspended 的 Session
-func (s *Session) suspendWatchdog() {
-	ticker := time.NewTicker(30 * time.Second)
-	defer ticker.Stop()
-	ttl := s.deps.SuspendTTL
-	if ttl == 0 {
-		ttl = 5 * time.Minute
+// GetPendingAck 获取指定 msgID 的 pending entry。
+func (s *Session) GetPendingAck(msgID string) (*pendingEntry, bool) {
+	if v, ok := s.pendingAcks.Load(msgID); ok {
+		return v.(*pendingEntry), true
 	}
+	return nil, false
+}
 
-	for {
-		select {
-		case <-s.ctx.Done():
-			return
-		case <-ticker.C:
-			if s.State() != StateSuspended {
-				continue
-			}
-			at := s.suspendedAt.Load()
-			if at > 0 && time.Since(time.UnixMilli(at)) > ttl {
-				slog.Info("session: suspend TTL exceeded",
-					"sid", s.SessionID,
-					"uid", s.UserID,
-					"ttl", ttl,
-				)
-				s.Close(&gateway.KickPayload{Code: 4040, Reason: "session expired"})
-				return
-			}
-		}
-	}
+// RemovePendingAck 删除指定 msgID 的 pending entry。
+func (s *Session) RemovePendingAck(msgID string) {
+	s.pendingAcks.Delete(msgID)
+}
+
+func (s *Session) pendingAckCount() int {
+	n := 0
+	s.pendingAcks.Range(func(_, _ any) bool { n++; return true })
+	return n
 }
 
 // handleUndelivered 处理无法即时投递的消息（Suspended 或 writeCh 满）。
 func (s *Session) handleUndelivered(msg *gateway.Message) {
-	if !msg.Offline || s.deps.Offline == nil {
+	if !msg.Delivery.Offline || s.deps.Offline == nil {
 		return // QoS-0 或未配置 OfflineStore：直接丢弃
 	}
-	if msg.Qos == gateway.QoS_AT_MOST_ONCE {
+	if msg.Delivery.Qos == gateway.QosClass_AT_MOST_ONCE {
 		return // QoS-0：不存离线
 	}
 	if err := s.deps.Offline.Store(context.Background(), msg); err != nil {

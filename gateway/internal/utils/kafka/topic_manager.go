@@ -3,16 +3,8 @@ package kafka
 import (
 	"log/slog"
 
-	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
 	"github.com/vadam-zhan/long-gw/gateway/internal/config"
 )
-
-// stringToBusinessType maps string business type keys to proto BusinessType
-var stringToBusinessType = map[string]gateway.BusinessType{
-	"im":      gateway.BusinessType_IM,
-	"live":    gateway.BusinessType_LIVE,
-	"message": gateway.BusinessType_MESSAGE,
-}
 
 // TopicManager 业务类型到 Kafka Topic 的映射管理
 type TopicManager struct {
@@ -89,12 +81,4 @@ func (tm *TopicManager) BusinessTypes() []string {
 		keys = append(keys, key)
 	}
 	return keys
-}
-
-// StringToProtoBusinessType converts a string business type to proto BusinessType
-func StringToProtoBusinessType(s string) gateway.BusinessType {
-	if bt, ok := stringToBusinessType[s]; ok {
-		return bt
-	}
-	return gateway.BusinessType_UNSPECIFIED
 }

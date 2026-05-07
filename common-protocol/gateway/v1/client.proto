@@ -1,0 +1,181 @@
+syntax = "proto3";
+
+package gateway.v1;
+
+option go_package = "github.com/vadam-zhan/long-gw/common-protocol/gen/gateway/v1;gatewayv1";
+
+import "gateway/v1/common.proto";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Layer 2：SDK 层强类型 payload（网关不感知，SDK 负责编解码）
+// ─────────────────────────────────────────────────────────────────────────────
+// WellKnownPayload 提供 oneof 强类型约束，由 SDK Marshal/Unmarshal 工具使用。
+// 业务私有的 payload 不需要在此注册——直接使用 Body.payload = bytes 即可。
+
+message WellKnownPayload {
+  oneof content {
+    // ── 控制面 ──────────────────────────────────────────────────────────
+    HandshakeRequest    handshake     = 1;
+    HandshakeResponse   handshake_ack = 2;
+    KickRequest         kick          = 3;
+    KickResponse        kick_response = 4;
+    Error               error         = 5;
+    Ack                 ack           = 6;
+    AuthRequest         auth_request  = 7;
+    AuthResponse        auth_response = 8;
+
+    // ── IM 域 ────────────────────────────────────────────────────────────
+    IMChat    im_chat    = 10;
+    IMReceipt im_receipt = 11;
+    IMRevoke  im_revoke  = 12;
+
+    // ── Push 域 ──────────────────────────────────────────────────────────
+    PushNotify push_notify = 20;
+
+    // ── Live 域 ──────────────────────────────────────────────────────────
+    LiveComment live_comment = 30;
+    LiveGift    live_gift    = 31;
+
+    // ── 自定义 / 未来扩展 ────────────────────────────────────────────────
+    // 业务方自定义 payload 请使用 field 100+ 并在业务 .proto 中 extend
+    bytes raw = 99;  // 透传原始字节，用于网关不认识的业务 payload
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 控制面 payload 定义
+// ─────────────────────────────────────────────────────────────────────────────
+
+message HandshakeRequest {
+  string app_id      = 1;  // 多租户网关：标识应用
+  string token       = 2;  // 业务 auth 服务签发的短期 JWT
+  string device_id   = 3;  // 设备指纹，跨 session 稳定
+  string device_type = 4;  // "ios" | "android" | "web" | "pc" | "iot"
+  string sdk_version = 5;  // 能力协商用
+
+  // last_seq_id: 客户端上次 session 收到的最高 SeqID。
+  // 网关据此从 last_seq_id+1 开始补发离线消息（replay）。
+  uint64 last_seq_id = 6;
+}
+
+message HandshakeResponse {
+  string conn_id            = 1;  // 网关分配的连接唯一 ID
+  string user_id            = 2;  // token 验证后解析出的用户 ID
+  int64  server_time        = 3;  // 服务器 Unix 毫秒，供客户端校准时钟偏差
+  int32  heartbeat_interval = 4;  // 建议心跳间隔（秒）
+  int64  max_body_size      = 5;  // 允许的最大 Body.payload 字节数
+  uint64 replay_from        = 6;  // 网关将从此 SeqID 开始补发（= last_seq_id + 1）
+
+  // extensions: 网关声明支持的能力列表。
+  //   示例：["compress:zstd", "qos:2", "multi-device", "offline", "replay"]
+  repeated string extensions = 7;
+}
+
+message AuthRequest {
+  string token = 1;  // 客户端提供的认证令牌
+  string app_id = 2;  // 应用 ID
+  string device_id = 3;  // 设备 ID
+  string device_type = 4;  // 设备类型
+  string biz_code = 5;  // 业务代码
+}
+
+message AuthResponse {
+    uint32 code = 1; // 响应，0 = 鉴权成功，非0 失败
+    string msg = 2; // 状态描述
+    bool result = 3; // 鉴权结果，true = 鉴权成功，false = 鉴权失败
+    uint32 heartbeat_internal = 4; // 服务端强制的心跳间隔（单位秒，默认 30s）
+    string session_id = 5; // 会话ID
+    uint32 max_body_size = 6; // 最大 body
+    uint64 replay_from = 7;
+}
+
+message KickRequest {
+  int32  code             = 1;  // 机器可读错误码
+  string reason           = 2;  // 人类可读原因（调试用）
+  int32  reconnect_after  = 3;  // >0 表示建议客户端等待 N 秒后重连（灰度发布用）
+}
+
+message KickResponse {
+    uint32 code = 1; // 响应，0 = 登出成功，非0 失败
+    string msg = 2; // 状态描述
+}
+
+message Error {
+  int32  code       = 1;
+  string message    = 2;
+  string ref_msg_id = 3;  // 触发此错误的原始 msg_id
+}
+
+message Ack {
+  string ref_msg_id = 1;  // 被确认的消息 msg_id
+  int64  recv_time  = 2;  // 网关收到时间（Unix 毫秒），供 RTT 度量
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// IM 域 payload
+// ─────────────────────────────────────────────────────────────────────────────
+
+message IMChat {
+  // conv_id: 会话 ID。单聊 = 双方 uid 排序后拼接，群聊 = groupID。
+  string conv_id     = 1;
+
+  // content_type: "text" | "image" | "video" | "audio" | "file" | "location" | "custom"
+  string content_type = 2;
+
+  // content: 按 content_type 解析的实际内容，编码为 JSON bytes。
+  //   text:     {"text":"..."}
+  //   image:    {"url":"...","width":1920,"height":1080}
+  //   location: {"lat":31.2,"lng":121.4,"name":"..."}
+  bytes  content     = 3;
+
+  repeated string mentions = 4;  // 被 @ 的 uid 列表
+  string reply_to          = 5;  // 回复的消息 msg_id（Thread 支持）
+}
+
+message IMReceipt {
+  string conv_id      = 1;
+  // receipt_type: "delivered" | "read"
+  string receipt_type = 2;
+  repeated string msg_ids = 3;  // 被确认的消息 ID 列表
+  uint64 read_seq     = 4;  // 已读水位线 SeqID（"已读到第 N 条"）
+}
+
+message IMRevoke {
+  string conv_id = 1;
+  string msg_id  = 2;  // 被撤回的消息 ID
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Push 域 payload
+// ─────────────────────────────────────────────────────────────────────────────
+
+message PushNotify {
+  string title        = 1;  // 通知标题（silent push 时为空）
+  string body         = 2;  // 通知正文
+  string sound        = 3;  // "default" | "" (静默) | 自定义音效名
+  int32  badge        = 4;  // 角标数，-1 表示不变
+  // data: 应用后台静默处理的 KV，不展示给用户
+  map<string, string> data = 5;
+  // priority: "high"（立即唤醒设备）| "normal"
+  string priority     = 6;
+  // collapse_key: 相同 key 的未投递 push 会被后来者覆盖（类似 FCM collapse_key）
+  string collapse_key = 7;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Live 域 payload
+// ─────────────────────────────────────────────────────────────────────────────
+
+message LiveComment {
+  string room_id  = 1;
+  string content  = 2;
+  string color    = 3;  // 付费彩色弹幕 hex 颜色值，例如 "#FF6600"
+}
+
+message LiveGift {
+  string room_id    = 1;
+  string gift_id    = 2;
+  string gift_name  = 3;
+  int32  count      = 4;
+  int64  total_cost = 5;  // 网关校验后的虚拟货币总花费
+}

@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
+	gateway "github.com/vadam-zhan/long-gw/common-protocol/gen/gateway/v1"
 )
 
 // GrpcServer gRPC 服务端实现
@@ -22,7 +22,7 @@ func (s *GrpcServer) PushMessage(ctx context.Context, req *gateway.PushMessageRe
 	slog.Debug("grpc PushMessage received",
 		"receiver", req.Receiver,
 		"payload_len", len(req.Payload),
-		"business_type", req.BusinessType.String())
+		"business_type", req.BusinessType)
 
 	// go session.HandleConnection(transport.NewnGRPCSession(rawConn))
 

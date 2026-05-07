@@ -33,13 +33,13 @@ all: clean build
 build:
 	@echo "Building $(BINARY_NAME)..."
 	@mkdir -p $(BUILD_DIR)
-	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOBUILD) $(GOFLAGS) $(LDFLAGS) -o $(BUILD_BIN) main.go
+	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) $(GOBUILD) $(GOFLAGS) $(LDFLAGS) -o $(BUILD_BIN) ./cmd/gateway/main.go
 	@echo "Binary built: $(BUILD_BIN)"
 
 local-build:
 	@echo "Building $(BINARY_NAME)..."
 	@mkdir -p $(BUILD_DIR)
-	$(GOBUILD) $(GOFLAGS) $(LDFLAGS) -o $(BUILD_BIN) main.go
+	$(GOBUILD) $(GOFLAGS) $(LDFLAGS) -o $(BUILD_BIN) ./cmd/gateway/main.go
 	@echo "Binary built: $(BUILD_BIN)"
 
 ## clean: Clean build artifacts

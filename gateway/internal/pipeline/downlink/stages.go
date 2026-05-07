@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"time"
 
-	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
+	gateway "github.com/vadam-zhan/long-gw/common-protocol/gen/gateway/v1"
 	"github.com/vadam-zhan/long-gw/gateway/internal/pipeline"
 	"github.com/vadam-zhan/long-gw/gateway/internal/types"
 )
@@ -136,7 +136,7 @@ func ValidateStage() pipeline.Stage[*DownlinkCtx] {
 			ctx.Abort("nil message")
 			return
 		}
-		if msg.To == "" {
+		if msg.To == nil {
 			slog.Warn("downlink: empty To", "mid", msg.MsgId)
 			ctx.Abort("empty To")
 			return
@@ -153,7 +153,7 @@ func ValidateStage() pipeline.Stage[*DownlinkCtx] {
 			ctx.Abort("expired")
 			return
 		}
-		ctx.TraceID = msg.TraceId
+		ctx.TraceID = msg.TraceContext.TraceId
 		next()
 	}
 }
@@ -197,7 +197,7 @@ func RouteStage(resolver types.SessionResolver) pipeline.Stage[*DownlinkCtx] {
 		//   "u:" → GetUserSessions → userSessions[uid] map
 		//   "r:" → RoomMembers → rooms[roomID] map
 		//   "t:" → TopicSubscribers → topics[topic] map
-		sessions, ok := resolver.Resolve(msg.To)
+		sessions, ok := resolver.Resolve(msg.To.Key)
 
 		if !ok {
 			// 本地节点没有该地址的活跃 Session
@@ -305,7 +305,7 @@ func FanOutStage(store types.OfflineStore) pipeline.Stage[*DownlinkCtx] {
 
 		// 场景B：全部离线（RouteStage 找不到本地 Session）
 		if ctx.FanOutResult.Offline > 0 {
-			if msg.Offline && msg.Qos >= gateway.QoS_AT_LEAST_ONCE && store != nil {
+			if msg.Delivery.Offline && msg.Delivery.Qos >= gateway.QosClass_AT_LEAST_ONCE && store != nil {
 				if err := store.Store(ctx1, msg); err != nil {
 					slog.Error("downlink: offline store failed",
 						"mid", msg.MsgId,
@@ -341,7 +341,7 @@ func FanOutStage(store types.OfflineStore) pipeline.Stage[*DownlinkCtx] {
 				)
 				// writeCh 满：离线存储（仅限 QoS-1+ 且配置了 OfflineStore）
 				// 注意：只存前几个 drop，避免一个慢客户端的问题导致 OfflineStore 风暴
-				if msg.Offline && store != nil && result.Dropped <= 3 {
+				if msg.Delivery.Offline && store != nil && result.Dropped <= 3 {
 					_ = store.Store(ctx1, msg)
 				}
 			}

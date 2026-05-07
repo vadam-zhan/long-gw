@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package gateway.v1;
+
+option go_package = "github.com/vadam-zhan/long-gw/common-protocol/gen/gateway/v1;gatewayv1";
+
+message PushMessageReq {
+    string receiver = 1; // 接收者 ID
+    bytes payload = 2; // 业务载荷
+    string business_type = 4; // 业务类型
+}
+
+message PushMessageResp {
+    bool success = 1; // 是否成功
+    string message = 2; // 错误信息
+}
+
+service Gateway {
+    rpc PushMessage(PushMessageReq) returns (PushMessageResp);
+}

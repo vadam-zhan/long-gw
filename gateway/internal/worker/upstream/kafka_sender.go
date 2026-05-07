@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
-	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
-	pb "github.com/vadam-zhan/long-gw/common-protocol/v1"
+	gateway "github.com/vadam-zhan/long-gw/common-protocol/gen/gateway/v1"
+	pb "github.com/vadam-zhan/long-gw/common-protocol/gen/gateway/v1"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -43,11 +43,13 @@ func (s *KafkaSender) Send(ctx context.Context, msg *gateway.Message) error {
 	var payload []byte
 
 	// Build protobuf message
-	upstreamMsg := &pb.UpstreamKafkaMessage{
+	upstreamMsg := &pb.UpstreamEvent{
 		// UserId:       msg.UserId,
 		// DeviceId:     msg.DeviceId,
 		// OriginalType: req.Msg.Type.ToProto(),
-		Payload: payload,
+		Body: &pb.Body{
+			Data: payload,
+		},
 		// BusinessType: bizType,
 	}
 

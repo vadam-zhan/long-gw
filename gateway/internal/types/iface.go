@@ -29,7 +29,7 @@ package types
 import (
 	"context"
 
-	proto "github.com/vadam-zhan/long-gw/common-protocol/v1"
+	proto "github.com/vadam-zhan/long-gw/common-protocol/gen/gateway/v1"
 )
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -61,7 +61,7 @@ type HandlerSession interface {
 	SubmitUpstream(msg *proto.Message) error
 
 	// LogoutHandler 调用此方法关闭 session。
-	Close(kick *proto.KickPayload)
+	Close(kick *proto.KickRequest)
 }
 
 // Session 是 uplink stages 对 Session 的最小接口。
@@ -94,7 +94,21 @@ type SessionTarget interface {
 	SessionID() string
 	UserID() string
 	DeviceID() string
-	Close(kick *proto.KickPayload)
+	Close(kick *proto.KickRequest)
+}
+
+// Acker 是 QoS-1 ACK 追踪与重试调度器的抽象。
+// 由 delivery/ack.Scanner 实现，注入到 Session.Deps。
+type Acker interface {
+	// Track 注册一条等待客户端 ACK 的消息。
+	// 由 Session.Submit 在成功投递后调用。
+	Track(msg *proto.Message, sessRef SessionRef)
+
+	// Done 客户端已确认，取消追踪。
+	Done(msgID, sessID string)
+
+	// CancelAll Session 关闭时批量取消所有 pending timer。
+	CancelAll(sessID string)
 }
 
 // FactorySession 是 ConnectionFactory 视角的 Session。
@@ -124,7 +138,7 @@ type FactorySession interface {
 type ConnSubmitter interface {
 	Submit(msg *proto.Message) bool
 	IsActive() bool
-	Close(kick *proto.KickPayload)
+	Close(kick *proto.KickRequest)
 	GetConnID() string
 	GetUserID() string
 	GetDeviceType() string

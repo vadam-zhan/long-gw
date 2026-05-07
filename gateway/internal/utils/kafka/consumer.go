@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/segmentio/kafka-go"
-	pb "github.com/vadam-zhan/long-gw/common-protocol/v1"
+	pb "github.com/vadam-zhan/long-gw/common-protocol/gen/gateway/v1"
 	"github.com/vadam-zhan/long-gw/gateway/internal/config"
 	"github.com/vadam-zhan/long-gw/gateway/internal/worker"
 	"google.golang.org/protobuf/proto"

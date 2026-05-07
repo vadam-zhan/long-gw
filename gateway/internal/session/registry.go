@@ -4,11 +4,13 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"log/slog"
+	"strconv"
 	"sync"
 	"time"
 
+	"github.com/vadam-zhan/long-gw/gateway/internal/delivery/ack"
 	"github.com/vadam-zhan/long-gw/gateway/internal/metrics"
-	"github.com/vadam-zhan/long-gw/gateway/internal/svc"
 	"github.com/vadam-zhan/long-gw/gateway/internal/types"
 )
 
@@ -22,7 +24,7 @@ type Registry struct {
 	deps       Deps
 	suspendTTL time.Duration // max time Suspended before Closed (default: 5m)
 
-	svc *svc.ServiceContext
+	ackScanner *ack.Scanner // PR-2: 全局 ACK 超时调度器
 }
 
 type SessionRegistryOption func(*Registry)
@@ -51,9 +53,9 @@ func WithOfflineStore(store types.OfflineStore) SessionRegistryOption {
 	}
 }
 
-func WithServiceContext(svc *svc.ServiceContext) SessionRegistryOption {
+func WithAckScanner(scanner *ack.Scanner) SessionRegistryOption {
 	return func(sr *Registry) {
-		sr.svc = svc
+		sr.ackScanner = scanner
 	}
 }
 
@@ -64,6 +66,9 @@ func NewRegistry(opts ...SessionRegistryOption) *Registry {
 	}
 	for _, opt := range opts {
 		opt(sr)
+	}
+	if sr.ackScanner != nil {
+		sr.ackScanner.SetTimeoutHandler(sr.handleAckTimeout)
 	}
 	return sr
 }
@@ -96,9 +101,12 @@ func (sr *Registry) GetOrCreate(userID, deviceID, appID, deviceType, bizCode str
 		}
 	}
 
-	// 创建新 Session
-	sess := NewSession(sr.svc, userID, deviceID, appID, deviceType, bizCode, sr.deps)
-	sess.state.Store(uint32(StateAuthenticating))
+	// 创建新 Session，注入 ackScanner 到 Deps
+	deps := sr.deps
+	if sr.ackScanner != nil {
+		deps.Acker = sr.ackScanner
+	}
+	sess := NewSession(sessionID, userID, deviceID, appID, deviceType, bizCode, deps)
 
 	sr.sessions[sessionID] = sess
 	if sr.userIndex[userID] == nil {
@@ -224,3 +232,56 @@ func (sr *Registry) gc() {
 //    - IM 流量峰值不影响 Live 弹幕投递
 //
 // 2. 限流隔离（需实现）：per-bizCode 限流器
+
+// handleAckTimeout 是 ACK Scanner 的 timer 回调。
+// 由 Registry 注入到 Scanner，timer 到期时触发重试或离线存储。
+func (sr *Registry) handleAckTimeout(sessID, msgID string) {
+	sr.mu.RLock()
+	sess, ok := sr.sessions[sessID]
+	sr.mu.RUnlock()
+	if !ok {
+		return // Session 已关闭
+	}
+
+	v, ok := sess.pendingAcks.Load(msgID)
+	if !ok {
+		return // 已经被 ACK 了
+	}
+	entry := v.(*pendingEntry)
+
+	// 检查重试策略
+	entry.retryCount++
+	maxRetries := sess.deps.RetryPolicy.MaxRetries
+	if maxRetries <= 0 {
+		maxRetries = 5
+	}
+	if entry.retryCount > maxRetries {
+		sess.pendingAcks.Delete(msgID)
+		if sess.deps.Offline != nil && entry.msg != nil && entry.msg.Delivery != nil && entry.msg.Delivery.Offline {
+			if err := sess.deps.Offline.Store(context.Background(), entry.msg); err != nil {
+				slog.Error("ack: offline store failed", "mid", msgID, "err", err)
+			}
+		}
+		slog.Warn("ack: give up after max retries", "mid", msgID, "sid", sessID, "retries", entry.retryCount)
+		return
+	}
+
+	// Bump：更新重试计数和时间戳
+	entry.lastRetryAt = time.Now()
+	if entry.msg.Headers == nil {
+		entry.msg.Headers = make(map[string]string)
+	}
+	entry.msg.Headers["x-retry-count"] = strconv.Itoa(entry.retryCount)
+
+	// 重发
+	if sess.Submit(entry.msg) {
+		// 重新注册 timer（Scanner 会自动更新 sessAcks）
+		if sr.ackScanner != nil {
+			sr.ackScanner.Track(entry.msg, sess)
+		}
+	} else {
+		// writeCh 满：保持 pending，但此轮不重试
+		// pending entry 仍留在 Session，等下次重连后 flush
+		slog.Debug("ack: retry skipped, writeCh full", "mid", msgID, "sid", sessID)
+	}
+}

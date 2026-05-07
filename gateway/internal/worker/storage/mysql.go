@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"time"
 
-	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
-	proto "github.com/vadam-zhan/long-gw/common-protocol/v1"
+	gateway "github.com/vadam-zhan/long-gw/common-protocol/gen/gateway/v1"
+	proto "github.com/vadam-zhan/long-gw/common-protocol/gen/gateway/v1"
 	"github.com/vadam-zhan/long-gw/gateway/internal/worker/storage/model"
 
 	"gorm.io/gorm"

@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
+	gateway "github.com/vadam-zhan/long-gw/common-protocol/gen/gateway/v1"
 	"github.com/vadam-zhan/long-gw/gateway/internal/pipeline"
 	"github.com/vadam-zhan/long-gw/gateway/internal/session"
 	"github.com/vadam-zhan/long-gw/gateway/internal/types"
@@ -102,21 +102,24 @@ type UplinkCtx struct {
 // 原因：错误回复是连接层的即时响应，不需要 QoS-1 重试，也不存离线。
 func (c *UplinkCtx) ReplyError(code int32, text string) {
 	errMsg := &gateway.Message{
-		Type: gateway.SignalType_ERROR,
+		Type: gateway.FrameType_ERROR,
+		TraceContext: &gateway.TraceContext{
+			TraceId: c.TraceID,
+		},
+		Delivery: &gateway.Delivery{},
 	}
-	errMsg.TraceId = c.TraceID
 	if c.Message != nil {
-		errMsg.AckId = c.Message.MsgId // 让客户端能关联到哪条消息出错了
+		errMsg.Delivery.AckId = &c.Message.MsgId // 让客户端能关联到哪条消息出错了
 	}
 
-	payload := &gateway.ErrorPayload{
+	payload := &gateway.Error{
 		Code:    code,
 		Message: text,
 	}
 	p, _ := proto.Marshal(payload)
 	errMsg.Body = &gateway.Body{
-		Type:    c.Message.BizCode,
-		Payload: p,
+		Type: c.Message.BizCode,
+		Data: p,
 	}
 	// conn.Submit 非阻塞：writeCh 满时返回 false（此时错误消息也丢弃，可接受）
 	c.Conn.Submit(errMsg)
@@ -299,14 +302,14 @@ func TraceStage() pipeline.Stage[*UplinkCtx] {
 	return func(ctx *UplinkCtx, next func()) {
 		msg := ctx.Message
 
-		if msg.TraceId == "" {
+		if msg.TraceContext.TraceId == "" {
 			// 客户端没有携带 TraceID：网关生成一个
 			// 生产环境：使用 otel trace.SpanFromContext 创建 span
-			msg.TraceId = fmt.Sprintf("gw-%d-%s", time.Now().UnixNano(), msg.MsgId[:8])
+			msg.TraceContext.TraceId = fmt.Sprintf("gw-%d-%s", time.Now().UnixNano(), msg.MsgId[:8])
 		}
 
 		// 把 TraceID 存入 BaseCtx，供后续 Stage 和 MetricsStage 使用
-		ctx.TraceID = msg.TraceId
+		ctx.TraceID = msg.TraceContext.TraceId
 
 		next()
 	}
@@ -381,8 +384,11 @@ func SubmitStage() pipeline.Stage[*UplinkCtx] {
 
 		// ② 填充 From 字段（从 Connection.UserID 读取）
 		// 格式："{bizCode}:{userID}"，业务后端用于识别发送方
-		if msg.From == "" {
-			msg.From = msg.BizCode + ":" + ctx.Conn.GetUserID()
+		if msg.From == nil {
+			msg.From = &gateway.RouteTarget{
+				Type: gateway.RouteTargetType_CONNECTION,
+				Key:  msg.BizCode + ":" + ctx.Conn.GetUserID(),
+			}
 		}
 
 		// ③ 核心调用：将消息转交给 Session，Session 再路由到 Worker

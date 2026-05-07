@@ -12,7 +12,7 @@ require (
 	github.com/soheilhy/cmux v0.1.5
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
-	github.com/vadam-zhan/long-gw/common-protocol v0.0.0-20260420133828-0653039a2d00
+	github.com/vadam-zhan/long-gw/common-protocol v0.0.0-20260430100530-443ec6dbdf01
 	go.uber.org/zap v1.27.1
 	google.golang.org/grpc v1.80.0
 	google.golang.org/protobuf v1.36.11

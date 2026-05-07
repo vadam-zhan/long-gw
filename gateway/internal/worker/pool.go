@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
+	gateway "github.com/vadam-zhan/long-gw/common-protocol/gen/gateway/v1"
 	"github.com/vadam-zhan/long-gw/gateway/internal/pipeline"
 	"github.com/vadam-zhan/long-gw/gateway/internal/pipeline/downlink"
 	"github.com/vadam-zhan/long-gw/gateway/internal/types"
@@ -189,23 +189,25 @@ func (p *WorkerPool) upstreamWorker() {
 				// 通过 job.Sess.Submit 把错误路由回客户端
 				// 调用链：job.Sess.Submit → sess.conn.Submit → writeCh → writeLoop → TCP
 				errMsg := &gateway.Message{
-					Type: gateway.SignalType_ERROR,
+					Type: gateway.FrameType_ERROR,
+					TraceContext: &gateway.TraceContext{
+						TraceId: job.Msg.MsgId,
+					},
+					Delivery: &gateway.Delivery{},
 				}
-				errMsg.TraceId = job.Msg.TraceId
 				if job.Msg != nil {
-					errMsg.AckId = job.Msg.MsgId // 让客户端能关联到哪条消息出错了
+					errMsg.Delivery.AckId = &job.Msg.MsgId // 让客户端能关联到哪条消息出错了
 				}
 
-				payload := &gateway.ErrorPayload{
+				payload := &gateway.Error{
 					Code:    40010,
 					Message: "upstream send failed: " + err.Error(),
 				}
 				p, _ := proto.Marshal(payload)
 				errMsg.Body = &gateway.Body{
-					Type:    job.Msg.BizCode,
-					Payload: p,
+					Type: job.Msg.BizCode,
+					Data: p,
 				}
-				errMsg.AckId = job.Msg.MsgId // 客户端通过 AckID 关联到哪条消息失败了
 
 				// 注意：这里调用的是 SessionRef 接口的 Submit，
 				// 不是 Session.SubmitUpstream。

@@ -6,7 +6,7 @@ import (
 
 	"github.com/segmentio/kafka-go"
 
-	gateway "github.com/vadam-zhan/long-gw/common-protocol/v1"
+	gateway "github.com/vadam-zhan/long-gw/common-protocol/gen/gateway/v1"
 	"github.com/vadam-zhan/long-gw/gateway/internal/types"
 	"github.com/vadam-zhan/long-gw/gateway/internal/worker"
 	"google.golang.org/protobuf/proto"
