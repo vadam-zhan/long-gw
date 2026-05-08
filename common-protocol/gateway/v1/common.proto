@@ -6,212 +6,393 @@ option go_package = "github.com/vadam-zhan/long-gw/common-protocol/gen/gateway/v
 
 import "validate/validate.proto";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// FrameType：传输帧类型
+//
+// 设计原则：
+//   1. 控制面（1–59）由网关直接处理，不转发给业务后端
+//   2. 业务面（100+）网关只做路由，不感知 payload 语义
+//   3. ACK 细分：降低百万级场景下的上行 ACK 流量
+//   4. Presence/订阅独立：网关需维护索引和扇出状态
+// ─────────────────────────────────────────────────────────────────────────────
+
 enum FrameType {
     FrameType_UNSPECIFIED = 0;
 
-    // ── 控制面 (1–99) ── 网关内部，不转发给业务 ──────────────────────────────
-    // 生命周期 - 握手、认证刷新、恢复、关闭
-    HANDSHAKE     = 1;  // Client→Gateway  初始认证握手
-    HANDSHAKE_ACK = 2;  // Gateway→Client  握手结果
-    AUTH_REFRESH  = 3;  // Gateway→Client  认证刷新
-    AUTH_REFRESH_ACK = 4;  // Client→Gateway  认证刷新结果
-    RESUME        = 5;  // Client→Gateway  恢复连接
-    RESUME_ACK    = 6;  // Gateway→Client  恢复连接结果
-    CLOSE         = 7;  // Client→Gateway  关闭连接
-    CLOSE_ACK     = 8;  // Gateway→Client  关闭连接结果
+    // ═══════════════════════════════════════════════════════════════════════
+    // 控制面：生命周期（1–9）
+    // ═══════════════════════════════════════════════════════════════════════
+    HANDSHAKE      = 1;  // Client → Gateway  初始认证握手
+    HANDSHAKE_ACK  = 2;  // Gateway → Client  握手结果
+    AUTH_REFRESH   = 3;  // Client → Gateway  Token 续期
+    AUTH_REFRESH_ACK = 4; // Gateway → Client  续期结果
+    RESUME         = 5;  // Client → Gateway  断线后恢复会话
+    RESUME_ACK     = 6;  // Gateway → Client  恢复结果（含离线消息摘要）
+    CLOSE          = 7;  // Client → Gateway  主动关闭连接
+    CLOSE_ACK      = 8;  // Gateway → Client  关闭确认
 
-    // 心跳 - 探针、回应
-    PING          = 10;  // Client→Gateway  心跳探针
-    PONG          = 11;  // Gateway→Client  心跳回应
+    // ═══════════════════════════════════════════════════════════════════════
+    // 控制面：心跳（10–11）
+    // ═══════════════════════════════════════════════════════════════════════
+    PING = 10;  // Client → Gateway  心跳探针（含可选负载：客户端 RTT 样本）
+    PONG = 11;  // Gateway → Client  心跳回应（含服务端时间戳，用于时钟校准）
 
-    // 可靠性 - 强制断连、错误通知、确认、重放 Client <--→ Gateway
-    ERROR         = 20;  //             错误通知
-    ACK           = 21;  //             QoS-1/2 确认帧
-    REPLAY_REQUEST = 22;  //            消息重放请求
-    REPLAY_RESPONSE = 23;  //           消息重放响应
+    // ═══════════════════════════════════════════════════════════════════════
+    // 可靠性：错误与确认（20–29）
+    // ═══════════════════════════════════════════════════════════════════════
+    ERROR           = 20;  // Gateway ↔ Client  通用错误通知（含 ErrorCode）
+    MSG_ACK         = 21;  // Client → Gateway  单条消息 QoS-1 确认
+    BATCH_ACK       = 22;  // Client → Gateway  批量确认（一次确认 N 条，降低上行流量）
+    DELIVERY_ACK    = 23;  // Gateway → Client  服务端投递成功确认（用于 QoS-2 Exactly-Once）
+    READ_RECEIPT    = 24;  // Client → Gateway  已读回执（区别于传输层 ACK）
+    REPLAY_REQUEST  = 25;  // Client → Gateway  请求补发离线消息
+    REPLAY_RESPONSE = 26;  // Gateway → Client  离线消息补发响应
 
-    // 强制断连 - Gateway → Client
-    KICK          = 30;  // Gateway→Client  强制断连通知
-    RATE_LIMITED  = 31;  // Gateway→Client  限流通知
+    // ═══════════════════════════════════════════════════════════════════════
+    // 治理：服务端主动控制（30–39）
+    // ═══════════════════════════════════════════════════════════════════════
+    KICK           = 30;  // Gateway → Client  强制断连（含 reason code + 建议重连时间）
+    RATE_LIMITED   = 31;  // Gateway → Client  限流/背压通知
+    SYSTEM_BROADCAST = 32; // Gateway → Client  系统级广播（运维公告、全局配置变更）
+    ADMIN_NOTICE   = 33;  // Gateway → Client  管理通知（踢人原因、权限变更）
 
-    // ── 数据面通用 (100) ─────────────────────────────────────────────────────
-    BUSINESS = 100;         // 通用数据帧，BizCode+Body.type 细分路由
-    BUSINESS_BATCH = 101;    // 批量数据帧，BizCode+Body.type 细分路由
+    // ═══════════════════════════════════════════════════════════════════════
+    // Presence & 订阅管理（40–59）
+    // ═══════════════════════════════════════════════════════════════════════
+    // 说明：Presence 帧由网关直接处理，负责状态扩散和订阅索引维护
+    PRESENCE_UPDATE      = 40;  // Client → Gateway  用户在线状态变更（在线/离开/隐身/忙碌）
+    PRESENCE_SUBSCRIBE   = 41;  // Client → Gateway  订阅某用户/房间的状态
+    PRESENCE_SUBSCRIBE_ACK = 42; // Gateway → Client  订阅结果
+    PRESENCE_UNSUBSCRIBE = 43;  // Client → Gateway  取消状态订阅
 
-    // ── IM 域 (110–199) ──────────────────────────────────────────────────────
-    IM_CHAT    = 110;   // 单聊 / 群聊消息
-    IM_RECEIPT = 111;   // 投递 / 已读回执
-    IM_REVOKE  = 112;   // 消息撤回
-    IM_TYPING  = 113;   // 正在输入指示
+    SUBSCRIBE     = 50;  // Client → Gateway  订阅房间/Topic/群组
+    SUBSCRIBE_ACK = 51;  // Gateway → Client  订阅结果（含房间成员数、Topic 最新消息 seq）
+    UNSUBSCRIBE   = 52;  // Client → Gateway  取消订阅
+    UNSUBSCRIBE_ACK = 53; // Gateway → Client  取消结果
 
-    // ── Push 域 (201–299) ────────────────────────────────────────────────────
-    PUSH_NOTIFY = 201;  // 服务端主动推送
-    PUSH_ACK    = 202;  // 客户端推送确认
+    // ═══════════════════════════════════════════════════════════════════════
+    // 业务面通用（100–101）
+    // ═══════════════════════════════════════════════════════════════════════
+    // 说明：网关只按 biz_code + to 路由，不解析 Body.payload
+    BUSINESS       = 100;  // 单条业务消息
+    BUSINESS_BATCH = 101;  // 批量业务消息（Body 内包含多条 Message 的序列化数组）
 
-    // ── Live 域 (301–399) ────────────────────────────────────────────────────
-    LIVE_JOIN    = 301;
-    LIVE_JOIN_ACK = 302;
-    LIVE_LEAVE   = 303;
-    LIVE_LEAVE_ACK = 304;
-    LIVE_GIFT    = 305;
-    LIVE_GIFT_ACK = 306;
-    LIVE_COMMENT = 307;
-    LIVE_COMMENT_ACK = 308;
-    LIVE_SIGNAL  = 309;
-    LIVE_SIGNAL_ACK = 310;
+    // ═══════════════════════════════════════════════════════════════════════
+    // IM 域（110–119）
+    // ═══════════════════════════════════════════════════════════════════════
+    IM_CHAT        = 110;  // 单聊 / 群聊消息
+    IM_RECEIPT     = 111;  // 投递 / 已读回执（客户端发送）
+    IM_REVOKE      = 112;  // 消息撤回
+    IM_TYPING      = 113;  // 正在输入指示（高频低优，需单独限流）
+    IM_REACTION    = 114;  // 消息表情回应
+    IM_PIN         = 115;  // 消息置顶
 
-    // ── 自定义扩展 (1000+) ───────────────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════════════════
+    // Push 域（120–129）
+    // ═══════════════════════════════════════════════════════════════════════
+    PUSH_NOTIFY = 120;  // 服务端主动推送
+    PUSH_ACK    = 121;  // 客户端推送确认
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Live 域（130–139）
+    // ═══════════════════════════════════════════════════════════════════════
+    LIVE_COMMENT = 130;  // 直播弹幕
+    LIVE_GIFT    = 131;  // 直播礼物
+    LIVE_SIGNAL  = 132;  // 直播音视频信令（连麦、PK、低延迟控制）
+    LIVE_JOIN    = 133;  // 进入直播间
+    LIVE_LEAVE   = 134;  // 离开直播间
+    LIVE_STATE   = 135;  // 直播间状态变更（开始/结束/禁言/全员静音）
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 音视频通话域（140–149）
+    // ═══════════════════════════════════════════════════════════════════════
+    CALL_OFFER     = 140;  // 呼叫请求
+    CALL_ANSWER    = 141;  // 呼叫应答
+    CALL_ICE       = 142;  // ICE candidate
+    CALL_HANGUP    = 143;  // 挂断
+    CALL_MODIFY    = 144;  // 通话中修改（切换摄像头、静音等）
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 自定义扩展（1000+）
+    // ═══════════════════════════════════════════════════════════════════════
     // 业务团队在 1000 以上自由分配，网关按 biz_code 路由，不感知具体类型
 }
 
-// QosClass 消息 QoS 等级
+// ─────────────────────────────────────────────────────────────────────────────
+// ErrorCode：结构化错误码
+//
+// 设计原则：
+//   1. 错误码按层次划分（连接层/认证层/业务层/投递层），便于 SDK 分类处理
+//   2. 机器可读（code）+ 人类可读（message）分离
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum ErrorCode {
+    ERROR_CODE_UNSPECIFIED = 0;
+
+    // ── 连接层（1xxx）────────────────────────────────────────────────────────
+    ERR_HEARTBEAT_TIMEOUT    = 1001;  // 心跳超时，连接将被关闭
+    ERR_HANDSHAKE_FAILED     = 1002;  // 握手失败（Token 无效/过期/格式错误）
+    ERR_AUTH_EXPIRED         = 1003;  // 认证过期，需要重新握手或刷新 Token
+    ERR_REPLACED_BY_NEW_LOGIN = 1004; // 同设备被新连接踢下线
+    ERR_SESSION_SUSPENDED    = 1005;  // Session 进入 Suspended，等待重连
+    ERR_SESSION_CLOSED       = 1006;  // Session 已永久关闭
+    ERR_PROTOCOL_VERSION     = 1007;  // 协议版本不兼容
+    ERR_CONN_RATE_LIMITED    = 1008;  // 连接建立速率超限（防 CC 攻击）
+
+    // ── 认证层（2xxx）────────────────────────────────────────────────────────
+    ERR_TOKEN_INVALID        = 2001;  // Token 签名无效
+    ERR_TOKEN_EXPIRED        = 2002;  // Token 已过期
+    ERR_PERMISSION_DENIED    = 2003;  // 权限不足（如尝试发送未授权业务）
+    ERR_DEVICE_BLOCKED       = 2004;  // 设备被拉黑
+    ERR_IP_BLOCKED           = 2005;  // IP 被拉黑
+
+    // ── 消息层（3xxx）────────────────────────────────────────────────────────
+    ERR_MESSAGE_TOO_LARGE    = 3001;  // 消息体超过 max_body_size
+    ERR_INVALID_FRAME_TYPE   = 3002;  // 不支持的帧类型
+    ERR_MESSAGE_MALFORMED    = 3003;  // 消息格式错误（protobuf 反序列化失败）
+    ERR_MESSAGE_EXPIRED      = 3004;  // 消息已过期
+    ERR_RATE_LIMITED         = 3005;  // 单用户/单设备消息速率超限
+    ERR_BAD_REQUEST          = 3006;  // 业务参数校验失败
+
+    // ── 投递层（4xxx）────────────────────────────────────────────────────────
+    ERR_UPSTREAM_SEND_FAILED = 4001;  // 上行发送到 Kafka/后端失败
+    ERR_OFFLINE_STORE_FAILED = 4002;  // 离线存储失败
+    ERR_MAX_RETRY_EXCEEDED   = 4003;  // QoS-1 重试耗尽
+    ERR_ROUTE_NOT_FOUND      = 4004;  // 目标路由不存在（用户离线且无离线存储）
+    ERR_TARGET_UNAVAILABLE   = 4005;  // 目标用户不在线且不允许离线存储
+    ERR_DELIVERY_TIMEOUT     = 4006;  // 投递超时
+
+    // ── 订阅层（5xxx）────────────────────────────────────────────────────────
+    ERR_ROOM_NOT_FOUND       = 5001;  // 房间不存在
+    ERR_TOPIC_NOT_FOUND      = 5002;  // Topic 不存在
+    ERR_ALREADY_SUBSCRIBED   = 5003;  // 重复订阅
+    ERR_NOT_SUBSCRIBED       = 5004;  // 未订阅就取消
+    ERR_ROOM_FULL            = 5005;  // 房间人数已达上限
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// QosClass：消息 QoS 等级
+// ─────────────────────────────────────────────────────────────────────────────
 enum QosClass {
     QOS_CLASS_UNSPECIFIED = 0;
-    AT_MOST_ONCE         = 1; // 最多一次：发完即忘，无 ACK（弹幕、位置）
-    AT_LEAST_ONCE        = 2; // 至少一次：SDK 重试直到收到 ACK，可能重复（IM）
+    AT_MOST_ONCE  = 1; // 最多一次：发完即忘，无 ACK（弹幕、位置、心跳）
+    AT_LEAST_ONCE = 2; // 至少一次：SDK 重试直到收到 ACK，可能重复（IM 消息）
+    EXACTLY_ONCE  = 3; // 精确一次：需要 DELIVERY_ACK + 服务端幂等（金融交易、支付）
 }
 
-// Codec 消息编码格式：作用于 Body.payload 字节的序列化方式
+// ─────────────────────────────────────────────────────────────────────────────
+// Codec：业务载荷编码格式
+// ─────────────────────────────────────────────────────────────────────────────
 enum Codec {
     CODEC_UNSPECIFIED = 0;
-    JSON              = 1; // JSON 编码
-    PROTOBUF          = 2; // 生产首选，紧凑高效
-    MSGPACK           = 3; // 动态语言场景
+    JSON     = 1; // JSON 编码（Web/动态语言首选）
+    PROTOBUF = 2; // Protobuf（生产首选，紧凑高效）
+    MSGPACK  = 3; // MessagePack（动态语言场景）
 }
 
-// CompressAlgo 消息压缩算法：作用于 Body.payload 字节的压缩方式
+// ─────────────────────────────────────────────────────────────────────────────
+// CompressAlgo：业务载荷压缩算法
+// ─────────────────────────────────────────────────────────────────────────────
 enum CompressAlgo {
     COMPRESS_ALGO_UNSPECIFIED = 0;
-    NONE                      = 1; // 不压缩
-    GZIP                      = 2; // GZIP 压缩
-    ZSTD                      = 3; // 推荐：压缩比与速度最优
-    SNAPPY                    = 4; // 低延迟场景
+    NONE   = 1; // 不压缩（小消息或高频低延迟场景）
+    GZIP   = 2; // GZIP（通用兼容）
+    ZSTD   = 3; // Zstandard（推荐：压缩比与速度最优）
+    SNAPPY = 4; // Snappy（极低延迟，适合直播弹幕）
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// RouteTargetType：路由目标类型
+// ─────────────────────────────────────────────────────────────────────────────
 enum RouteTargetType {
     ROUTE_TARGET_TYPE_UNSPECIFIED = 0;
-    USER                          = 1; // 用户 → 单用户，全设备扇出
-    DEVICE                        = 2; // 设备
-    SESSION                       = 3; // 会话
-    CONNECTION                    = 4; // 连接 → 原始连接 ID（内部路由/调试）
-    ROOM                          = 5; // 房间 → 房间广播（直播弹幕）
-    TOPIC                         = 6; // 主题 → Pub/Sub Topic
-    GROUP                         = 7; // 群组 → 群组，网关侧解析成员列表
-    NODE                          = 8; // 节点
-    BROADCAST                     = 9; // 广播
+    USER       = 1; // 用户 → 全设备扇出
+    DEVICE     = 2; // 设备 → 单设备
+    SESSION    = 3; // 会话 → 单 Session
+    CONNECTION = 4; // 连接 → 原始连接 ID（内部路由/调试）
+    ROOM       = 5; // 房间 → 房间广播（直播弹幕）
+    TOPIC      = 6; // 主题 → Pub/Sub Topic
+    GROUP      = 7; // 群组 → 网关侧解析成员列表后扇出
+    NODE       = 8; // 节点 → 跨节点内部路由
+    BROADCAST  = 9; // 广播 → 全量在线用户
 }
 
 message RouteTarget {
     RouteTargetType type = 1 [(validate.rules).enum = {defined_only: true, not_in: [0]}];
 
-    // key examples:
-    // USER: uid
-    // DEVICE: uid
-    // SESSION: session_id
-    // CONNECTION: conn_id
-    // ROOM: room_id
-    // TOPIC: topic
-    // GROUP: group_id
-    // NODE: node_id
+    // key 根据 type 取值：
+    //   USER:       uid
+    //   DEVICE:     device_id
+    //   SESSION:    session_id
+    //   ROOM:       room_id
+    //   TOPIC:      topic_name
+    //   GROUP:      group_id
+    //   NODE:       node_id
+    //   BROADCAST:  "*" 或空
     string key = 2 [(validate.rules).string = {min_len: 1, max_len: 256}];
 
-    // optional qualifiers
-    string device_id = 3;
-    string node_id = 4;
-    string shard_key = 5;
-    map<string, string> labels = 6;
-}
-
-message TraceContext {
-  string trace_id = 1 [(validate.rules).string = {max_len: 128}];
-  string span_id = 2 [(validate.rules).string = {max_len: 64}];
-  string trace_parent = 3 [(validate.rules).string = {max_len: 256}];
-}
-
-message Delivery {
-    QosClass qos = 1;
-    // 可选的 ack_id: 网关向客户端回 ACK 时填写，值为被确认消息的 msg_id。
-    //   SDK 收到后从重试队列删除对应消息。
-    optional string ack_id   = 2;
-
-    // offline: true = 目标离线时持久化，联网后补投。
-    bool   offline  = 3;
-
-    // max_retry: 最大重试次数，为 0 表示不重试。
-    int32  max_retry = 4;
+    // 可选限定符
+    string device_id = 3;  // 当 type=USER 时，指定只发给某设备
+    string node_id   = 4;  // 当 type=NODE 时，指定目标节点
+    string shard_key = 5;  // 分片键（用于一致性哈希路由）
+    map<string, string> labels = 6;  // 标签匹配（用于高级路由策略）
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Layer 1：网关层 Message（网关只读外层字段，不解析 Body.payload）
+// TraceContext：分布式追踪上下文
+// ─────────────────────────────────────────────────────────────────────────────
+message TraceContext {
+    string trace_id = 1 [(validate.rules).string = {max_len: 128}];
+    string span_id  = 2 [(validate.rules).string = {max_len: 64}];
+    string parent_span_id = 3 [(validate.rules).string = {max_len: 64}];
+    bool sampled = 4;  // 是否采样
+    map<string, string> baggage = 5;  // 透传 baggage
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Delivery：投递控制元数据
+// ─────────────────────────────────────────────────────────────────────────────
+message Delivery {
+    QosClass qos = 1;
+
+    // ack_id: 网关向客户端回 ACK 时填写，值为被确认消息的 msg_id
+    optional string ack_id = 2;
+
+    // offline: true = 目标离线时持久化，联网后补投
+    bool offline = 3;
+
+    // max_retry: 最大重试次数，0 表示使用业务默认策略
+    int32 max_retry = 4;
+
+    // priority: 投递优先级，数值越小优先级越高
+    //   0: 系统级（握手响应、KICK）
+    //   1: 高优（IM 消息、Call 信令）
+    //   5: 普通（Push 通知）
+    //   10: 低优（Live 弹幕、Typing）
+    int32 priority = 5;
+
+    // compress_body: 是否对 Body.data 启用压缩
+    //   注意：这是投递层的压缩提示，与 Body.compress_algo 独立
+    //   true 时网关会根据消息大小自动选择 ZSTD/SNAPPY
+    bool compress_body = 6;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Layer 1：Message（网关层传输帧）
+//
+// 设计原则：
+//   1. 网关只读外层字段，不解析 Body.data
+//   2. 控制面帧（type < 100）通常不需要 body
+//   3. 业务面帧（type >= 100）body 为必填
 // ─────────────────────────────────────────────────────────────────────────────
 
 message Message {
-  // ── 帧身份 ──────────────────────────────────────────────────────────────
-  // version: 协议版本，用于平滑升级。当前 = 1。
-  uint32  version   = 1 [(validate.rules).uint32 = {gte: 0}];
-  FrameType type      = 2 [(validate.rules).enum = {defined_only: true}];
+    // ── 帧身份 ──────────────────────────────────────────────────────────────
+    // version: 协议版本，用于平滑升级和兼容性检查
+    //   当前 = 1，未来版本协商在 Handshake 中完成
+    uint32 version = 1 [(validate.rules).uint32 = {gte: 1}];
 
-  // msg_id: 发送方生成的全局唯一 ID（UUID v4 或雪花 ID）。
-  //   用途：① ACK 关联  ② 幂等去重（QoS-2）  ③ 追踪日志关联
-  string  msg_id    = 3 [(validate.rules).string = {max_len: 128}];
+    FrameType type = 2 [(validate.rules).enum = {defined_only: true, not_in: [0]}];
 
-  // seq_id: 发送方单向单调递增序号。
-  //   用途：① 接收方检测丢包间隙  ② 断线重连时告知网关"从哪里补发"
-  //   注意：与 msg_id 职责不同——msg_id 是全局唯一 ID，seq_id 是顺序标记。
-  uint64  seq_id    = 4 [(validate.rules).uint64 = {gte: 0}];
+    // msg_id: 发送方生成的全局唯一 ID（建议 UUID v7 或雪花 ID）
+    //   用途：ACK 关联、幂等去重、日志追踪
+    string msg_id = 3 [(validate.rules).string = {min_len: 1, max_len: 128}];
 
-  // timestamp: 发送方时间戳，Unix 毫秒。
-  //   用途：① 端到端延迟度量  ② 客户端时钟校准（与 HandshakeAck.server_time 对比）
-  int64   timestamp = 5 [(validate.rules).int64 = {gte: 0}];
+    // seq_id: 发送方单向单调递增序号（每个连接独立）
+    //   用途：接收方检测丢包、断线重连时告知"从哪里补发"
+    uint64 seq_id = 4;
 
-  // ── 寻址 ────────────────────────────────────────────────────────────────
-  // from: 发送方标识
-  RouteTarget from = 6 [(validate.rules).message = {required: true}];
+    // timestamp: 发送方时间戳（Unix 毫秒）
+    //   用途：端到端延迟度量、消息过期检测辅助
+    int64 timestamp = 5;
 
-  // to: 目标地址
-  RouteTarget to   = 7 [(validate.rules).message = {required: true}];
+    // ── 寻址 ────────────────────────────────────────────────────────────────
+    RouteTarget from = 6;
+    RouteTarget to   = 7;
 
-  // ── 投递控制 ─────────────────────────────────────────────────────────────
-  Delivery    delivery      = 8 [(validate.rules).message = {required: true}];
+    // ── 投递控制 ─────────────────────────────────────────────────────────────
+    Delivery delivery = 8;
 
-  // expire_at: 绝对过期时间戳（Unix 毫秒）。为 0 表示永不过期。
-  //   使用绝对时间而非 TTL：消息经多节点转发时各节点判断结果一致。
-  int64  expire_at = 9 [(validate.rules).int64 = {gte: 0}];
+    // expire_at: 绝对过期时间戳（Unix 毫秒），0 表示永不过期
+    int64 expire_at = 9;
 
-  // ── 路由提示（网关中间件读取，不透传给业务） ──────────────────────────────
-  // biz_code: 业务域标识，用于网关侧 plugin 选择（限流策略、审核规则等）。
-  //   约定："im" | "push" | "live" | "custom.{name}"
-  string biz_code = 10 [(validate.rules).string = {max_len: 128}];
+    // ── 路由提示 ─────────────────────────────────────────────────────────────
+    // biz_code: 业务域标识，用于 WorkerPool 路由和限流策略
+    //   约定："im" | "live" | "push" | "call" | "custom.{name}"
+    string biz_code = 10 [(validate.rules).string = {max_len: 128}];
 
-  // TraceContext: 分布式追踪 ID，跨服务传播。格式建议 W3C TraceContext。
-  TraceContext trace_context = 11 [(validate.rules).message = {required: true}];
+    // trace_context: 分布式追踪上下文
+    TraceContext trace_context = 11;
 
-  // ── 扩展 ─────────────────────────────────────────────────────────────────
-  // headers: 中间件 K-V 元数据。网关 plugin 可读写。
-  //   Key 规范：小写，"x-" 前缀表示私有扩展。
-  //   示例：{"x-retry-count":"2", "x-priority":"high", "x-content-type":"image"}
-  map<string, string> headers = 12;
+    // ── 扩展 ─────────────────────────────────────────────────────────────────
+    // headers: 中间件 K-V 元数据
+    //   网关保留头（以 x-gw- 前缀）：
+    //     x-gw-recv-ts:  网关收到时间戳
+    //     x-gw-node:     处理节点 ID
+    //     x-gw-retry:    重试次数
+    //     x-gw-priority: 优先级覆盖
+    //   业务头（以 x-biz- 前缀）：网关透传但不做特殊处理
+    map<string, string> headers = 12;
 
-  // body: 业务载荷容器。网关转发时不解析 body.payload。
-  Body body = 13 [(validate.rules).message = {required: true}];
+    // ── 业务载荷 ─────────────────────────────────────────────────────────────
+    Body body = 13;
+
+    // ── 网关元数据（由网关填充，客户端只读）────────────────────────────────────
+    // origin: 消息来源，用于区分客户端原始发送和服务端生成
+    //   "client" | "retry" | "replay" | "broadcast" | "pushapi" | "system"
+    string origin = 14;
+
+    // recv_at: 网关收到时间（Unix 毫秒），用于计算网关处理延迟
+    int64 recv_at = 15;
 }
 
-// Body 是业务载荷的容器。
-// payload 对网关完全不透明——网关转发时不反序列化，只按外层字段路由。
+// ─────────────────────────────────────────────────────────────────────────────
+// Body：业务载荷容器
+//
+// 网关对该结构完全透明，只做字节透传
+// ─────────────────────────────────────────────────────────────────────────────
+
 message Body {
-  // type: 业务子类型字符串，由各域 SDK 定义。
-  //   IM:   "text" | "image" | "video" | "file" | "location" | "custom"
-  //   Push: "alert" | "silent" | "badge"
-  //   Live: "comment" | "gift" | "signal" | "pklive"
-  string type    = 1 [(validate.rules).string = {max_len: 128}];
+    // codec: 业务载荷的序列化格式
+    //   接收方按此字段选择反序列化器
+    Codec codec = 1 [(validate.rules).enum = {defined_only: true, not_in: [0]}];
 
-  // payload: 按 Message.body_codec 编码、Message.compress 压缩后的字节。
-  //   网关：直接转发，不 unmarshal。
-  //   SDK：按 body_codec 反序列化为 WellKnownPayload 或业务私有结构。
-  bytes  data = 2 [(validate.rules).bytes = {max_len: 4194304}];
+    // compress_algo: 业务载荷的压缩算法
+    //   接收方先解压再解码
+    CompressAlgo compress_algo = 2 [(validate.rules).enum = {defined_only: true, not_in: [0]}];
 
-  // ext: 轻量扩展字段，存放不值得独立字段的元数据。
-  //   示例：{"mention_uids":"[\"u1\",\"u2\"]", "reply_to_mid":"msg_abc"}
-  //   注意：value 存储为字符串（避免 Any 的额外 type_url 开销）。
-  map<string, string> ext = 3;
+    // data: 编码并压缩后的业务 payload
+    //   最大 4MB（含压缩后），超过则返回 ERR_MESSAGE_TOO_LARGE
+    bytes data = 3 [(validate.rules).bytes = {min_len: 1, max_len: 4194304}];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BatchMessage：批量消息容器
+//
+// 用于 BUSINESS_BATCH 帧，减少高并发场景下的协议头开销
+// ─────────────────────────────────────────────────────────────────────────────
+
+message BatchMessage {
+    // shared: 批量消息共享的元数据（避免每条消息重复携带）
+    message SharedMeta {
+        RouteTarget from = 1;
+        string biz_code = 2;
+        TraceContext trace_context = 3;
+        Delivery delivery = 4;
+        map<string, string> headers = 5;
+    }
+
+    SharedMeta shared = 1;
+
+    // items: 批量消息项，每条只包含差异化字段
+    //   如果某字段为空，则使用 shared 中的值
+    message Item {
+        string msg_id = 1;
+        uint64 seq_id = 2;
+        RouteTarget to = 3;
+        int64 expire_at = 4;
+        Body body = 5;
+    }
+
+    repeated Item items = 2 [(validate.rules).repeated = {min_items: 1, max_items: 100}];
 }

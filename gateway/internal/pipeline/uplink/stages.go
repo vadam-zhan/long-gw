@@ -112,14 +112,15 @@ func (c *UplinkCtx) ReplyError(code int32, text string) {
 		errMsg.Delivery.AckId = &c.Message.MsgId // 让客户端能关联到哪条消息出错了
 	}
 
-	payload := &gateway.Error{
-		Code:    code,
+	payload := &gateway.ErrorPayload{
+		Code:    gateway.ErrorCode(code),
 		Message: text,
 	}
 	p, _ := proto.Marshal(payload)
 	errMsg.Body = &gateway.Body{
-		Type: c.Message.BizCode,
-		Data: p,
+		Codec:        gateway.Codec_PROTOBUF,
+		CompressAlgo: gateway.CompressAlgo_NONE,
+		Data:         p,
 	}
 	// conn.Submit 非阻塞：writeCh 满时返回 false（此时错误消息也丢弃，可接受）
 	c.Conn.Submit(errMsg)

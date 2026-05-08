@@ -8,175 +8,366 @@ import "gateway/v1/common.proto";
 import "validate/validate.proto";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Layer 2：SDK 层强类型 payload（网关不感知，SDK 负责编解码）
+// Layer 2：SDK 层强类型 payload
+//
+// 设计原则：
+//   1. 控制面 payload（Handshake/Ack/Kick/Error 等）直接序列化后写入 Message.body.data
+//   2. 业务面 payload 通过 WellKnownPayload 统一包装，用于 BUSINESS 帧的二次分发
+//   3. 新增的业务类型（Call/Signal）直接定义，不嵌套在 WellKnownPayload 中
 // ─────────────────────────────────────────────────────────────────────────────
-// WellKnownPayload 提供 oneof 强类型约束，由 SDK Marshal/Unmarshal 工具使用。
-// 业务私有的 payload 不需要在此注册——直接使用 Body.payload = bytes 即可。
-
-message WellKnownPayload {
-  oneof content {
-    // ── 控制面 ──────────────────────────────────────────────────────────
-    HandshakeRequest    handshake     = 1;
-    HandshakeResponse   handshake_ack = 2;
-    KickRequest         kick_request  = 3;
-    KickResponse        kick_response = 4;
-    Error               error         = 5;
-    Ack                 ack           = 6;
-    AuthRefreshRequest  auth_refresh_request  = 7;
-    AuthRefreshResponse auth_refresh_response = 8;
-
-    // ── IM 域 ────────────────────────────────────────────────────────────
-    IMChat    im_chat    = 10;
-    IMReceipt im_receipt = 11;
-    IMRevoke  im_revoke  = 12;
-
-    // ── Push 域 ──────────────────────────────────────────────────────────
-    PushNotify push_notify = 20;
-
-    // ── Live 域 ──────────────────────────────────────────────────────────
-    LiveComment live_comment = 30;
-    LiveGift    live_gift    = 31;
-
-    // ── 自定义 / 未来扩展 ────────────────────────────────────────────────
-    // 业务方自定义 payload 请使用 field 100+ 并在业务 .proto 中 extend
-    bytes raw = 99;  // 透传原始字节，用于网关不认识的业务 payload
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 控制面 payload 定义
-// ─────────────────────────────────────────────────────────────────────────────
-
+// ═════════════════════════════════════════════════════════════════════════════
+// 控制面 Payload
+// ═════════════════════════════════════════════════════════════════════════════
 message HandshakeRequest {
-  string app_id      = 1 [(validate.rules).string = {max_len: 128}];  // 多租户网关：标识应用
-  string token       = 2 [(validate.rules).string = {max_len: 4096}];  // 业务 auth 服务签发的短期 JWT
-  string device_id   = 3 [(validate.rules).string = {max_len: 128}];  // 设备指纹，跨 session 稳定
-  string device_type = 4 [(validate.rules).string = {max_len: 128}];  // "ios" | "android" | "web" | "pc" | "iot"
-  string sdk_version = 5 [(validate.rules).string = {max_len: 128}];  // 能力协商用
-
-  // last_seq_id: 客户端上次 session 收到的最高 SeqID。
-  // 网关据此从 last_seq_id+1 开始补发离线消息（replay）。
-  uint64 last_seq_id = 6 [(validate.rules).uint64 = {gte: 0}];
+    string app_id      = 1 [(validate.rules).string = {max_len: 128}];   // 多租户：应用标识
+    string token       = 2 [(validate.rules).string = {max_len: 4096}];  // 短期 JWT
+    string device_id   = 3 [(validate.rules).string = {max_len: 128}];   // 设备指纹
+    string device_type = 4 [(validate.rules).string = {max_len: 128}];   // "ios" | "android" | "web" | "pc" | "iot"
+    string sdk_version = 5 [(validate.rules).string = {max_len: 128}];   // 能力协商
+    uint64 last_seq_id = 6;                                              // 上次 session 最高 SeqID，用于断线重放
+    repeated string supported_extensions = 7;                            // 客户端支持的扩展（如 ["compress:zstd", "qos:3"]）
 }
-
 message HandshakeResponse {
-  string conn_id            = 1 [(validate.rules).string = {max_len: 128}];  // 网关分配的连接唯一 ID
-  string user_id            = 2 [(validate.rules).string = {max_len: 128}];  // token 验证后解析出的用户 ID
-  int64  server_time        = 3 [(validate.rules).int64 = {gte: 0}];  // 服务器 Unix 毫秒，供客户端校准时钟偏差
-  int32  heartbeat_interval = 4 [(validate.rules).int32 = {gte: 0}];  // 建议心跳间隔（秒）
-  int64  max_body_size      = 5 [(validate.rules).int64 = {gte: 0}];  // 允许的最大 Body.payload 字节数
-  uint64 replay_from        = 6 [(validate.rules).uint64 = {gte: 0}];  // 网关将从此 SeqID 开始补发（= last_seq_id + 1）
-
-  // extensions: 网关声明支持的能力列表。
-  //   示例：["compress:zstd", "qos:2", "multi-device", "offline", "replay"]
-  repeated string extensions = 7 [(validate.rules).repeated = {min_items: 0, max_items: 100}];
+    string session_id         = 1 [(validate.rules).string = {max_len: 128}];
+    string user_id            = 2 [(validate.rules).string = {max_len: 128}];
+    int64  server_time        = 3;                                       // 服务端 Unix 毫秒
+    int32  heartbeat_interval = 4;                                       // 建议心跳间隔（秒）
+    int64  max_body_size      = 5;                                       // 允许的最大 payload 字节数
+    uint64 replay_from        = 6;                                       // 从此 SeqID 开始补发
+    repeated string extensions = 7;                                      // 网关实际启用的扩展列表
 }
-
 message AuthRefreshRequest {
-  string token = 1 [(validate.rules).string = {max_len: 4096}];  // 客户端提供的认证令牌
-  string app_id = 2 [(validate.rules).string = {max_len: 128}];  // 应用 ID
-  string device_id = 3 [(validate.rules).string = {max_len: 128}];  // 设备 ID
-  string device_type = 4 [(validate.rules).string = {max_len: 128}];  // 设备类型
-  string biz_code = 5 [(validate.rules).string = {max_len: 128}];  // 业务代码
+    string token       = 1 [(validate.rules).string = {max_len: 4096}];
+    string device_id   = 2 [(validate.rules).string = {max_len: 128}];
+    string device_type = 3 [(validate.rules).string = {max_len: 128}];
 }
-
 message AuthRefreshResponse {
-    uint32 code = 1 [(validate.rules).uint32 = {gte: 0}]; // 响应，0 = 鉴权成功，非0 失败
-    string msg = 2 [(validate.rules).string = {max_len: 1024}]; // 状态描述
-    bool result = 3 [(validate.rules).bool = {}]; // 鉴权结果，true = 鉴权成功，false = 鉴权失败
-    uint32 heartbeat_internal = 4 [(validate.rules).uint32 = {gte: 0}]; // 服务端强制的心跳间隔（单位秒，默认 30s）
-    string session_id = 5 [(validate.rules).string = {max_len: 128}]; // 会话ID
-    uint32 max_body_size = 6 [(validate.rules).uint32 = {gte: 0}]; // 最大 body
-    uint64 replay_from = 7 [(validate.rules).uint64 = {gte: 0}];
+    bool   success             = 1;
+    ErrorCode error_code       = 2;                                      // 使用统一 ErrorCode
+    string error_message       = 3;
+    int32  heartbeat_interval  = 4;
+    string session_id          = 5;
+    int64  max_body_size       = 6;
+    uint64 replay_from         = 7;
+    int64  token_expire_at     = 8;                                      // 新 Token 过期时间
 }
-
+message ResumeRequest {
+    string session_id = 1 [(validate.rules).string = {max_len: 128}];
+    uint64 last_seq_id = 2;                                              // 客户端已收到的最高 SeqID
+}
+message ResumeResponse {
+    bool   success       = 1;
+    ErrorCode error_code = 2;
+    string error_message = 3;
+    uint64 replay_from   = 4;                                            // 实际从哪个 SeqID 开始补发
+    int32  replay_count  = 5;                                            // 待补发消息数量（用于客户端进度展示）
+}
 message KickRequest {
-  int32  code             = 1 [(validate.rules).int32 = {gte: 0}];  // 机器可读错误码
-  string reason           = 2 [(validate.rules).string = {max_len: 1024}];  // 人类可读原因（调试用）
-  int32  reconnect_after  = 3 [(validate.rules).int32 = {gte: 0}];  // >0 表示建议客户端等待 N 秒后重连（灰度发布用）
+    ErrorCode code            = 1;                                       // 结构化错误码
+    string    reason          = 2 [(validate.rules).string = {max_len: 1024}];
+    int32     reconnect_after = 3;                                       // >0 建议等待 N 秒后重连
+    bool      permanent       = 4;                                       // true = 禁止自动重连（封号）
+}
+message ErrorPayload {
+    ErrorCode code        = 1;
+    string    message     = 2 [(validate.rules).string = {max_len: 1024}];
+    string    ref_msg_id  = 3 [(validate.rules).string = {max_len: 128}]; // 触发此错误的原始 msg_id
+    map<string, string> details = 4;                                     // 额外上下文（如限流配额、重试建议）
+}
+message AckPayload {
+    string ref_msg_id = 1 [(validate.rules).string = {max_len: 128}];    // 被确认的消息 msg_id
+    int64  recv_time  = 2;                                               // 客户端收到时间（Unix 毫秒），用于 RTT 度量
+}
+message BatchAckPayload {
+    repeated string msg_ids = 1 [(validate.rules).repeated = {min_items: 1, max_items: 100}];
+    int64 recv_time = 2;
+}
+message ReplayRequestPayload {
+    uint64 from_seq = 1;                                                 // 从哪个 SeqID 开始
+    int32  limit    = 2 [(validate.rules).int32 = {gte: 1, lte: 1000}];  // 最多补发多少条
+}
+message ReplayResponsePayload {
+    bool   success    = 1;
+    uint64 last_seq   = 2;                                               // 实际补发到的最新 SeqID
+    int32  sent_count = 3;                                               // 实际补发了多少条
 }
 
-message KickResponse {
-    uint32 code = 1 [(validate.rules).uint32 = {gte: 0}]; // 响应，0 = 登出成功，非0 失败
-    string msg = 2 [(validate.rules).string = {max_len: 1024}]; // 状态描述
+// ── 关闭 ─────────────────────────────────────────────────────────────────────
+message CloseRequest {
+    string reason = 1;                                                   // 关闭原因（如 "app_background" | "user_logout" | "network_switch"）
+    bool   expect_ack = 2;                                               // true = 等待服务端 CLOSE_ACK 后再断开 TCP
 }
 
-message Error {
-  int32  code       = 1 [(validate.rules).int32 = {gte: 0}];
-  string message    = 2 [(validate.rules).string = {max_len: 1024}];
-  string ref_msg_id = 3 [(validate.rules).string = {max_len: 128}];  // 触发此错误的原始 msg_id
+message CloseResponse {
+    bool   success = 1;
+    int64  server_time = 2;                                              // 服务端确认关闭时间
 }
 
-message Ack {
-  string ref_msg_id = 1 [(validate.rules).string = {max_len: 128}];  // 被确认的消息 msg_id
-  int64  recv_time  = 2 [(validate.rules).int64 = {gte: 0}];  // 网关收到时间（Unix 毫秒），供 RTT 度量
+// ── 心跳 ─────────────────────────────────────────────────────────────────────
+message PingPayload {
+    int64 client_send_ts = 1;                                            // 客户端发送时间（Unix 毫秒，用于 RTT 计算）
+    int32 rtt_sample_ms  = 2;                                            // 客户端测得的上次 RTT（网关可用作网络质量指标）
+    string conn_epoch    = 3;                                            // 连接纪元（用于检测僵尸连接）
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// IM 域 payload
-// ─────────────────────────────────────────────────────────────────────────────
+message PongPayload {
+    int64 server_recv_ts = 1;                                            // 服务端收到 PING 的时间
+    int64 server_send_ts = 2;                                            // 服务端发送 PONG 的时间
+    int32 heartbeat_interval = 3;                                        // 服务端动态调整的心跳间隔（秒）
+}
 
+// ── 投递确认 ─────────────────────────────────────────────────────────────────
+message DeliveryAckPayload {
+    string ref_msg_id = 1 [(validate.rules).string = {max_len: 128}];    // 被确认投递成功的消息 msg_id
+    int64  delivered_at = 2;                                             // 服务端实际投递时间（Unix 毫秒）
+}
+
+message ReadReceiptPayload {
+    string ref_msg_id = 1 [(validate.rules).string = {max_len: 128}];    // 被标记为已读的消息 msg_id
+    int64  read_at    = 2;                                               // 用户实际阅读时间（Unix 毫秒）
+    string conv_id    = 3;                                               // 所属会话（用于服务端更新会话已读水位线）
+}
+
+// ── 治理 ─────────────────────────────────────────────────────────────────────
+message RateLimitedPayload {
+    ErrorCode code = 1;                                                  // 触发限流的具体原因
+    string    limit_type = 2;                                            // "conn" | "user" | "biz" | "room" | "global"
+    int32     current_qps = 3;                                           // 当前实际 QPS
+    int32     limit_qps = 4;                                             // 限制的 QPS 阈值
+    int32     retry_after_ms = 5;                                        // 建议等待时间（毫秒）
+    map<string, string> details = 6;                                     // 额外上下文（如 "room_id": "room_123"）
+}
+
+message SystemBroadcastPayload {
+    string broadcast_id = 1 [(validate.rules).string = {max_len: 128}];  // 广播唯一 ID（用于幂等去重）
+    string title = 2;                                                    // 广播标题
+    string content = 3;                                                  // 广播内容
+    string priority = 4;                                                 // "high" | "normal" | "low"
+    int64  expire_at = 5;                                                // 过期时间
+    map<string, string> ext = 6;                                         // 扩展（如跳转链接、操作按钮）
+}
+
+message AdminNoticePayload {
+    ErrorCode code = 1;                                                  // 通知类型（如 ERR_AUTH_EXPIRED | ERR_DEVICE_BLOCKED）
+    string    message = 2;                                               // 人类可读说明
+    int64     effective_at = 3;                                          // 生效时间
+    int64     expire_at = 4;                                             // 过期时间（0 表示永久）
+    map<string, string> actions = 5;                                     // 建议操作（如 {"action": "relogin", "url": "..."}）
+}
+
+// ── Presence ─────────────────────────────────────────────────────────────────
+message PresenceUpdate {
+    enum PresenceState {
+        PRESENCE_STATE_UNSPECIFIED = 0;
+        ONLINE  = 1;
+        AWAY    = 2;
+        BUSY    = 3;
+        OFFLINE = 4;                                                     // 由网关推断，客户端不应主动发送
+        INVISIBLE = 5;
+    }
+
+    PresenceState state = 1;
+    string status_text = 2;
+    int64 last_active_at = 3;
+    map<string, string> ext = 4;
+}
+
+message PresenceSubscribeRequest {
+    repeated string target_user_ids = 1 [(validate.rules).repeated = {min_items: 1, max_items: 1000}];
+    bool subscribe = 2;                                                  // true = 订阅，false = 取消订阅
+}
+
+message PresenceSubscribeResponse {
+    bool success = 1;
+    ErrorCode error_code = 2;
+    string error_message = 3;
+    int32 subscribed_count = 4;
+}
+
+// ── 订阅管理 ─────────────────────────────────────────────────────────────────
+message SubscribeRequest {
+    oneof target {
+        RoomTarget room = 1;
+        TopicTarget topic = 2;
+        GroupTarget group = 3;
+    }
+
+    message RoomTarget {
+        string room_id = 1;
+        string password = 2;
+    }
+
+    message TopicTarget {
+        string topic = 1;
+        int64 last_seq = 2;
+    }
+
+    message GroupTarget {
+        string group_id = 1;
+    }
+}
+
+message SubscribeResponse {
+    bool success = 1;
+    ErrorCode error_code = 2;
+    string error_message = 3;
+    int64 member_count = 4;
+    int64 total_member_count = 5;
+    int64 last_seq = 6;
+    int32 max_message_history = 7;
+}
+
+message UnsubscribeRequest {
+    oneof target {
+        SubscribeRequest.RoomTarget room = 1;
+        SubscribeRequest.TopicTarget topic = 2;
+        SubscribeRequest.GroupTarget group = 3;
+    }
+}
+
+message UnsubscribeResponse {
+    bool success = 1;
+    ErrorCode error_code = 2;
+    string error_message = 3;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 业务面 Payload：WellKnownPayload（用于 BUSINESS 帧）
+// ═════════════════════════════════════════════════════════════════════════════
+message WellKnownPayload {
+    oneof content {
+        // IM 域
+        IMChat        im_chat        = 1;
+        IMReceipt     im_receipt     = 2;
+        IMRevoke      im_revoke      = 3;
+        IMTyping      im_typing      = 4;
+        IMReaction    im_reaction    = 5;
+        IMPin         im_pin         = 6;
+        // Push 域
+        PushNotify    push_notify    = 10;
+        // Live 域
+        LiveComment   live_comment   = 20;
+        LiveGift      live_gift      = 21;
+        LiveSignal    live_signal    = 22;
+        LiveState     live_state     = 23;
+        // Call 域
+        CallOffer     call_offer     = 30;
+        CallAnswer    call_answer    = 31;
+        CallICE       call_ice       = 32;
+        CallHangup    call_hangup    = 33;
+        CallModify    call_modify    = 34;
+        // 透传原始字节（业务私有协议）
+        bytes raw = 99;
+    }
+}
+// ═════════════════════════════════════════════════════════════════════════════
+// IM 域 Payload
+// ═════════════════════════════════════════════════════════════════════════════
 message IMChat {
-  // conv_id: 会话 ID。单聊 = 双方 uid 排序后拼接，群聊 = groupID。
-  string conv_id     = 1;
-
-  // content_type: "text" | "image" | "video" | "audio" | "file" | "location" | "custom"
-  string content_type = 2;
-
-  // content: 按 content_type 解析的实际内容，编码为 JSON bytes。
-  //   text:     {"text":"..."}
-  //   image:    {"url":"...","width":1920,"height":1080}
-  //   location: {"lat":31.2,"lng":121.4,"name":"..."}
-  bytes  content     = 3;
-
-  repeated string mentions = 4;  // 被 @ 的 uid 列表
-  string reply_to          = 5;  // 回复的消息 msg_id（Thread 支持）
+    string conv_id      = 1 [(validate.rules).string = {max_len: 256}];  // 会话 ID（单聊 = hash(uid1,uid2)，群聊 = group_id）
+    string content_type = 2 [(validate.rules).string = {max_len: 64}];   // "text" | "image" | "video" | "audio" | "file" | "location" | "custom"
+    bytes  content      = 3;                                             // 按 content_type 解析的实际内容
+    repeated string mentions = 4;                                        // 被 @ 的 uid 列表
+    string reply_to     = 5 [(validate.rules).string = {max_len: 128}];  // 回复的消息 msg_id
+    map<string, string> ext = 6;                                         // 扩展（如表情、翻译结果）
 }
-
 message IMReceipt {
-  string conv_id      = 1;
-  // receipt_type: "delivered" | "read"
-  string receipt_type = 2;
-  repeated string msg_ids = 3;  // 被确认的消息 ID 列表
-  uint64 read_seq     = 4;  // 已读水位线 SeqID（"已读到第 N 条"）
+    string conv_id       = 1;
+    string receipt_type  = 2 [(validate.rules).string = {max_len: 32}];  // "delivered" | "read"
+    repeated string msg_ids = 3 [(validate.rules).repeated = {max_items: 100}];
+    uint64 read_seq      = 4;                                            // 已读水位线
 }
-
 message IMRevoke {
-  string conv_id = 1;
-  string msg_id  = 2;  // 被撤回的消息 ID
+    string conv_id = 1;
+    string msg_id  = 2 [(validate.rules).string = {max_len: 128}];
+    string reason  = 3;                                                  // 撤回原因（可选）
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Push 域 payload
-// ─────────────────────────────────────────────────────────────────────────────
-
+message IMTyping {
+    string conv_id = 1;
+    string content_type = 2;                                             // "text" | "voice" | ""（仅展示"正在输入"）
+    int32  duration_ms = 3;                                              // 语音消息预计时长（如果是语音输入）
+}
+message IMReaction {
+    string conv_id   = 1;
+    string msg_id    = 2 [(validate.rules).string = {max_len: 128}];
+    string reaction  = 3;                                                // 表情 Unicode 或自定义标识
+    bool   is_add    = 4;                                                // true = 添加，false = 移除
+}
+message IMPin {
+    string conv_id = 1;
+    string msg_id  = 2 [(validate.rules).string = {max_len: 128}];
+    bool   is_pin  = 3;                                                  // true = 置顶，false = 取消置顶
+}
+// ═════════════════════════════════════════════════════════════════════════════
+// Push 域 Payload
+// ═════════════════════════════════════════════════════════════════════════════
 message PushNotify {
-  string title        = 1;  // 通知标题（silent push 时为空）
-  string body         = 2;  // 通知正文
-  string sound        = 3;  // "default" | "" (静默) | 自定义音效名
-  int32  badge        = 4;  // 角标数，-1 表示不变
-  // data: 应用后台静默处理的 KV，不展示给用户
-  map<string, string> data = 5;
-  // priority: "high"（立即唤醒设备）| "normal"
-  string priority     = 6;
-  // collapse_key: 相同 key 的未投递 push 会被后来者覆盖（类似 FCM collapse_key）
-  string collapse_key = 7;
+    string title        = 1 [(validate.rules).string = {max_len: 256}];
+    string body         = 2 [(validate.rules).string = {max_len: 1024}];
+    string sound        = 3;                                             // "default" | "" | 自定义音效
+    int32  badge        = 4;                                             // 角标数，-1 表示不变
+    map<string, string> data = 5;                                        // 后台静默处理数据
+    string priority     = 6;                                             // "high" | "normal"
+    string collapse_key = 7;                                             // 相同 key 的未投递 push 会被覆盖
+    string channel_id   = 8;                                             // Android 通知渠道 ID
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Live 域 payload
-// ─────────────────────────────────────────────────────────────────────────────
-
+// ═════════════════════════════════════════════════════════════════════════════
+// Live 域 Payload
+// ═════════════════════════════════════════════════════════════════════════════
 message LiveComment {
-  string room_id  = 1;
-  string content  = 2;
-  string color    = 3;  // 付费彩色弹幕 hex 颜色值，例如 "#FF6600"
+    string room_id  = 1 [(validate.rules).string = {max_len: 128}];
+    string content  = 2 [(validate.rules).string = {max_len: 512}];
+    string color    = 3;                                                 // 付费彩色弹幕 hex 颜色值
+    int32  level    = 4;                                                 // 用户等级（影响弹幕样式/速度）
 }
-
 message LiveGift {
-  string room_id    = 1;
-  string gift_id    = 2;
-  string gift_name  = 3;
-  int32  count      = 4;
-  int64  total_cost = 5;  // 网关校验后的虚拟货币总花费
+    string room_id    = 1 [(validate.rules).string = {max_len: 128}];
+    string gift_id    = 2 [(validate.rules).string = {max_len: 128}];
+    string gift_name  = 3;
+    int32  count      = 4;
+    int64  total_cost = 5;
+    string combo_id   = 6;                                               // 连击 ID，相同 combo_id 的礼物客户端合并展示
+}
+message LiveSignal {
+    string room_id    = 1 [(validate.rules).string = {max_len: 128}];
+    string signal_type = 2;                                              // "pk_start" | "pk_end" | "mute_all" | "ban_chat" | "layout_change"
+    bytes  payload    = 3;                                               // 信号具体数据（JSON 或 protobuf）
+}
+message LiveState {
+    string room_id    = 1 [(validate.rules).string = {max_len: 128}];
+    string state      = 2;                                               // "live" | "paused" | "ended" | "banned"
+    int64  viewer_count = 3;                                             // 当前在线观众数
+    int64  like_count = 4;                                               // 累计点赞数
+}
+// ═════════════════════════════════════════════════════════════════════════════
+// Call 域 Payload（音视频通话）
+// ═════════════════════════════════════════════════════════════════════════════
+message CallOffer {
+    string call_id    = 1 [(validate.rules).string = {max_len: 128}];    // 通话唯一 ID
+    string callee_id  = 2;                                               // 被叫用户 ID
+    string call_type  = 3;                                               // "audio" | "video" | "screen"
+    bytes  sdp        = 4;                                               // WebRTC Offer SDP
+    map<string, string> ext = 5;                                         // 扩展（如群聊通话的成员列表）
+}
+message CallAnswer {
+    string call_id   = 1 [(validate.rules).string = {max_len: 128}];
+    bool   accepted  = 2;                                                // true = 接听，false = 拒绝
+    string reason    = 3;                                                // 拒绝原因（如 "busy" | "decline"）
+    bytes  sdp       = 4;                                                // WebRTC Answer SDP（接听时）
+}
+message CallICE {
+    string call_id      = 1 [(validate.rules).string = {max_len: 128}];
+    string candidate    = 2;                                             // ICE candidate
+    string sdp_mid      = 3;
+    int32  sdp_mline_index = 4;
+}
+message CallHangup {
+    string call_id = 1 [(validate.rules).string = {max_len: 128}];
+    string reason  = 2;                                                  // "normal" | "timeout" | "network_error" | "kicked"
+    int64  duration_ms = 3;                                              // 通话时长（毫秒）
+}
+message CallModify {
+    string call_id   = 1 [(validate.rules).string = {max_len: 128}];
+    string action    = 2;                                                // "mute_audio" | "unmute_audio" | "mute_video" | "unmute_video" | "switch_camera" | "enable_speaker"
+    bool   enabled   = 3;
 }

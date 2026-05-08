@@ -7,6 +7,7 @@
 package gatewayv1
 
 import (
+	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -21,11 +22,132 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// 投递结果详情
+type PushMessageResp_Status int32
+
+const (
+	PushMessageResp_STATUS_UNSPECIFIED PushMessageResp_Status = 0
+	PushMessageResp_DELIVERED          PushMessageResp_Status = 1 // 已投递到客户端连接
+	PushMessageResp_QUEUED             PushMessageResp_Status = 2 // 客户端离线，已入队列/离线存储
+	PushMessageResp_TARGET_OFFLINE     PushMessageResp_Status = 3 // 目标离线且未配置离线存储
+	PushMessageResp_TARGET_NOT_FOUND   PushMessageResp_Status = 4 // 目标不存在（用户未登录或 Session 已关闭）
+	PushMessageResp_RATE_LIMITED       PushMessageResp_Status = 5 // 触发限流，消息被拒绝
+)
+
+// Enum value maps for PushMessageResp_Status.
+var (
+	PushMessageResp_Status_name = map[int32]string{
+		0: "STATUS_UNSPECIFIED",
+		1: "DELIVERED",
+		2: "QUEUED",
+		3: "TARGET_OFFLINE",
+		4: "TARGET_NOT_FOUND",
+		5: "RATE_LIMITED",
+	}
+	PushMessageResp_Status_value = map[string]int32{
+		"STATUS_UNSPECIFIED": 0,
+		"DELIVERED":          1,
+		"QUEUED":             2,
+		"TARGET_OFFLINE":     3,
+		"TARGET_NOT_FOUND":   4,
+		"RATE_LIMITED":       5,
+	}
+)
+
+func (x PushMessageResp_Status) Enum() *PushMessageResp_Status {
+	p := new(PushMessageResp_Status)
+	*p = x
+	return p
+}
+
+func (x PushMessageResp_Status) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (PushMessageResp_Status) Descriptor() protoreflect.EnumDescriptor {
+	return file_gateway_v1_gateway_service_proto_enumTypes[0].Descriptor()
+}
+
+func (PushMessageResp_Status) Type() protoreflect.EnumType {
+	return &file_gateway_v1_gateway_service_proto_enumTypes[0]
+}
+
+func (x PushMessageResp_Status) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use PushMessageResp_Status.Descriptor instead.
+func (PushMessageResp_Status) EnumDescriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{1, 0}
+}
+
+// 当前节点状态
+type DrainNodeResp_DrainState int32
+
+const (
+	DrainNodeResp_DRAIN_STATE_UNSPECIFIED DrainNodeResp_DrainState = 0
+	DrainNodeResp_SERVING                 DrainNodeResp_DrainState = 1 // 正常服务
+	DrainNodeResp_DRAINING                DrainNodeResp_DrainState = 2 // 摘流中（拒绝新连接，等待旧连接关闭）
+	DrainNodeResp_DRAINED                 DrainNodeResp_DrainState = 3 // 已摘流（可以安全下线）
+)
+
+// Enum value maps for DrainNodeResp_DrainState.
+var (
+	DrainNodeResp_DrainState_name = map[int32]string{
+		0: "DRAIN_STATE_UNSPECIFIED",
+		1: "SERVING",
+		2: "DRAINING",
+		3: "DRAINED",
+	}
+	DrainNodeResp_DrainState_value = map[string]int32{
+		"DRAIN_STATE_UNSPECIFIED": 0,
+		"SERVING":                 1,
+		"DRAINING":                2,
+		"DRAINED":                 3,
+	}
+)
+
+func (x DrainNodeResp_DrainState) Enum() *DrainNodeResp_DrainState {
+	p := new(DrainNodeResp_DrainState)
+	*p = x
+	return p
+}
+
+func (x DrainNodeResp_DrainState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (DrainNodeResp_DrainState) Descriptor() protoreflect.EnumDescriptor {
+	return file_gateway_v1_gateway_service_proto_enumTypes[1].Descriptor()
+}
+
+func (DrainNodeResp_DrainState) Type() protoreflect.EnumType {
+	return &file_gateway_v1_gateway_service_proto_enumTypes[1]
+}
+
+func (x DrainNodeResp_DrainState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use DrainNodeResp_DrainState.Descriptor instead.
+func (DrainNodeResp_DrainState) EnumDescriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{21, 0}
+}
+
 type PushMessageReq struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Receiver      string                 `protobuf:"bytes,1,opt,name=receiver,proto3" json:"receiver,omitempty"`                             // 接收者 ID
-	Payload       []byte                 `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`                               // 业务载荷
-	BusinessType  string                 `protobuf:"bytes,4,opt,name=business_type,json=businessType,proto3" json:"business_type,omitempty"` // 业务类型
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 目标：单用户、单设备、单 Session 或单连接
+	To *RouteTarget `protobuf:"bytes,1,opt,name=to,proto3" json:"to,omitempty"`
+	// 业务域标识（用于 WorkerPool 路由和限流）
+	BizCode string `protobuf:"bytes,2,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
+	// 投递控制（QoS、优先级、是否离线存储）
+	Delivery *Delivery `protobuf:"bytes,3,opt,name=delivery,proto3" json:"delivery,omitempty"`
+	// 业务载荷
+	Body *Body `protobuf:"bytes,4,opt,name=body,proto3" json:"body,omitempty"`
+	// 可选：指定消息来源（用于审计和调试）
+	Origin string `protobuf:"bytes,5,opt,name=origin,proto3" json:"origin,omitempty"` // "pushapi" | "business" | "system"
+	// 可选：透传 headers（网关会清理非白名单 headers 后发给客户端）
+	Headers       map[string]string `protobuf:"bytes,6,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -60,31 +182,58 @@ func (*PushMessageReq) Descriptor() ([]byte, []int) {
 	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *PushMessageReq) GetReceiver() string {
+func (x *PushMessageReq) GetTo() *RouteTarget {
 	if x != nil {
-		return x.Receiver
-	}
-	return ""
-}
-
-func (x *PushMessageReq) GetPayload() []byte {
-	if x != nil {
-		return x.Payload
+		return x.To
 	}
 	return nil
 }
 
-func (x *PushMessageReq) GetBusinessType() string {
+func (x *PushMessageReq) GetBizCode() string {
 	if x != nil {
-		return x.BusinessType
+		return x.BizCode
 	}
 	return ""
 }
 
+func (x *PushMessageReq) GetDelivery() *Delivery {
+	if x != nil {
+		return x.Delivery
+	}
+	return nil
+}
+
+func (x *PushMessageReq) GetBody() *Body {
+	if x != nil {
+		return x.Body
+	}
+	return nil
+}
+
+func (x *PushMessageReq) GetOrigin() string {
+	if x != nil {
+		return x.Origin
+	}
+	return ""
+}
+
+func (x *PushMessageReq) GetHeaders() map[string]string {
+	if x != nil {
+		return x.Headers
+	}
+	return nil
+}
+
 type PushMessageResp struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"` // 是否成功
-	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`  // 错误信息
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Accepted bool                   `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"` // true = 已接受投递（不保证客户端已收到）
+	Status   PushMessageResp_Status `protobuf:"varint,2,opt,name=status,proto3,enum=gateway.v1.PushMessageResp_Status" json:"status,omitempty"`
+	// 如果成功投递，返回实际送达的 session_id 和 seq_id
+	SessionId string `protobuf:"bytes,3,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	SeqId     uint64 `protobuf:"varint,4,opt,name=seq_id,json=seqId,proto3" json:"seq_id,omitempty"`
+	// 失败时的结构化错误
+	ErrorCode     ErrorCode `protobuf:"varint,5,opt,name=error_code,json=errorCode,proto3,enum=gateway.v1.ErrorCode" json:"error_code,omitempty"`
+	ErrorMessage  string    `protobuf:"bytes,6,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -119,16 +268,3066 @@ func (*PushMessageResp) Descriptor() ([]byte, []int) {
 	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *PushMessageResp) GetSuccess() bool {
+func (x *PushMessageResp) GetAccepted() bool {
+	if x != nil {
+		return x.Accepted
+	}
+	return false
+}
+
+func (x *PushMessageResp) GetStatus() PushMessageResp_Status {
+	if x != nil {
+		return x.Status
+	}
+	return PushMessageResp_STATUS_UNSPECIFIED
+}
+
+func (x *PushMessageResp) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *PushMessageResp) GetSeqId() uint64 {
+	if x != nil {
+		return x.SeqId
+	}
+	return 0
+}
+
+func (x *PushMessageResp) GetErrorCode() ErrorCode {
+	if x != nil {
+		return x.ErrorCode
+	}
+	return ErrorCode_ERROR_CODE_UNSPECIFIED
+}
+
+func (x *PushMessageResp) GetErrorMessage() string {
+	if x != nil {
+		return x.ErrorMessage
+	}
+	return ""
+}
+
+type BatchPushMessageReq struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 批量目标（每个目标独立投递，共享 body 和 delivery）
+	ToList        []*RouteTarget `protobuf:"bytes,1,rep,name=to_list,json=toList,proto3" json:"to_list,omitempty"`
+	BizCode       string         `protobuf:"bytes,2,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
+	Delivery      *Delivery      `protobuf:"bytes,3,opt,name=delivery,proto3" json:"delivery,omitempty"`
+	Body          *Body          `protobuf:"bytes,4,opt,name=body,proto3" json:"body,omitempty"`
+	Origin        string         `protobuf:"bytes,5,opt,name=origin,proto3" json:"origin,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BatchPushMessageReq) Reset() {
+	*x = BatchPushMessageReq{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BatchPushMessageReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchPushMessageReq) ProtoMessage() {}
+
+func (x *BatchPushMessageReq) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchPushMessageReq.ProtoReflect.Descriptor instead.
+func (*BatchPushMessageReq) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *BatchPushMessageReq) GetToList() []*RouteTarget {
+	if x != nil {
+		return x.ToList
+	}
+	return nil
+}
+
+func (x *BatchPushMessageReq) GetBizCode() string {
+	if x != nil {
+		return x.BizCode
+	}
+	return ""
+}
+
+func (x *BatchPushMessageReq) GetDelivery() *Delivery {
+	if x != nil {
+		return x.Delivery
+	}
+	return nil
+}
+
+func (x *BatchPushMessageReq) GetBody() *Body {
+	if x != nil {
+		return x.Body
+	}
+	return nil
+}
+
+func (x *BatchPushMessageReq) GetOrigin() string {
+	if x != nil {
+		return x.Origin
+	}
+	return ""
+}
+
+type BatchPushMessageResp struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 总体统计
+	TotalCount    int32                              `protobuf:"varint,1,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	SuccessCount  int32                              `protobuf:"varint,2,opt,name=success_count,json=successCount,proto3" json:"success_count,omitempty"`
+	FailCount     int32                              `protobuf:"varint,3,opt,name=fail_count,json=failCount,proto3" json:"fail_count,omitempty"`
+	FailedItems   []*BatchPushMessageResp_FailedItem `protobuf:"bytes,4,rep,name=failed_items,json=failedItems,proto3" json:"failed_items,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BatchPushMessageResp) Reset() {
+	*x = BatchPushMessageResp{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BatchPushMessageResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchPushMessageResp) ProtoMessage() {}
+
+func (x *BatchPushMessageResp) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchPushMessageResp.ProtoReflect.Descriptor instead.
+func (*BatchPushMessageResp) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *BatchPushMessageResp) GetTotalCount() int32 {
+	if x != nil {
+		return x.TotalCount
+	}
+	return 0
+}
+
+func (x *BatchPushMessageResp) GetSuccessCount() int32 {
+	if x != nil {
+		return x.SuccessCount
+	}
+	return 0
+}
+
+func (x *BatchPushMessageResp) GetFailCount() int32 {
+	if x != nil {
+		return x.FailCount
+	}
+	return 0
+}
+
+func (x *BatchPushMessageResp) GetFailedItems() []*BatchPushMessageResp_FailedItem {
+	if x != nil {
+		return x.FailedItems
+	}
+	return nil
+}
+
+type BroadcastToRoomReq struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	RoomId   string                 `protobuf:"bytes,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
+	BizCode  string                 `protobuf:"bytes,2,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
+	Delivery *Delivery              `protobuf:"bytes,3,opt,name=delivery,proto3" json:"delivery,omitempty"`
+	Body     *Body                  `protobuf:"bytes,4,opt,name=body,proto3" json:"body,omitempty"`
+	// 可选：排除发送者本人（用于 IM 群聊时发送者不收到自己的消息）
+	ExcludeSender bool   `protobuf:"varint,5,opt,name=exclude_sender,json=excludeSender,proto3" json:"exclude_sender,omitempty"`
+	SenderUserId  string `protobuf:"bytes,6,opt,name=sender_user_id,json=senderUserId,proto3" json:"sender_user_id,omitempty"` // exclude_sender=true 时必填
+	// 可选：按条件过滤接收者
+	//
+	//	例如：只发给 device_type="mobile" 的用户
+	FilterLabels  map[string]string `protobuf:"bytes,7,rep,name=filter_labels,json=filterLabels,proto3" json:"filter_labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BroadcastToRoomReq) Reset() {
+	*x = BroadcastToRoomReq{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BroadcastToRoomReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BroadcastToRoomReq) ProtoMessage() {}
+
+func (x *BroadcastToRoomReq) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BroadcastToRoomReq.ProtoReflect.Descriptor instead.
+func (*BroadcastToRoomReq) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *BroadcastToRoomReq) GetRoomId() string {
+	if x != nil {
+		return x.RoomId
+	}
+	return ""
+}
+
+func (x *BroadcastToRoomReq) GetBizCode() string {
+	if x != nil {
+		return x.BizCode
+	}
+	return ""
+}
+
+func (x *BroadcastToRoomReq) GetDelivery() *Delivery {
+	if x != nil {
+		return x.Delivery
+	}
+	return nil
+}
+
+func (x *BroadcastToRoomReq) GetBody() *Body {
+	if x != nil {
+		return x.Body
+	}
+	return nil
+}
+
+func (x *BroadcastToRoomReq) GetExcludeSender() bool {
+	if x != nil {
+		return x.ExcludeSender
+	}
+	return false
+}
+
+func (x *BroadcastToRoomReq) GetSenderUserId() string {
+	if x != nil {
+		return x.SenderUserId
+	}
+	return ""
+}
+
+func (x *BroadcastToRoomReq) GetFilterLabels() map[string]string {
+	if x != nil {
+		return x.FilterLabels
+	}
+	return nil
+}
+
+type BroadcastToRoomResp struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Accepted bool                   `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
+	// 广播统计（异步返回预估值，实际投递通过 metrics 确认）
+	TargetCount   int64     `protobuf:"varint,2,opt,name=target_count,json=targetCount,proto3" json:"target_count,omitempty"` // 房间总人数
+	OnlineCount   int64     `protobuf:"varint,3,opt,name=online_count,json=onlineCount,proto3" json:"online_count,omitempty"` // 在线人数（实际会收到广播）
+	NodeCount     int64     `protobuf:"varint,4,opt,name=node_count,json=nodeCount,proto3" json:"node_count,omitempty"`       // 涉及多少个网关节点（跨节点广播时）
+	ErrorCode     ErrorCode `protobuf:"varint,5,opt,name=error_code,json=errorCode,proto3,enum=gateway.v1.ErrorCode" json:"error_code,omitempty"`
+	ErrorMessage  string    `protobuf:"bytes,6,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BroadcastToRoomResp) Reset() {
+	*x = BroadcastToRoomResp{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BroadcastToRoomResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BroadcastToRoomResp) ProtoMessage() {}
+
+func (x *BroadcastToRoomResp) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BroadcastToRoomResp.ProtoReflect.Descriptor instead.
+func (*BroadcastToRoomResp) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *BroadcastToRoomResp) GetAccepted() bool {
+	if x != nil {
+		return x.Accepted
+	}
+	return false
+}
+
+func (x *BroadcastToRoomResp) GetTargetCount() int64 {
+	if x != nil {
+		return x.TargetCount
+	}
+	return 0
+}
+
+func (x *BroadcastToRoomResp) GetOnlineCount() int64 {
+	if x != nil {
+		return x.OnlineCount
+	}
+	return 0
+}
+
+func (x *BroadcastToRoomResp) GetNodeCount() int64 {
+	if x != nil {
+		return x.NodeCount
+	}
+	return 0
+}
+
+func (x *BroadcastToRoomResp) GetErrorCode() ErrorCode {
+	if x != nil {
+		return x.ErrorCode
+	}
+	return ErrorCode_ERROR_CODE_UNSPECIFIED
+}
+
+func (x *BroadcastToRoomResp) GetErrorMessage() string {
+	if x != nil {
+		return x.ErrorMessage
+	}
+	return ""
+}
+
+type BroadcastToTopicReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Topic         string                 `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
+	BizCode       string                 `protobuf:"bytes,2,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
+	Delivery      *Delivery              `protobuf:"bytes,3,opt,name=delivery,proto3" json:"delivery,omitempty"`
+	Body          *Body                  `protobuf:"bytes,4,opt,name=body,proto3" json:"body,omitempty"`
+	ExcludeSender bool                   `protobuf:"varint,5,opt,name=exclude_sender,json=excludeSender,proto3" json:"exclude_sender,omitempty"`
+	SenderUserId  string                 `protobuf:"bytes,6,opt,name=sender_user_id,json=senderUserId,proto3" json:"sender_user_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BroadcastToTopicReq) Reset() {
+	*x = BroadcastToTopicReq{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BroadcastToTopicReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BroadcastToTopicReq) ProtoMessage() {}
+
+func (x *BroadcastToTopicReq) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BroadcastToTopicReq.ProtoReflect.Descriptor instead.
+func (*BroadcastToTopicReq) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *BroadcastToTopicReq) GetTopic() string {
+	if x != nil {
+		return x.Topic
+	}
+	return ""
+}
+
+func (x *BroadcastToTopicReq) GetBizCode() string {
+	if x != nil {
+		return x.BizCode
+	}
+	return ""
+}
+
+func (x *BroadcastToTopicReq) GetDelivery() *Delivery {
+	if x != nil {
+		return x.Delivery
+	}
+	return nil
+}
+
+func (x *BroadcastToTopicReq) GetBody() *Body {
+	if x != nil {
+		return x.Body
+	}
+	return nil
+}
+
+func (x *BroadcastToTopicReq) GetExcludeSender() bool {
+	if x != nil {
+		return x.ExcludeSender
+	}
+	return false
+}
+
+func (x *BroadcastToTopicReq) GetSenderUserId() string {
+	if x != nil {
+		return x.SenderUserId
+	}
+	return ""
+}
+
+type BroadcastToTopicResp struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Accepted        bool                   `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
+	SubscriberCount int64                  `protobuf:"varint,2,opt,name=subscriber_count,json=subscriberCount,proto3" json:"subscriber_count,omitempty"`
+	NodeCount       int64                  `protobuf:"varint,3,opt,name=node_count,json=nodeCount,proto3" json:"node_count,omitempty"`
+	ErrorCode       ErrorCode              `protobuf:"varint,4,opt,name=error_code,json=errorCode,proto3,enum=gateway.v1.ErrorCode" json:"error_code,omitempty"`
+	ErrorMessage    string                 `protobuf:"bytes,5,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *BroadcastToTopicResp) Reset() {
+	*x = BroadcastToTopicResp{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BroadcastToTopicResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BroadcastToTopicResp) ProtoMessage() {}
+
+func (x *BroadcastToTopicResp) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BroadcastToTopicResp.ProtoReflect.Descriptor instead.
+func (*BroadcastToTopicResp) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *BroadcastToTopicResp) GetAccepted() bool {
+	if x != nil {
+		return x.Accepted
+	}
+	return false
+}
+
+func (x *BroadcastToTopicResp) GetSubscriberCount() int64 {
+	if x != nil {
+		return x.SubscriberCount
+	}
+	return 0
+}
+
+func (x *BroadcastToTopicResp) GetNodeCount() int64 {
+	if x != nil {
+		return x.NodeCount
+	}
+	return 0
+}
+
+func (x *BroadcastToTopicResp) GetErrorCode() ErrorCode {
+	if x != nil {
+		return x.ErrorCode
+	}
+	return ErrorCode_ERROR_CODE_UNSPECIFIED
+}
+
+func (x *BroadcastToTopicResp) GetErrorMessage() string {
+	if x != nil {
+		return x.ErrorMessage
+	}
+	return ""
+}
+
+type BroadcastToAllReq struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	BizCode  string                 `protobuf:"bytes,1,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
+	Delivery *Delivery              `protobuf:"bytes,2,opt,name=delivery,proto3" json:"delivery,omitempty"`
+	Body     *Body                  `protobuf:"bytes,3,opt,name=body,proto3" json:"body,omitempty"`
+	// 可选：按业务域过滤（如只发给 biz_code="im" 的在线用户）
+	FilterBizCodes []string `protobuf:"bytes,4,rep,name=filter_biz_codes,json=filterBizCodes,proto3" json:"filter_biz_codes,omitempty"`
+	// 可选：渐进式广播（分批投递，防止瞬间洪峰）
+	//
+	//	batch_size: 每批投递多少用户，batch_interval_ms: 批次间隔
+	BatchSize       int32 `protobuf:"varint,5,opt,name=batch_size,json=batchSize,proto3" json:"batch_size,omitempty"`
+	BatchIntervalMs int32 `protobuf:"varint,6,opt,name=batch_interval_ms,json=batchIntervalMs,proto3" json:"batch_interval_ms,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *BroadcastToAllReq) Reset() {
+	*x = BroadcastToAllReq{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BroadcastToAllReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BroadcastToAllReq) ProtoMessage() {}
+
+func (x *BroadcastToAllReq) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BroadcastToAllReq.ProtoReflect.Descriptor instead.
+func (*BroadcastToAllReq) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *BroadcastToAllReq) GetBizCode() string {
+	if x != nil {
+		return x.BizCode
+	}
+	return ""
+}
+
+func (x *BroadcastToAllReq) GetDelivery() *Delivery {
+	if x != nil {
+		return x.Delivery
+	}
+	return nil
+}
+
+func (x *BroadcastToAllReq) GetBody() *Body {
+	if x != nil {
+		return x.Body
+	}
+	return nil
+}
+
+func (x *BroadcastToAllReq) GetFilterBizCodes() []string {
+	if x != nil {
+		return x.FilterBizCodes
+	}
+	return nil
+}
+
+func (x *BroadcastToAllReq) GetBatchSize() int32 {
+	if x != nil {
+		return x.BatchSize
+	}
+	return 0
+}
+
+func (x *BroadcastToAllReq) GetBatchIntervalMs() int32 {
+	if x != nil {
+		return x.BatchIntervalMs
+	}
+	return 0
+}
+
+type BroadcastToAllResp struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Accepted            bool                   `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
+	TotalOnlineUsers    int64                  `protobuf:"varint,2,opt,name=total_online_users,json=totalOnlineUsers,proto3" json:"total_online_users,omitempty"`          // 当前全集群在线用户总数
+	EstimatedDurationMs int64                  `protobuf:"varint,3,opt,name=estimated_duration_ms,json=estimatedDurationMs,proto3" json:"estimated_duration_ms,omitempty"` // 预估完成时间（基于 batch 配置）
+	ErrorCode           ErrorCode              `protobuf:"varint,4,opt,name=error_code,json=errorCode,proto3,enum=gateway.v1.ErrorCode" json:"error_code,omitempty"`
+	ErrorMessage        string                 `protobuf:"bytes,5,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *BroadcastToAllResp) Reset() {
+	*x = BroadcastToAllResp{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BroadcastToAllResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BroadcastToAllResp) ProtoMessage() {}
+
+func (x *BroadcastToAllResp) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BroadcastToAllResp.ProtoReflect.Descriptor instead.
+func (*BroadcastToAllResp) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *BroadcastToAllResp) GetAccepted() bool {
+	if x != nil {
+		return x.Accepted
+	}
+	return false
+}
+
+func (x *BroadcastToAllResp) GetTotalOnlineUsers() int64 {
+	if x != nil {
+		return x.TotalOnlineUsers
+	}
+	return 0
+}
+
+func (x *BroadcastToAllResp) GetEstimatedDurationMs() int64 {
+	if x != nil {
+		return x.EstimatedDurationMs
+	}
+	return 0
+}
+
+func (x *BroadcastToAllResp) GetErrorCode() ErrorCode {
+	if x != nil {
+		return x.ErrorCode
+	}
+	return ErrorCode_ERROR_CODE_UNSPECIFIED
+}
+
+func (x *BroadcastToAllResp) GetErrorMessage() string {
+	if x != nil {
+		return x.ErrorMessage
+	}
+	return ""
+}
+
+type ForwardToSessionReq struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 目标 Session 信息（用于目标节点定位 Session）
+	SessionId string `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	UserId    string `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	DeviceId  string `protobuf:"bytes,3,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
+	// 原始消息上下文（从 Kafka 消费的消息）
+	MsgId    string            `protobuf:"bytes,4,opt,name=msg_id,json=msgId,proto3" json:"msg_id,omitempty"`
+	SeqId    uint64            `protobuf:"varint,5,opt,name=seq_id,json=seqId,proto3" json:"seq_id,omitempty"`
+	BizCode  string            `protobuf:"bytes,6,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
+	Delivery *Delivery         `protobuf:"bytes,7,opt,name=delivery,proto3" json:"delivery,omitempty"`
+	Body     *Body             `protobuf:"bytes,8,opt,name=body,proto3" json:"body,omitempty"`
+	Headers  map[string]string `protobuf:"bytes,9,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// 来源节点信息（用于追踪和避免循环）
+	FromNodeId    string `protobuf:"bytes,10,opt,name=from_node_id,json=fromNodeId,proto3" json:"from_node_id,omitempty"`
+	HopCount      int32  `protobuf:"varint,11,opt,name=hop_count,json=hopCount,proto3" json:"hop_count,omitempty"` // 转发跳数，超过阈值拒绝（防循环）
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ForwardToSessionReq) Reset() {
+	*x = ForwardToSessionReq{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ForwardToSessionReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ForwardToSessionReq) ProtoMessage() {}
+
+func (x *ForwardToSessionReq) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ForwardToSessionReq.ProtoReflect.Descriptor instead.
+func (*ForwardToSessionReq) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *ForwardToSessionReq) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *ForwardToSessionReq) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *ForwardToSessionReq) GetDeviceId() string {
+	if x != nil {
+		return x.DeviceId
+	}
+	return ""
+}
+
+func (x *ForwardToSessionReq) GetMsgId() string {
+	if x != nil {
+		return x.MsgId
+	}
+	return ""
+}
+
+func (x *ForwardToSessionReq) GetSeqId() uint64 {
+	if x != nil {
+		return x.SeqId
+	}
+	return 0
+}
+
+func (x *ForwardToSessionReq) GetBizCode() string {
+	if x != nil {
+		return x.BizCode
+	}
+	return ""
+}
+
+func (x *ForwardToSessionReq) GetDelivery() *Delivery {
+	if x != nil {
+		return x.Delivery
+	}
+	return nil
+}
+
+func (x *ForwardToSessionReq) GetBody() *Body {
+	if x != nil {
+		return x.Body
+	}
+	return nil
+}
+
+func (x *ForwardToSessionReq) GetHeaders() map[string]string {
+	if x != nil {
+		return x.Headers
+	}
+	return nil
+}
+
+func (x *ForwardToSessionReq) GetFromNodeId() string {
+	if x != nil {
+		return x.FromNodeId
+	}
+	return ""
+}
+
+func (x *ForwardToSessionReq) GetHopCount() int32 {
+	if x != nil {
+		return x.HopCount
+	}
+	return 0
+}
+
+type ForwardToSessionResp struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Delivered     bool                   `protobuf:"varint,1,opt,name=delivered,proto3" json:"delivered,omitempty"`
+	ErrorCode     ErrorCode              `protobuf:"varint,2,opt,name=error_code,json=errorCode,proto3,enum=gateway.v1.ErrorCode" json:"error_code,omitempty"`
+	ErrorMessage  string                 `protobuf:"bytes,3,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ForwardToSessionResp) Reset() {
+	*x = ForwardToSessionResp{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ForwardToSessionResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ForwardToSessionResp) ProtoMessage() {}
+
+func (x *ForwardToSessionResp) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ForwardToSessionResp.ProtoReflect.Descriptor instead.
+func (*ForwardToSessionResp) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ForwardToSessionResp) GetDelivered() bool {
+	if x != nil {
+		return x.Delivered
+	}
+	return false
+}
+
+func (x *ForwardToSessionResp) GetErrorCode() ErrorCode {
+	if x != nil {
+		return x.ErrorCode
+	}
+	return ErrorCode_ERROR_CODE_UNSPECIFIED
+}
+
+func (x *ForwardToSessionResp) GetErrorMessage() string {
+	if x != nil {
+		return x.ErrorMessage
+	}
+	return ""
+}
+
+type ForwardToRoomReq struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	RoomId   string                 `protobuf:"bytes,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
+	BizCode  string                 `protobuf:"bytes,2,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
+	Delivery *Delivery              `protobuf:"bytes,3,opt,name=delivery,proto3" json:"delivery,omitempty"`
+	Body     *Body                  `protobuf:"bytes,4,opt,name=body,proto3" json:"body,omitempty"`
+	// 目标节点列表（由 Broadcast Coordinator 计算）
+	TargetNodeIds []string `protobuf:"bytes,5,rep,name=target_node_ids,json=targetNodeIds,proto3" json:"target_node_ids,omitempty"`
+	FromNodeId    string   `protobuf:"bytes,6,opt,name=from_node_id,json=fromNodeId,proto3" json:"from_node_id,omitempty"`
+	HopCount      int32    `protobuf:"varint,7,opt,name=hop_count,json=hopCount,proto3" json:"hop_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ForwardToRoomReq) Reset() {
+	*x = ForwardToRoomReq{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ForwardToRoomReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ForwardToRoomReq) ProtoMessage() {}
+
+func (x *ForwardToRoomReq) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ForwardToRoomReq.ProtoReflect.Descriptor instead.
+func (*ForwardToRoomReq) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ForwardToRoomReq) GetRoomId() string {
+	if x != nil {
+		return x.RoomId
+	}
+	return ""
+}
+
+func (x *ForwardToRoomReq) GetBizCode() string {
+	if x != nil {
+		return x.BizCode
+	}
+	return ""
+}
+
+func (x *ForwardToRoomReq) GetDelivery() *Delivery {
+	if x != nil {
+		return x.Delivery
+	}
+	return nil
+}
+
+func (x *ForwardToRoomReq) GetBody() *Body {
+	if x != nil {
+		return x.Body
+	}
+	return nil
+}
+
+func (x *ForwardToRoomReq) GetTargetNodeIds() []string {
+	if x != nil {
+		return x.TargetNodeIds
+	}
+	return nil
+}
+
+func (x *ForwardToRoomReq) GetFromNodeId() string {
+	if x != nil {
+		return x.FromNodeId
+	}
+	return ""
+}
+
+func (x *ForwardToRoomReq) GetHopCount() int32 {
+	if x != nil {
+		return x.HopCount
+	}
+	return 0
+}
+
+type ForwardToRoomResp struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Accepted       bool                   `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
+	ForwardedNodes int32                  `protobuf:"varint,2,opt,name=forwarded_nodes,json=forwardedNodes,proto3" json:"forwarded_nodes,omitempty"` // 成功转发了多少个节点
+	ErrorCode      ErrorCode              `protobuf:"varint,3,opt,name=error_code,json=errorCode,proto3,enum=gateway.v1.ErrorCode" json:"error_code,omitempty"`
+	ErrorMessage   string                 `protobuf:"bytes,4,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *ForwardToRoomResp) Reset() {
+	*x = ForwardToRoomResp{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ForwardToRoomResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ForwardToRoomResp) ProtoMessage() {}
+
+func (x *ForwardToRoomResp) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ForwardToRoomResp.ProtoReflect.Descriptor instead.
+func (*ForwardToRoomResp) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *ForwardToRoomResp) GetAccepted() bool {
+	if x != nil {
+		return x.Accepted
+	}
+	return false
+}
+
+func (x *ForwardToRoomResp) GetForwardedNodes() int32 {
+	if x != nil {
+		return x.ForwardedNodes
+	}
+	return 0
+}
+
+func (x *ForwardToRoomResp) GetErrorCode() ErrorCode {
+	if x != nil {
+		return x.ErrorCode
+	}
+	return ErrorCode_ERROR_CODE_UNSPECIFIED
+}
+
+func (x *ForwardToRoomResp) GetErrorMessage() string {
+	if x != nil {
+		return x.ErrorMessage
+	}
+	return ""
+}
+
+type KickUserReq struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	UserId string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	// 可选：只踢特定设备，空字符串表示踢全部设备
+	DeviceId       string    `protobuf:"bytes,2,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
+	Code           ErrorCode `protobuf:"varint,3,opt,name=code,proto3,enum=gateway.v1.ErrorCode" json:"code,omitempty"` // 踢人原因码
+	Reason         string    `protobuf:"bytes,4,opt,name=reason,proto3" json:"reason,omitempty"`
+	ReconnectAfter int32     `protobuf:"varint,5,opt,name=reconnect_after,json=reconnectAfter,proto3" json:"reconnect_after,omitempty"` // 建议重连等待时间（秒）
+	Permanent      bool      `protobuf:"varint,6,opt,name=permanent,proto3" json:"permanent,omitempty"`                                 // true = 加入黑名单，禁止自动重连
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *KickUserReq) Reset() {
+	*x = KickUserReq{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KickUserReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KickUserReq) ProtoMessage() {}
+
+func (x *KickUserReq) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KickUserReq.ProtoReflect.Descriptor instead.
+func (*KickUserReq) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *KickUserReq) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *KickUserReq) GetDeviceId() string {
+	if x != nil {
+		return x.DeviceId
+	}
+	return ""
+}
+
+func (x *KickUserReq) GetCode() ErrorCode {
+	if x != nil {
+		return x.Code
+	}
+	return ErrorCode_ERROR_CODE_UNSPECIFIED
+}
+
+func (x *KickUserReq) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *KickUserReq) GetReconnectAfter() int32 {
+	if x != nil {
+		return x.ReconnectAfter
+	}
+	return 0
+}
+
+func (x *KickUserReq) GetPermanent() bool {
+	if x != nil {
+		return x.Permanent
+	}
+	return false
+}
+
+type KickUserResp struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	KickedSessions int32                  `protobuf:"varint,1,opt,name=kicked_sessions,json=kickedSessions,proto3" json:"kicked_sessions,omitempty"` // 实际踢掉了多少个 Session
+	KickedDevices  int32                  `protobuf:"varint,2,opt,name=kicked_devices,json=kickedDevices,proto3" json:"kicked_devices,omitempty"`    // 涉及多少个设备
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *KickUserResp) Reset() {
+	*x = KickUserResp{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KickUserResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KickUserResp) ProtoMessage() {}
+
+func (x *KickUserResp) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KickUserResp.ProtoReflect.Descriptor instead.
+func (*KickUserResp) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *KickUserResp) GetKickedSessions() int32 {
+	if x != nil {
+		return x.KickedSessions
+	}
+	return 0
+}
+
+func (x *KickUserResp) GetKickedDevices() int32 {
+	if x != nil {
+		return x.KickedDevices
+	}
+	return 0
+}
+
+type KickSessionReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	Code          ErrorCode              `protobuf:"varint,2,opt,name=code,proto3,enum=gateway.v1.ErrorCode" json:"code,omitempty"`
+	Reason        string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KickSessionReq) Reset() {
+	*x = KickSessionReq{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KickSessionReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KickSessionReq) ProtoMessage() {}
+
+func (x *KickSessionReq) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KickSessionReq.ProtoReflect.Descriptor instead.
+func (*KickSessionReq) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *KickSessionReq) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *KickSessionReq) GetCode() ErrorCode {
+	if x != nil {
+		return x.Code
+	}
+	return ErrorCode_ERROR_CODE_UNSPECIFIED
+}
+
+func (x *KickSessionReq) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+type KickSessionResp struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Found         bool                   `protobuf:"varint,1,opt,name=found,proto3" json:"found,omitempty"`
+	Kicked        bool                   `protobuf:"varint,2,opt,name=kicked,proto3" json:"kicked,omitempty"`
+	ErrorCode     ErrorCode              `protobuf:"varint,3,opt,name=error_code,json=errorCode,proto3,enum=gateway.v1.ErrorCode" json:"error_code,omitempty"`
+	ErrorMessage  string                 `protobuf:"bytes,4,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KickSessionResp) Reset() {
+	*x = KickSessionResp{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KickSessionResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KickSessionResp) ProtoMessage() {}
+
+func (x *KickSessionResp) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KickSessionResp.ProtoReflect.Descriptor instead.
+func (*KickSessionResp) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *KickSessionResp) GetFound() bool {
+	if x != nil {
+		return x.Found
+	}
+	return false
+}
+
+func (x *KickSessionResp) GetKicked() bool {
+	if x != nil {
+		return x.Kicked
+	}
+	return false
+}
+
+func (x *KickSessionResp) GetErrorCode() ErrorCode {
+	if x != nil {
+		return x.ErrorCode
+	}
+	return ErrorCode_ERROR_CODE_UNSPECIFIED
+}
+
+func (x *KickSessionResp) GetErrorMessage() string {
+	if x != nil {
+		return x.ErrorMessage
+	}
+	return ""
+}
+
+type KickDeviceReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DeviceId      string                 `protobuf:"bytes,1,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
+	Code          ErrorCode              `protobuf:"varint,2,opt,name=code,proto3,enum=gateway.v1.ErrorCode" json:"code,omitempty"`
+	Reason        string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KickDeviceReq) Reset() {
+	*x = KickDeviceReq{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KickDeviceReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KickDeviceReq) ProtoMessage() {}
+
+func (x *KickDeviceReq) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KickDeviceReq.ProtoReflect.Descriptor instead.
+func (*KickDeviceReq) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *KickDeviceReq) GetDeviceId() string {
+	if x != nil {
+		return x.DeviceId
+	}
+	return ""
+}
+
+func (x *KickDeviceReq) GetCode() ErrorCode {
+	if x != nil {
+		return x.Code
+	}
+	return ErrorCode_ERROR_CODE_UNSPECIFIED
+}
+
+func (x *KickDeviceReq) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+type KickDeviceResp struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	KickedSessions int32                  `protobuf:"varint,1,opt,name=kicked_sessions,json=kickedSessions,proto3" json:"kicked_sessions,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *KickDeviceResp) Reset() {
+	*x = KickDeviceResp{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KickDeviceResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KickDeviceResp) ProtoMessage() {}
+
+func (x *KickDeviceResp) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KickDeviceResp.ProtoReflect.Descriptor instead.
+func (*KickDeviceResp) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *KickDeviceResp) GetKickedSessions() int32 {
+	if x != nil {
+		return x.KickedSessions
+	}
+	return 0
+}
+
+type DrainNodeReq struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 可选：指定摘流超时时间，超过后强制关闭剩余连接
+	TimeoutSec int32 `protobuf:"varint,1,opt,name=timeout_sec,json=timeoutSec,proto3" json:"timeout_sec,omitempty"`
+	// 可选：只拒绝新连接，已存在的连接等待自然关闭
+	Graceful bool `protobuf:"varint,2,opt,name=graceful,proto3" json:"graceful,omitempty"`
+	// 可选：摘流原因（用于日志和审计）
+	Reason        string `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DrainNodeReq) Reset() {
+	*x = DrainNodeReq{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DrainNodeReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DrainNodeReq) ProtoMessage() {}
+
+func (x *DrainNodeReq) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DrainNodeReq.ProtoReflect.Descriptor instead.
+func (*DrainNodeReq) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *DrainNodeReq) GetTimeoutSec() int32 {
+	if x != nil {
+		return x.TimeoutSec
+	}
+	return 0
+}
+
+func (x *DrainNodeReq) GetGraceful() bool {
+	if x != nil {
+		return x.Graceful
+	}
+	return false
+}
+
+func (x *DrainNodeReq) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+type DrainNodeResp struct {
+	state                protoimpl.MessageState   `protogen:"open.v1"`
+	Accepted             bool                     `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
+	State                DrainNodeResp_DrainState `protobuf:"varint,2,opt,name=state,proto3,enum=gateway.v1.DrainNodeResp_DrainState" json:"state,omitempty"`
+	RemainingConnections int32                    `protobuf:"varint,3,opt,name=remaining_connections,json=remainingConnections,proto3" json:"remaining_connections,omitempty"` // 剩余连接数
+	RemainingSessions    int32                    `protobuf:"varint,4,opt,name=remaining_sessions,json=remainingSessions,proto3" json:"remaining_sessions,omitempty"`          // 剩余 Session 数
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *DrainNodeResp) Reset() {
+	*x = DrainNodeResp{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DrainNodeResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DrainNodeResp) ProtoMessage() {}
+
+func (x *DrainNodeResp) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DrainNodeResp.ProtoReflect.Descriptor instead.
+func (*DrainNodeResp) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *DrainNodeResp) GetAccepted() bool {
+	if x != nil {
+		return x.Accepted
+	}
+	return false
+}
+
+func (x *DrainNodeResp) GetState() DrainNodeResp_DrainState {
+	if x != nil {
+		return x.State
+	}
+	return DrainNodeResp_DRAIN_STATE_UNSPECIFIED
+}
+
+func (x *DrainNodeResp) GetRemainingConnections() int32 {
+	if x != nil {
+		return x.RemainingConnections
+	}
+	return 0
+}
+
+func (x *DrainNodeResp) GetRemainingSessions() int32 {
+	if x != nil {
+		return x.RemainingSessions
+	}
+	return 0
+}
+
+type UndrainNodeReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UndrainNodeReq) Reset() {
+	*x = UndrainNodeReq{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UndrainNodeReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UndrainNodeReq) ProtoMessage() {}
+
+func (x *UndrainNodeReq) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UndrainNodeReq.ProtoReflect.Descriptor instead.
+func (*UndrainNodeReq) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{22}
+}
+
+type UndrainNodeResp struct {
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Success       bool                     `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	PreviousState DrainNodeResp_DrainState `protobuf:"varint,2,opt,name=previous_state,json=previousState,proto3,enum=gateway.v1.DrainNodeResp_DrainState" json:"previous_state,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UndrainNodeResp) Reset() {
+	*x = UndrainNodeResp{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UndrainNodeResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UndrainNodeResp) ProtoMessage() {}
+
+func (x *UndrainNodeResp) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UndrainNodeResp.ProtoReflect.Descriptor instead.
+func (*UndrainNodeResp) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *UndrainNodeResp) GetSuccess() bool {
 	if x != nil {
 		return x.Success
 	}
 	return false
 }
 
-func (x *PushMessageResp) GetMessage() string {
+func (x *UndrainNodeResp) GetPreviousState() DrainNodeResp_DrainState {
 	if x != nil {
-		return x.Message
+		return x.PreviousState
+	}
+	return DrainNodeResp_DRAIN_STATE_UNSPECIFIED
+}
+
+type GetNodeStatusReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetNodeStatusReq) Reset() {
+	*x = GetNodeStatusReq{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetNodeStatusReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetNodeStatusReq) ProtoMessage() {}
+
+func (x *GetNodeStatusReq) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetNodeStatusReq.ProtoReflect.Descriptor instead.
+func (*GetNodeStatusReq) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{24}
+}
+
+type GetNodeStatusResp struct {
+	state      protoimpl.MessageState   `protogen:"open.v1"`
+	NodeId     string                   `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	NodeAddr   string                   `protobuf:"bytes,2,opt,name=node_addr,json=nodeAddr,proto3" json:"node_addr,omitempty"`
+	DrainState DrainNodeResp_DrainState `protobuf:"varint,3,opt,name=drain_state,json=drainState,proto3,enum=gateway.v1.DrainNodeResp_DrainState" json:"drain_state,omitempty"`
+	// 连接统计
+	ConnectionCount int64 `protobuf:"varint,4,opt,name=connection_count,json=connectionCount,proto3" json:"connection_count,omitempty"`
+	SessionCount    int64 `protobuf:"varint,5,opt,name=session_count,json=sessionCount,proto3" json:"session_count,omitempty"`
+	UserCount       int64 `protobuf:"varint,6,opt,name=user_count,json=userCount,proto3" json:"user_count,omitempty"`
+	// 资源使用
+	CpuPercent     float32 `protobuf:"fixed32,7,opt,name=cpu_percent,json=cpuPercent,proto3" json:"cpu_percent,omitempty"`
+	MemoryPercent  float32 `protobuf:"fixed32,8,opt,name=memory_percent,json=memoryPercent,proto3" json:"memory_percent,omitempty"`
+	GoroutineCount int64   `protobuf:"varint,9,opt,name=goroutine_count,json=goroutineCount,proto3" json:"goroutine_count,omitempty"`
+	// 消息统计（最近 1 分钟）
+	UpstreamQps   int64 `protobuf:"varint,10,opt,name=upstream_qps,json=upstreamQps,proto3" json:"upstream_qps,omitempty"`
+	DownstreamQps int64 `protobuf:"varint,11,opt,name=downstream_qps,json=downstreamQps,proto3" json:"downstream_qps,omitempty"`
+	BroadcastQps  int64 `protobuf:"varint,12,opt,name=broadcast_qps,json=broadcastQps,proto3" json:"broadcast_qps,omitempty"`
+	// 启动时间
+	StartTime     int64 `protobuf:"varint,13,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetNodeStatusResp) Reset() {
+	*x = GetNodeStatusResp{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetNodeStatusResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetNodeStatusResp) ProtoMessage() {}
+
+func (x *GetNodeStatusResp) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetNodeStatusResp.ProtoReflect.Descriptor instead.
+func (*GetNodeStatusResp) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *GetNodeStatusResp) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
+}
+
+func (x *GetNodeStatusResp) GetNodeAddr() string {
+	if x != nil {
+		return x.NodeAddr
+	}
+	return ""
+}
+
+func (x *GetNodeStatusResp) GetDrainState() DrainNodeResp_DrainState {
+	if x != nil {
+		return x.DrainState
+	}
+	return DrainNodeResp_DRAIN_STATE_UNSPECIFIED
+}
+
+func (x *GetNodeStatusResp) GetConnectionCount() int64 {
+	if x != nil {
+		return x.ConnectionCount
+	}
+	return 0
+}
+
+func (x *GetNodeStatusResp) GetSessionCount() int64 {
+	if x != nil {
+		return x.SessionCount
+	}
+	return 0
+}
+
+func (x *GetNodeStatusResp) GetUserCount() int64 {
+	if x != nil {
+		return x.UserCount
+	}
+	return 0
+}
+
+func (x *GetNodeStatusResp) GetCpuPercent() float32 {
+	if x != nil {
+		return x.CpuPercent
+	}
+	return 0
+}
+
+func (x *GetNodeStatusResp) GetMemoryPercent() float32 {
+	if x != nil {
+		return x.MemoryPercent
+	}
+	return 0
+}
+
+func (x *GetNodeStatusResp) GetGoroutineCount() int64 {
+	if x != nil {
+		return x.GoroutineCount
+	}
+	return 0
+}
+
+func (x *GetNodeStatusResp) GetUpstreamQps() int64 {
+	if x != nil {
+		return x.UpstreamQps
+	}
+	return 0
+}
+
+func (x *GetNodeStatusResp) GetDownstreamQps() int64 {
+	if x != nil {
+		return x.DownstreamQps
+	}
+	return 0
+}
+
+func (x *GetNodeStatusResp) GetBroadcastQps() int64 {
+	if x != nil {
+		return x.BroadcastQps
+	}
+	return 0
+}
+
+func (x *GetNodeStatusResp) GetStartTime() int64 {
+	if x != nil {
+		return x.StartTime
+	}
+	return 0
+}
+
+type GetStatsReq struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 可选：聚合时间窗口（秒），默认 60
+	WindowSec int32 `protobuf:"varint,1,opt,name=window_sec,json=windowSec,proto3" json:"window_sec,omitempty"`
+	// 可选：是否包含各业务域详细统计
+	IncludeBizBreakdown bool `protobuf:"varint,2,opt,name=include_biz_breakdown,json=includeBizBreakdown,proto3" json:"include_biz_breakdown,omitempty"`
+	// 可选：是否包含房间统计（Top N 房间）
+	TopRooms      int32 `protobuf:"varint,3,opt,name=top_rooms,json=topRooms,proto3" json:"top_rooms,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetStatsReq) Reset() {
+	*x = GetStatsReq{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetStatsReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetStatsReq) ProtoMessage() {}
+
+func (x *GetStatsReq) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetStatsReq.ProtoReflect.Descriptor instead.
+func (*GetStatsReq) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *GetStatsReq) GetWindowSec() int32 {
+	if x != nil {
+		return x.WindowSec
+	}
+	return 0
+}
+
+func (x *GetStatsReq) GetIncludeBizBreakdown() bool {
+	if x != nil {
+		return x.IncludeBizBreakdown
+	}
+	return false
+}
+
+func (x *GetStatsReq) GetTopRooms() int32 {
+	if x != nil {
+		return x.TopRooms
+	}
+	return 0
+}
+
+type GetStatsResp struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 集群总体
+	TotalNodes       int64 `protobuf:"varint,1,opt,name=total_nodes,json=totalNodes,proto3" json:"total_nodes,omitempty"`
+	TotalConnections int64 `protobuf:"varint,2,opt,name=total_connections,json=totalConnections,proto3" json:"total_connections,omitempty"`
+	TotalSessions    int64 `protobuf:"varint,3,opt,name=total_sessions,json=totalSessions,proto3" json:"total_sessions,omitempty"`
+	TotalUsers       int64 `protobuf:"varint,4,opt,name=total_users,json=totalUsers,proto3" json:"total_users,omitempty"`
+	// 消息吞吐量（最近 window_sec 秒的平均值）
+	UpstreamQps   int64                    `protobuf:"varint,5,opt,name=upstream_qps,json=upstreamQps,proto3" json:"upstream_qps,omitempty"`
+	DownstreamQps int64                    `protobuf:"varint,6,opt,name=downstream_qps,json=downstreamQps,proto3" json:"downstream_qps,omitempty"`
+	BroadcastQps  int64                    `protobuf:"varint,7,opt,name=broadcast_qps,json=broadcastQps,proto3" json:"broadcast_qps,omitempty"`
+	BizStats      []*GetStatsResp_BizStat  `protobuf:"bytes,8,rep,name=biz_stats,json=bizStats,proto3" json:"biz_stats,omitempty"`
+	RoomStats     []*GetStatsResp_RoomStat `protobuf:"bytes,9,rep,name=room_stats,json=roomStats,proto3" json:"room_stats,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetStatsResp) Reset() {
+	*x = GetStatsResp{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetStatsResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetStatsResp) ProtoMessage() {}
+
+func (x *GetStatsResp) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetStatsResp.ProtoReflect.Descriptor instead.
+func (*GetStatsResp) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *GetStatsResp) GetTotalNodes() int64 {
+	if x != nil {
+		return x.TotalNodes
+	}
+	return 0
+}
+
+func (x *GetStatsResp) GetTotalConnections() int64 {
+	if x != nil {
+		return x.TotalConnections
+	}
+	return 0
+}
+
+func (x *GetStatsResp) GetTotalSessions() int64 {
+	if x != nil {
+		return x.TotalSessions
+	}
+	return 0
+}
+
+func (x *GetStatsResp) GetTotalUsers() int64 {
+	if x != nil {
+		return x.TotalUsers
+	}
+	return 0
+}
+
+func (x *GetStatsResp) GetUpstreamQps() int64 {
+	if x != nil {
+		return x.UpstreamQps
+	}
+	return 0
+}
+
+func (x *GetStatsResp) GetDownstreamQps() int64 {
+	if x != nil {
+		return x.DownstreamQps
+	}
+	return 0
+}
+
+func (x *GetStatsResp) GetBroadcastQps() int64 {
+	if x != nil {
+		return x.BroadcastQps
+	}
+	return 0
+}
+
+func (x *GetStatsResp) GetBizStats() []*GetStatsResp_BizStat {
+	if x != nil {
+		return x.BizStats
+	}
+	return nil
+}
+
+func (x *GetStatsResp) GetRoomStats() []*GetStatsResp_RoomStat {
+	if x != nil {
+		return x.RoomStats
+	}
+	return nil
+}
+
+type GetBizStatsReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	BizCode       string                 `protobuf:"bytes,1,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetBizStatsReq) Reset() {
+	*x = GetBizStatsReq{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetBizStatsReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetBizStatsReq) ProtoMessage() {}
+
+func (x *GetBizStatsReq) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetBizStatsReq.ProtoReflect.Descriptor instead.
+func (*GetBizStatsReq) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *GetBizStatsReq) GetBizCode() string {
+	if x != nil {
+		return x.BizCode
+	}
+	return ""
+}
+
+type GetBizStatsResp struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	BizCode          string                 `protobuf:"bytes,1,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
+	ConnectionCount  int64                  `protobuf:"varint,2,opt,name=connection_count,json=connectionCount,proto3" json:"connection_count,omitempty"`
+	SessionCount     int64                  `protobuf:"varint,3,opt,name=session_count,json=sessionCount,proto3" json:"session_count,omitempty"`
+	UserCount        int64                  `protobuf:"varint,4,opt,name=user_count,json=userCount,proto3" json:"user_count,omitempty"`
+	UpstreamQps      int64                  `protobuf:"varint,5,opt,name=upstream_qps,json=upstreamQps,proto3" json:"upstream_qps,omitempty"`
+	DownstreamQps    int64                  `protobuf:"varint,6,opt,name=downstream_qps,json=downstreamQps,proto3" json:"downstream_qps,omitempty"`
+	OfflineQueueSize int64                  `protobuf:"varint,7,opt,name=offline_queue_size,json=offlineQueueSize,proto3" json:"offline_queue_size,omitempty"` // 离线消息队列积压数
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *GetBizStatsResp) Reset() {
+	*x = GetBizStatsResp{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetBizStatsResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetBizStatsResp) ProtoMessage() {}
+
+func (x *GetBizStatsResp) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetBizStatsResp.ProtoReflect.Descriptor instead.
+func (*GetBizStatsResp) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *GetBizStatsResp) GetBizCode() string {
+	if x != nil {
+		return x.BizCode
+	}
+	return ""
+}
+
+func (x *GetBizStatsResp) GetConnectionCount() int64 {
+	if x != nil {
+		return x.ConnectionCount
+	}
+	return 0
+}
+
+func (x *GetBizStatsResp) GetSessionCount() int64 {
+	if x != nil {
+		return x.SessionCount
+	}
+	return 0
+}
+
+func (x *GetBizStatsResp) GetUserCount() int64 {
+	if x != nil {
+		return x.UserCount
+	}
+	return 0
+}
+
+func (x *GetBizStatsResp) GetUpstreamQps() int64 {
+	if x != nil {
+		return x.UpstreamQps
+	}
+	return 0
+}
+
+func (x *GetBizStatsResp) GetDownstreamQps() int64 {
+	if x != nil {
+		return x.DownstreamQps
+	}
+	return 0
+}
+
+func (x *GetBizStatsResp) GetOfflineQueueSize() int64 {
+	if x != nil {
+		return x.OfflineQueueSize
+	}
+	return 0
+}
+
+type GetRoomStatsReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RoomId        string                 `protobuf:"bytes,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetRoomStatsReq) Reset() {
+	*x = GetRoomStatsReq{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRoomStatsReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRoomStatsReq) ProtoMessage() {}
+
+func (x *GetRoomStatsReq) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRoomStatsReq.ProtoReflect.Descriptor instead.
+func (*GetRoomStatsReq) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *GetRoomStatsReq) GetRoomId() string {
+	if x != nil {
+		return x.RoomId
+	}
+	return ""
+}
+
+type GetRoomStatsResp struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RoomId        string                 `protobuf:"bytes,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
+	TotalMembers  int64                  `protobuf:"varint,2,opt,name=total_members,json=totalMembers,proto3" json:"total_members,omitempty"`    // 房间总人数（跨所有节点）
+	OnlineMembers int64                  `protobuf:"varint,3,opt,name=online_members,json=onlineMembers,proto3" json:"online_members,omitempty"` // 在线人数
+	NodeIds       []string               `protobuf:"bytes,4,rep,name=node_ids,json=nodeIds,proto3" json:"node_ids,omitempty"`                    // 房间成员分布在哪些节点
+	MsgQps        int64                  `protobuf:"varint,5,opt,name=msg_qps,json=msgQps,proto3" json:"msg_qps,omitempty"`                      // 最近 1 分钟消息 QPS
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetRoomStatsResp) Reset() {
+	*x = GetRoomStatsResp{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRoomStatsResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRoomStatsResp) ProtoMessage() {}
+
+func (x *GetRoomStatsResp) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRoomStatsResp.ProtoReflect.Descriptor instead.
+func (*GetRoomStatsResp) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *GetRoomStatsResp) GetRoomId() string {
+	if x != nil {
+		return x.RoomId
+	}
+	return ""
+}
+
+func (x *GetRoomStatsResp) GetTotalMembers() int64 {
+	if x != nil {
+		return x.TotalMembers
+	}
+	return 0
+}
+
+func (x *GetRoomStatsResp) GetOnlineMembers() int64 {
+	if x != nil {
+		return x.OnlineMembers
+	}
+	return 0
+}
+
+func (x *GetRoomStatsResp) GetNodeIds() []string {
+	if x != nil {
+		return x.NodeIds
+	}
+	return nil
+}
+
+func (x *GetRoomStatsResp) GetMsgQps() int64 {
+	if x != nil {
+		return x.MsgQps
+	}
+	return 0
+}
+
+type QueryRouteReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	DeviceId      string                 `protobuf:"bytes,2,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"` // 可选，空表示查询用户所有设备
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *QueryRouteReq) Reset() {
+	*x = QueryRouteReq{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *QueryRouteReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QueryRouteReq) ProtoMessage() {}
+
+func (x *QueryRouteReq) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use QueryRouteReq.ProtoReflect.Descriptor instead.
+func (*QueryRouteReq) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *QueryRouteReq) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *QueryRouteReq) GetDeviceId() string {
+	if x != nil {
+		return x.DeviceId
+	}
+	return ""
+}
+
+type QueryRouteResp struct {
+	state         protoimpl.MessageState      `protogen:"open.v1"`
+	Found         bool                        `protobuf:"varint,1,opt,name=found,proto3" json:"found,omitempty"`
+	Routes        []*QueryRouteResp_RouteInfo `protobuf:"bytes,2,rep,name=routes,proto3" json:"routes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *QueryRouteResp) Reset() {
+	*x = QueryRouteResp{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *QueryRouteResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QueryRouteResp) ProtoMessage() {}
+
+func (x *QueryRouteResp) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use QueryRouteResp.ProtoReflect.Descriptor instead.
+func (*QueryRouteResp) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *QueryRouteResp) GetFound() bool {
+	if x != nil {
+		return x.Found
+	}
+	return false
+}
+
+func (x *QueryRouteResp) GetRoutes() []*QueryRouteResp_RouteInfo {
+	if x != nil {
+		return x.Routes
+	}
+	return nil
+}
+
+type QuerySessionReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *QuerySessionReq) Reset() {
+	*x = QuerySessionReq{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *QuerySessionReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QuerySessionReq) ProtoMessage() {}
+
+func (x *QuerySessionReq) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use QuerySessionReq.ProtoReflect.Descriptor instead.
+func (*QuerySessionReq) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *QuerySessionReq) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+type QuerySessionResp struct {
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	Found        bool                   `protobuf:"varint,1,opt,name=found,proto3" json:"found,omitempty"`
+	UserId       string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	DeviceId     string                 `protobuf:"bytes,3,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
+	State        string                 `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"` // "authenticating" | "active" | "suspended" | "closed"
+	LastActiveAt int64                  `protobuf:"varint,5,opt,name=last_active_at,json=lastActiveAt,proto3" json:"last_active_at,omitempty"`
+	CreateTime   int64                  `protobuf:"varint,6,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
+	BizCode      string                 `protobuf:"bytes,7,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
+	Rooms        []string               `protobuf:"bytes,8,rep,name=rooms,proto3" json:"rooms,omitempty"`
+	Topics       []string               `protobuf:"bytes,9,rep,name=topics,proto3" json:"topics,omitempty"`
+	// 连接信息
+	ConnId        string `protobuf:"bytes,10,opt,name=conn_id,json=connId,proto3" json:"conn_id,omitempty"`
+	RemoteAddr    string `protobuf:"bytes,11,opt,name=remote_addr,json=remoteAddr,proto3" json:"remote_addr,omitempty"`
+	DeviceType    string `protobuf:"bytes,12,opt,name=device_type,json=deviceType,proto3" json:"device_type,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *QuerySessionResp) Reset() {
+	*x = QuerySessionResp{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *QuerySessionResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QuerySessionResp) ProtoMessage() {}
+
+func (x *QuerySessionResp) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use QuerySessionResp.ProtoReflect.Descriptor instead.
+func (*QuerySessionResp) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *QuerySessionResp) GetFound() bool {
+	if x != nil {
+		return x.Found
+	}
+	return false
+}
+
+func (x *QuerySessionResp) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *QuerySessionResp) GetDeviceId() string {
+	if x != nil {
+		return x.DeviceId
+	}
+	return ""
+}
+
+func (x *QuerySessionResp) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *QuerySessionResp) GetLastActiveAt() int64 {
+	if x != nil {
+		return x.LastActiveAt
+	}
+	return 0
+}
+
+func (x *QuerySessionResp) GetCreateTime() int64 {
+	if x != nil {
+		return x.CreateTime
+	}
+	return 0
+}
+
+func (x *QuerySessionResp) GetBizCode() string {
+	if x != nil {
+		return x.BizCode
+	}
+	return ""
+}
+
+func (x *QuerySessionResp) GetRooms() []string {
+	if x != nil {
+		return x.Rooms
+	}
+	return nil
+}
+
+func (x *QuerySessionResp) GetTopics() []string {
+	if x != nil {
+		return x.Topics
+	}
+	return nil
+}
+
+func (x *QuerySessionResp) GetConnId() string {
+	if x != nil {
+		return x.ConnId
+	}
+	return ""
+}
+
+func (x *QuerySessionResp) GetRemoteAddr() string {
+	if x != nil {
+		return x.RemoteAddr
+	}
+	return ""
+}
+
+func (x *QuerySessionResp) GetDeviceType() string {
+	if x != nil {
+		return x.DeviceType
+	}
+	return ""
+}
+
+type ListSessionsReq struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 过滤条件（至少填一个）
+	UserId  string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	RoomId  string `protobuf:"bytes,2,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
+	Topic   string `protobuf:"bytes,3,opt,name=topic,proto3" json:"topic,omitempty"`
+	BizCode string `protobuf:"bytes,4,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
+	// 分页
+	Page          int32 `protobuf:"varint,5,opt,name=page,proto3" json:"page,omitempty"`
+	PageSize      int32 `protobuf:"varint,6,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSessionsReq) Reset() {
+	*x = ListSessionsReq{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSessionsReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSessionsReq) ProtoMessage() {}
+
+func (x *ListSessionsReq) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSessionsReq.ProtoReflect.Descriptor instead.
+func (*ListSessionsReq) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *ListSessionsReq) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *ListSessionsReq) GetRoomId() string {
+	if x != nil {
+		return x.RoomId
+	}
+	return ""
+}
+
+func (x *ListSessionsReq) GetTopic() string {
+	if x != nil {
+		return x.Topic
+	}
+	return ""
+}
+
+func (x *ListSessionsReq) GetBizCode() string {
+	if x != nil {
+		return x.BizCode
+	}
+	return ""
+}
+
+func (x *ListSessionsReq) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *ListSessionsReq) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+type ListSessionsResp struct {
+	state         protoimpl.MessageState          `protogen:"open.v1"`
+	Total         int32                           `protobuf:"varint,1,opt,name=total,proto3" json:"total,omitempty"`
+	Page          int32                           `protobuf:"varint,2,opt,name=page,proto3" json:"page,omitempty"`
+	PageSize      int32                           `protobuf:"varint,3,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	Items         []*ListSessionsResp_SessionItem `protobuf:"bytes,4,rep,name=items,proto3" json:"items,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSessionsResp) Reset() {
+	*x = ListSessionsResp{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSessionsResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSessionsResp) ProtoMessage() {}
+
+func (x *ListSessionsResp) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSessionsResp.ProtoReflect.Descriptor instead.
+func (*ListSessionsResp) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *ListSessionsResp) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+func (x *ListSessionsResp) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *ListSessionsResp) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListSessionsResp) GetItems() []*ListSessionsResp_SessionItem {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+// 失败详情（key = target_key，value = 错误信息）
+type BatchPushMessageResp_FailedItem struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TargetKey     string                 `protobuf:"bytes,1,opt,name=target_key,json=targetKey,proto3" json:"target_key,omitempty"`
+	ErrorCode     ErrorCode              `protobuf:"varint,2,opt,name=error_code,json=errorCode,proto3,enum=gateway.v1.ErrorCode" json:"error_code,omitempty"`
+	ErrorMessage  string                 `protobuf:"bytes,3,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BatchPushMessageResp_FailedItem) Reset() {
+	*x = BatchPushMessageResp_FailedItem{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BatchPushMessageResp_FailedItem) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchPushMessageResp_FailedItem) ProtoMessage() {}
+
+func (x *BatchPushMessageResp_FailedItem) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchPushMessageResp_FailedItem.ProtoReflect.Descriptor instead.
+func (*BatchPushMessageResp_FailedItem) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{3, 0}
+}
+
+func (x *BatchPushMessageResp_FailedItem) GetTargetKey() string {
+	if x != nil {
+		return x.TargetKey
+	}
+	return ""
+}
+
+func (x *BatchPushMessageResp_FailedItem) GetErrorCode() ErrorCode {
+	if x != nil {
+		return x.ErrorCode
+	}
+	return ErrorCode_ERROR_CODE_UNSPECIFIED
+}
+
+func (x *BatchPushMessageResp_FailedItem) GetErrorMessage() string {
+	if x != nil {
+		return x.ErrorMessage
+	}
+	return ""
+}
+
+// 各业务域统计
+type GetStatsResp_BizStat struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	BizCode         string                 `protobuf:"bytes,1,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
+	ConnectionCount int64                  `protobuf:"varint,2,opt,name=connection_count,json=connectionCount,proto3" json:"connection_count,omitempty"`
+	SessionCount    int64                  `protobuf:"varint,3,opt,name=session_count,json=sessionCount,proto3" json:"session_count,omitempty"`
+	UpstreamQps     int64                  `protobuf:"varint,4,opt,name=upstream_qps,json=upstreamQps,proto3" json:"upstream_qps,omitempty"`
+	DownstreamQps   int64                  `protobuf:"varint,5,opt,name=downstream_qps,json=downstreamQps,proto3" json:"downstream_qps,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *GetStatsResp_BizStat) Reset() {
+	*x = GetStatsResp_BizStat{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetStatsResp_BizStat) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetStatsResp_BizStat) ProtoMessage() {}
+
+func (x *GetStatsResp_BizStat) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetStatsResp_BizStat.ProtoReflect.Descriptor instead.
+func (*GetStatsResp_BizStat) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{27, 0}
+}
+
+func (x *GetStatsResp_BizStat) GetBizCode() string {
+	if x != nil {
+		return x.BizCode
+	}
+	return ""
+}
+
+func (x *GetStatsResp_BizStat) GetConnectionCount() int64 {
+	if x != nil {
+		return x.ConnectionCount
+	}
+	return 0
+}
+
+func (x *GetStatsResp_BizStat) GetSessionCount() int64 {
+	if x != nil {
+		return x.SessionCount
+	}
+	return 0
+}
+
+func (x *GetStatsResp_BizStat) GetUpstreamQps() int64 {
+	if x != nil {
+		return x.UpstreamQps
+	}
+	return 0
+}
+
+func (x *GetStatsResp_BizStat) GetDownstreamQps() int64 {
+	if x != nil {
+		return x.DownstreamQps
+	}
+	return 0
+}
+
+// Top 房间统计
+type GetStatsResp_RoomStat struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RoomId        string                 `protobuf:"bytes,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
+	MemberCount   int64                  `protobuf:"varint,2,opt,name=member_count,json=memberCount,proto3" json:"member_count,omitempty"`
+	OnlineCount   int64                  `protobuf:"varint,3,opt,name=online_count,json=onlineCount,proto3" json:"online_count,omitempty"`
+	MsgQps        int64                  `protobuf:"varint,4,opt,name=msg_qps,json=msgQps,proto3" json:"msg_qps,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetStatsResp_RoomStat) Reset() {
+	*x = GetStatsResp_RoomStat{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetStatsResp_RoomStat) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetStatsResp_RoomStat) ProtoMessage() {}
+
+func (x *GetStatsResp_RoomStat) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetStatsResp_RoomStat.ProtoReflect.Descriptor instead.
+func (*GetStatsResp_RoomStat) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{27, 1}
+}
+
+func (x *GetStatsResp_RoomStat) GetRoomId() string {
+	if x != nil {
+		return x.RoomId
+	}
+	return ""
+}
+
+func (x *GetStatsResp_RoomStat) GetMemberCount() int64 {
+	if x != nil {
+		return x.MemberCount
+	}
+	return 0
+}
+
+func (x *GetStatsResp_RoomStat) GetOnlineCount() int64 {
+	if x != nil {
+		return x.OnlineCount
+	}
+	return 0
+}
+
+func (x *GetStatsResp_RoomStat) GetMsgQps() int64 {
+	if x != nil {
+		return x.MsgQps
+	}
+	return 0
+}
+
+type QueryRouteResp_RouteInfo struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DeviceId      string                 `protobuf:"bytes,1,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
+	NodeId        string                 `protobuf:"bytes,2,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	NodeAddr      string                 `protobuf:"bytes,3,opt,name=node_addr,json=nodeAddr,proto3" json:"node_addr,omitempty"`
+	SessionId     string                 `protobuf:"bytes,4,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	ConnId        string                 `protobuf:"bytes,5,opt,name=conn_id,json=connId,proto3" json:"conn_id,omitempty"`
+	State         string                 `protobuf:"bytes,6,opt,name=state,proto3" json:"state,omitempty"` // "active" | "suspended" | "closed"
+	LastActiveAt  int64                  `protobuf:"varint,7,opt,name=last_active_at,json=lastActiveAt,proto3" json:"last_active_at,omitempty"`
+	ConnectTime   int64                  `protobuf:"varint,8,opt,name=connect_time,json=connectTime,proto3" json:"connect_time,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *QueryRouteResp_RouteInfo) Reset() {
+	*x = QueryRouteResp_RouteInfo{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *QueryRouteResp_RouteInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*QueryRouteResp_RouteInfo) ProtoMessage() {}
+
+func (x *QueryRouteResp_RouteInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use QueryRouteResp_RouteInfo.ProtoReflect.Descriptor instead.
+func (*QueryRouteResp_RouteInfo) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{33, 0}
+}
+
+func (x *QueryRouteResp_RouteInfo) GetDeviceId() string {
+	if x != nil {
+		return x.DeviceId
+	}
+	return ""
+}
+
+func (x *QueryRouteResp_RouteInfo) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
+}
+
+func (x *QueryRouteResp_RouteInfo) GetNodeAddr() string {
+	if x != nil {
+		return x.NodeAddr
+	}
+	return ""
+}
+
+func (x *QueryRouteResp_RouteInfo) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *QueryRouteResp_RouteInfo) GetConnId() string {
+	if x != nil {
+		return x.ConnId
+	}
+	return ""
+}
+
+func (x *QueryRouteResp_RouteInfo) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *QueryRouteResp_RouteInfo) GetLastActiveAt() int64 {
+	if x != nil {
+		return x.LastActiveAt
+	}
+	return 0
+}
+
+func (x *QueryRouteResp_RouteInfo) GetConnectTime() int64 {
+	if x != nil {
+		return x.ConnectTime
+	}
+	return 0
+}
+
+type ListSessionsResp_SessionItem struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	DeviceId      string                 `protobuf:"bytes,3,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
+	State         string                 `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
+	LastActiveAt  int64                  `protobuf:"varint,5,opt,name=last_active_at,json=lastActiveAt,proto3" json:"last_active_at,omitempty"`
+	NodeId        string                 `protobuf:"bytes,6,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSessionsResp_SessionItem) Reset() {
+	*x = ListSessionsResp_SessionItem{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[45]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSessionsResp_SessionItem) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSessionsResp_SessionItem) ProtoMessage() {}
+
+func (x *ListSessionsResp_SessionItem) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[45]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSessionsResp_SessionItem.ProtoReflect.Descriptor instead.
+func (*ListSessionsResp_SessionItem) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{37, 0}
+}
+
+func (x *ListSessionsResp_SessionItem) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *ListSessionsResp_SessionItem) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *ListSessionsResp_SessionItem) GetDeviceId() string {
+	if x != nil {
+		return x.DeviceId
+	}
+	return ""
+}
+
+func (x *ListSessionsResp_SessionItem) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *ListSessionsResp_SessionItem) GetLastActiveAt() int64 {
+	if x != nil {
+		return x.LastActiveAt
+	}
+	return 0
+}
+
+func (x *ListSessionsResp_SessionItem) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
 	}
 	return ""
 }
@@ -138,16 +3337,340 @@ var File_gateway_v1_gateway_service_proto protoreflect.FileDescriptor
 const file_gateway_v1_gateway_service_proto_rawDesc = "" +
 	"\n" +
 	" gateway/v1/gateway_service.proto\x12\n" +
-	"gateway.v1\"k\n" +
-	"\x0ePushMessageReq\x12\x1a\n" +
-	"\breceiver\x18\x01 \x01(\tR\breceiver\x12\x18\n" +
-	"\apayload\x18\x02 \x01(\fR\apayload\x12#\n" +
-	"\rbusiness_type\x18\x04 \x01(\tR\fbusinessType\"E\n" +
-	"\x0fPushMessageResp\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage2Q\n" +
-	"\aGateway\x12F\n" +
-	"\vPushMessage\x12\x1a.gateway.v1.PushMessageReq\x1a\x1b.gateway.v1.PushMessageRespBHZFgithub.com/vadam-zhan/long-gw/common-protocol/gen/gateway/v1;gatewayv1b\x06proto3"
+	"gateway.v1\x1a\x17gateway/v1/common.proto\x1a\x17validate/validate.proto\"\xe1\x02\n" +
+	"\x0ePushMessageReq\x121\n" +
+	"\x02to\x18\x01 \x01(\v2\x17.gateway.v1.RouteTargetB\b\xfaB\x05\x8a\x01\x02\x10\x01R\x02to\x12#\n" +
+	"\bbiz_code\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\abizCode\x120\n" +
+	"\bdelivery\x18\x03 \x01(\v2\x14.gateway.v1.DeliveryR\bdelivery\x12.\n" +
+	"\x04body\x18\x04 \x01(\v2\x10.gateway.v1.BodyB\b\xfaB\x05\x8a\x01\x02\x10\x01R\x04body\x12\x16\n" +
+	"\x06origin\x18\x05 \x01(\tR\x06origin\x12A\n" +
+	"\aheaders\x18\x06 \x03(\v2'.gateway.v1.PushMessageReq.HeadersEntryR\aheaders\x1a:\n" +
+	"\fHeadersEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xf3\x02\n" +
+	"\x0fPushMessageResp\x12\x1a\n" +
+	"\baccepted\x18\x01 \x01(\bR\baccepted\x12:\n" +
+	"\x06status\x18\x02 \x01(\x0e2\".gateway.v1.PushMessageResp.StatusR\x06status\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x03 \x01(\tR\tsessionId\x12\x15\n" +
+	"\x06seq_id\x18\x04 \x01(\x04R\x05seqId\x124\n" +
+	"\n" +
+	"error_code\x18\x05 \x01(\x0e2\x15.gateway.v1.ErrorCodeR\terrorCode\x12#\n" +
+	"\rerror_message\x18\x06 \x01(\tR\ferrorMessage\"w\n" +
+	"\x06Status\x12\x16\n" +
+	"\x12STATUS_UNSPECIFIED\x10\x00\x12\r\n" +
+	"\tDELIVERED\x10\x01\x12\n" +
+	"\n" +
+	"\x06QUEUED\x10\x02\x12\x12\n" +
+	"\x0eTARGET_OFFLINE\x10\x03\x12\x14\n" +
+	"\x10TARGET_NOT_FOUND\x10\x04\x12\x10\n" +
+	"\fRATE_LIMITED\x10\x05\"\xf3\x01\n" +
+	"\x13BatchPushMessageReq\x12=\n" +
+	"\ato_list\x18\x01 \x03(\v2\x17.gateway.v1.RouteTargetB\v\xfaB\b\x92\x01\x05\b\x01\x10\xe8\aR\x06toList\x12#\n" +
+	"\bbiz_code\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\abizCode\x120\n" +
+	"\bdelivery\x18\x03 \x01(\v2\x14.gateway.v1.DeliveryR\bdelivery\x12.\n" +
+	"\x04body\x18\x04 \x01(\v2\x10.gateway.v1.BodyB\b\xfaB\x05\x8a\x01\x02\x10\x01R\x04body\x12\x16\n" +
+	"\x06origin\x18\x05 \x01(\tR\x06origin\"\xd4\x02\n" +
+	"\x14BatchPushMessageResp\x12\x1f\n" +
+	"\vtotal_count\x18\x01 \x01(\x05R\n" +
+	"totalCount\x12#\n" +
+	"\rsuccess_count\x18\x02 \x01(\x05R\fsuccessCount\x12\x1d\n" +
+	"\n" +
+	"fail_count\x18\x03 \x01(\x05R\tfailCount\x12N\n" +
+	"\ffailed_items\x18\x04 \x03(\v2+.gateway.v1.BatchPushMessageResp.FailedItemR\vfailedItems\x1a\x86\x01\n" +
+	"\n" +
+	"FailedItem\x12\x1d\n" +
+	"\n" +
+	"target_key\x18\x01 \x01(\tR\ttargetKey\x124\n" +
+	"\n" +
+	"error_code\x18\x02 \x01(\x0e2\x15.gateway.v1.ErrorCodeR\terrorCode\x12#\n" +
+	"\rerror_message\x18\x03 \x01(\tR\ferrorMessage\"\xa5\x03\n" +
+	"\x12BroadcastToRoomReq\x12#\n" +
+	"\aroom_id\x18\x01 \x01(\tB\n" +
+	"\xfaB\ar\x05\x10\x01\x18\x80\x02R\x06roomId\x12#\n" +
+	"\bbiz_code\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\abizCode\x120\n" +
+	"\bdelivery\x18\x03 \x01(\v2\x14.gateway.v1.DeliveryR\bdelivery\x12.\n" +
+	"\x04body\x18\x04 \x01(\v2\x10.gateway.v1.BodyB\b\xfaB\x05\x8a\x01\x02\x10\x01R\x04body\x12%\n" +
+	"\x0eexclude_sender\x18\x05 \x01(\bR\rexcludeSender\x12$\n" +
+	"\x0esender_user_id\x18\x06 \x01(\tR\fsenderUserId\x12U\n" +
+	"\rfilter_labels\x18\a \x03(\v20.gateway.v1.BroadcastToRoomReq.FilterLabelsEntryR\ffilterLabels\x1a?\n" +
+	"\x11FilterLabelsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xf1\x01\n" +
+	"\x13BroadcastToRoomResp\x12\x1a\n" +
+	"\baccepted\x18\x01 \x01(\bR\baccepted\x12!\n" +
+	"\ftarget_count\x18\x02 \x01(\x03R\vtargetCount\x12!\n" +
+	"\fonline_count\x18\x03 \x01(\x03R\vonlineCount\x12\x1d\n" +
+	"\n" +
+	"node_count\x18\x04 \x01(\x03R\tnodeCount\x124\n" +
+	"\n" +
+	"error_code\x18\x05 \x01(\x0e2\x15.gateway.v1.ErrorCodeR\terrorCode\x12#\n" +
+	"\rerror_message\x18\x06 \x01(\tR\ferrorMessage\"\x8b\x02\n" +
+	"\x13BroadcastToTopicReq\x12 \n" +
+	"\x05topic\x18\x01 \x01(\tB\n" +
+	"\xfaB\ar\x05\x10\x01\x18\x80\x02R\x05topic\x12#\n" +
+	"\bbiz_code\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\abizCode\x120\n" +
+	"\bdelivery\x18\x03 \x01(\v2\x14.gateway.v1.DeliveryR\bdelivery\x12.\n" +
+	"\x04body\x18\x04 \x01(\v2\x10.gateway.v1.BodyB\b\xfaB\x05\x8a\x01\x02\x10\x01R\x04body\x12%\n" +
+	"\x0eexclude_sender\x18\x05 \x01(\bR\rexcludeSender\x12$\n" +
+	"\x0esender_user_id\x18\x06 \x01(\tR\fsenderUserId\"\xd7\x01\n" +
+	"\x14BroadcastToTopicResp\x12\x1a\n" +
+	"\baccepted\x18\x01 \x01(\bR\baccepted\x12)\n" +
+	"\x10subscriber_count\x18\x02 \x01(\x03R\x0fsubscriberCount\x12\x1d\n" +
+	"\n" +
+	"node_count\x18\x03 \x01(\x03R\tnodeCount\x124\n" +
+	"\n" +
+	"error_code\x18\x04 \x01(\x0e2\x15.gateway.v1.ErrorCodeR\terrorCode\x12#\n" +
+	"\rerror_message\x18\x05 \x01(\tR\ferrorMessage\"\x8f\x02\n" +
+	"\x11BroadcastToAllReq\x12#\n" +
+	"\bbiz_code\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\abizCode\x120\n" +
+	"\bdelivery\x18\x02 \x01(\v2\x14.gateway.v1.DeliveryR\bdelivery\x12.\n" +
+	"\x04body\x18\x03 \x01(\v2\x10.gateway.v1.BodyB\b\xfaB\x05\x8a\x01\x02\x10\x01R\x04body\x12(\n" +
+	"\x10filter_biz_codes\x18\x04 \x03(\tR\x0efilterBizCodes\x12\x1d\n" +
+	"\n" +
+	"batch_size\x18\x05 \x01(\x05R\tbatchSize\x12*\n" +
+	"\x11batch_interval_ms\x18\x06 \x01(\x05R\x0fbatchIntervalMs\"\xed\x01\n" +
+	"\x12BroadcastToAllResp\x12\x1a\n" +
+	"\baccepted\x18\x01 \x01(\bR\baccepted\x12,\n" +
+	"\x12total_online_users\x18\x02 \x01(\x03R\x10totalOnlineUsers\x122\n" +
+	"\x15estimated_duration_ms\x18\x03 \x01(\x03R\x13estimatedDurationMs\x124\n" +
+	"\n" +
+	"error_code\x18\x04 \x01(\x0e2\x15.gateway.v1.ErrorCodeR\terrorCode\x12#\n" +
+	"\rerror_message\x18\x05 \x01(\tR\ferrorMessage\"\xec\x03\n" +
+	"\x13ForwardToSessionReq\x12'\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\tsessionId\x12!\n" +
+	"\auser_id\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\x06userId\x12%\n" +
+	"\tdevice_id\x18\x03 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\bdeviceId\x12\x15\n" +
+	"\x06msg_id\x18\x04 \x01(\tR\x05msgId\x12\x15\n" +
+	"\x06seq_id\x18\x05 \x01(\x04R\x05seqId\x12\x19\n" +
+	"\bbiz_code\x18\x06 \x01(\tR\abizCode\x120\n" +
+	"\bdelivery\x18\a \x01(\v2\x14.gateway.v1.DeliveryR\bdelivery\x12$\n" +
+	"\x04body\x18\b \x01(\v2\x10.gateway.v1.BodyR\x04body\x12F\n" +
+	"\aheaders\x18\t \x03(\v2,.gateway.v1.ForwardToSessionReq.HeadersEntryR\aheaders\x12 \n" +
+	"\ffrom_node_id\x18\n" +
+	" \x01(\tR\n" +
+	"fromNodeId\x12\x1b\n" +
+	"\thop_count\x18\v \x01(\x05R\bhopCount\x1a:\n" +
+	"\fHeadersEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x8f\x01\n" +
+	"\x14ForwardToSessionResp\x12\x1c\n" +
+	"\tdelivered\x18\x01 \x01(\bR\tdelivered\x124\n" +
+	"\n" +
+	"error_code\x18\x02 \x01(\x0e2\x15.gateway.v1.ErrorCodeR\terrorCode\x12#\n" +
+	"\rerror_message\x18\x03 \x01(\tR\ferrorMessage\"\xa5\x02\n" +
+	"\x10ForwardToRoomReq\x12#\n" +
+	"\aroom_id\x18\x01 \x01(\tB\n" +
+	"\xfaB\ar\x05\x10\x01\x18\x80\x02R\x06roomId\x12#\n" +
+	"\bbiz_code\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\abizCode\x120\n" +
+	"\bdelivery\x18\x03 \x01(\v2\x14.gateway.v1.DeliveryR\bdelivery\x12.\n" +
+	"\x04body\x18\x04 \x01(\v2\x10.gateway.v1.BodyB\b\xfaB\x05\x8a\x01\x02\x10\x01R\x04body\x12&\n" +
+	"\x0ftarget_node_ids\x18\x05 \x03(\tR\rtargetNodeIds\x12 \n" +
+	"\ffrom_node_id\x18\x06 \x01(\tR\n" +
+	"fromNodeId\x12\x1b\n" +
+	"\thop_count\x18\a \x01(\x05R\bhopCount\"\xb3\x01\n" +
+	"\x11ForwardToRoomResp\x12\x1a\n" +
+	"\baccepted\x18\x01 \x01(\bR\baccepted\x12'\n" +
+	"\x0fforwarded_nodes\x18\x02 \x01(\x05R\x0eforwardedNodes\x124\n" +
+	"\n" +
+	"error_code\x18\x03 \x01(\x0e2\x15.gateway.v1.ErrorCodeR\terrorCode\x12#\n" +
+	"\rerror_message\x18\x04 \x01(\tR\ferrorMessage\"\xd7\x01\n" +
+	"\vKickUserReq\x12!\n" +
+	"\auser_id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\x06userId\x12\x1b\n" +
+	"\tdevice_id\x18\x02 \x01(\tR\bdeviceId\x12)\n" +
+	"\x04code\x18\x03 \x01(\x0e2\x15.gateway.v1.ErrorCodeR\x04code\x12\x16\n" +
+	"\x06reason\x18\x04 \x01(\tR\x06reason\x12'\n" +
+	"\x0freconnect_after\x18\x05 \x01(\x05R\x0ereconnectAfter\x12\x1c\n" +
+	"\tpermanent\x18\x06 \x01(\bR\tpermanent\"^\n" +
+	"\fKickUserResp\x12'\n" +
+	"\x0fkicked_sessions\x18\x01 \x01(\x05R\x0ekickedSessions\x12%\n" +
+	"\x0ekicked_devices\x18\x02 \x01(\x05R\rkickedDevices\"|\n" +
+	"\x0eKickSessionReq\x12'\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\tsessionId\x12)\n" +
+	"\x04code\x18\x02 \x01(\x0e2\x15.gateway.v1.ErrorCodeR\x04code\x12\x16\n" +
+	"\x06reason\x18\x03 \x01(\tR\x06reason\"\x9a\x01\n" +
+	"\x0fKickSessionResp\x12\x14\n" +
+	"\x05found\x18\x01 \x01(\bR\x05found\x12\x16\n" +
+	"\x06kicked\x18\x02 \x01(\bR\x06kicked\x124\n" +
+	"\n" +
+	"error_code\x18\x03 \x01(\x0e2\x15.gateway.v1.ErrorCodeR\terrorCode\x12#\n" +
+	"\rerror_message\x18\x04 \x01(\tR\ferrorMessage\"y\n" +
+	"\rKickDeviceReq\x12%\n" +
+	"\tdevice_id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\bdeviceId\x12)\n" +
+	"\x04code\x18\x02 \x01(\x0e2\x15.gateway.v1.ErrorCodeR\x04code\x12\x16\n" +
+	"\x06reason\x18\x03 \x01(\tR\x06reason\"9\n" +
+	"\x0eKickDeviceResp\x12'\n" +
+	"\x0fkicked_sessions\x18\x01 \x01(\x05R\x0ekickedSessions\"c\n" +
+	"\fDrainNodeReq\x12\x1f\n" +
+	"\vtimeout_sec\x18\x01 \x01(\x05R\n" +
+	"timeoutSec\x12\x1a\n" +
+	"\bgraceful\x18\x02 \x01(\bR\bgraceful\x12\x16\n" +
+	"\x06reason\x18\x03 \x01(\tR\x06reason\"\x9e\x02\n" +
+	"\rDrainNodeResp\x12\x1a\n" +
+	"\baccepted\x18\x01 \x01(\bR\baccepted\x12:\n" +
+	"\x05state\x18\x02 \x01(\x0e2$.gateway.v1.DrainNodeResp.DrainStateR\x05state\x123\n" +
+	"\x15remaining_connections\x18\x03 \x01(\x05R\x14remainingConnections\x12-\n" +
+	"\x12remaining_sessions\x18\x04 \x01(\x05R\x11remainingSessions\"Q\n" +
+	"\n" +
+	"DrainState\x12\x1b\n" +
+	"\x17DRAIN_STATE_UNSPECIFIED\x10\x00\x12\v\n" +
+	"\aSERVING\x10\x01\x12\f\n" +
+	"\bDRAINING\x10\x02\x12\v\n" +
+	"\aDRAINED\x10\x03\"\x10\n" +
+	"\x0eUndrainNodeReq\"x\n" +
+	"\x0fUndrainNodeResp\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12K\n" +
+	"\x0eprevious_state\x18\x02 \x01(\x0e2$.gateway.v1.DrainNodeResp.DrainStateR\rpreviousState\"\x12\n" +
+	"\x10GetNodeStatusReq\"\xfe\x03\n" +
+	"\x11GetNodeStatusResp\x12\x17\n" +
+	"\anode_id\x18\x01 \x01(\tR\x06nodeId\x12\x1b\n" +
+	"\tnode_addr\x18\x02 \x01(\tR\bnodeAddr\x12E\n" +
+	"\vdrain_state\x18\x03 \x01(\x0e2$.gateway.v1.DrainNodeResp.DrainStateR\n" +
+	"drainState\x12)\n" +
+	"\x10connection_count\x18\x04 \x01(\x03R\x0fconnectionCount\x12#\n" +
+	"\rsession_count\x18\x05 \x01(\x03R\fsessionCount\x12\x1d\n" +
+	"\n" +
+	"user_count\x18\x06 \x01(\x03R\tuserCount\x12\x1f\n" +
+	"\vcpu_percent\x18\a \x01(\x02R\n" +
+	"cpuPercent\x12%\n" +
+	"\x0ememory_percent\x18\b \x01(\x02R\rmemoryPercent\x12'\n" +
+	"\x0fgoroutine_count\x18\t \x01(\x03R\x0egoroutineCount\x12!\n" +
+	"\fupstream_qps\x18\n" +
+	" \x01(\x03R\vupstreamQps\x12%\n" +
+	"\x0edownstream_qps\x18\v \x01(\x03R\rdownstreamQps\x12#\n" +
+	"\rbroadcast_qps\x18\f \x01(\x03R\fbroadcastQps\x12\x1d\n" +
+	"\n" +
+	"start_time\x18\r \x01(\x03R\tstartTime\"}\n" +
+	"\vGetStatsReq\x12\x1d\n" +
+	"\n" +
+	"window_sec\x18\x01 \x01(\x05R\twindowSec\x122\n" +
+	"\x15include_biz_breakdown\x18\x02 \x01(\bR\x13includeBizBreakdown\x12\x1b\n" +
+	"\ttop_rooms\x18\x03 \x01(\x05R\btopRooms\"\xda\x05\n" +
+	"\fGetStatsResp\x12\x1f\n" +
+	"\vtotal_nodes\x18\x01 \x01(\x03R\n" +
+	"totalNodes\x12+\n" +
+	"\x11total_connections\x18\x02 \x01(\x03R\x10totalConnections\x12%\n" +
+	"\x0etotal_sessions\x18\x03 \x01(\x03R\rtotalSessions\x12\x1f\n" +
+	"\vtotal_users\x18\x04 \x01(\x03R\n" +
+	"totalUsers\x12!\n" +
+	"\fupstream_qps\x18\x05 \x01(\x03R\vupstreamQps\x12%\n" +
+	"\x0edownstream_qps\x18\x06 \x01(\x03R\rdownstreamQps\x12#\n" +
+	"\rbroadcast_qps\x18\a \x01(\x03R\fbroadcastQps\x12=\n" +
+	"\tbiz_stats\x18\b \x03(\v2 .gateway.v1.GetStatsResp.BizStatR\bbizStats\x12@\n" +
+	"\n" +
+	"room_stats\x18\t \x03(\v2!.gateway.v1.GetStatsResp.RoomStatR\troomStats\x1a\xbe\x01\n" +
+	"\aBizStat\x12\x19\n" +
+	"\bbiz_code\x18\x01 \x01(\tR\abizCode\x12)\n" +
+	"\x10connection_count\x18\x02 \x01(\x03R\x0fconnectionCount\x12#\n" +
+	"\rsession_count\x18\x03 \x01(\x03R\fsessionCount\x12!\n" +
+	"\fupstream_qps\x18\x04 \x01(\x03R\vupstreamQps\x12%\n" +
+	"\x0edownstream_qps\x18\x05 \x01(\x03R\rdownstreamQps\x1a\x82\x01\n" +
+	"\bRoomStat\x12\x17\n" +
+	"\aroom_id\x18\x01 \x01(\tR\x06roomId\x12!\n" +
+	"\fmember_count\x18\x02 \x01(\x03R\vmemberCount\x12!\n" +
+	"\fonline_count\x18\x03 \x01(\x03R\vonlineCount\x12\x17\n" +
+	"\amsg_qps\x18\x04 \x01(\x03R\x06msgQps\"5\n" +
+	"\x0eGetBizStatsReq\x12#\n" +
+	"\bbiz_code\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\abizCode\"\x93\x02\n" +
+	"\x0fGetBizStatsResp\x12\x19\n" +
+	"\bbiz_code\x18\x01 \x01(\tR\abizCode\x12)\n" +
+	"\x10connection_count\x18\x02 \x01(\x03R\x0fconnectionCount\x12#\n" +
+	"\rsession_count\x18\x03 \x01(\x03R\fsessionCount\x12\x1d\n" +
+	"\n" +
+	"user_count\x18\x04 \x01(\x03R\tuserCount\x12!\n" +
+	"\fupstream_qps\x18\x05 \x01(\x03R\vupstreamQps\x12%\n" +
+	"\x0edownstream_qps\x18\x06 \x01(\x03R\rdownstreamQps\x12,\n" +
+	"\x12offline_queue_size\x18\a \x01(\x03R\x10offlineQueueSize\"6\n" +
+	"\x0fGetRoomStatsReq\x12#\n" +
+	"\aroom_id\x18\x01 \x01(\tB\n" +
+	"\xfaB\ar\x05\x10\x01\x18\x80\x02R\x06roomId\"\xab\x01\n" +
+	"\x10GetRoomStatsResp\x12\x17\n" +
+	"\aroom_id\x18\x01 \x01(\tR\x06roomId\x12#\n" +
+	"\rtotal_members\x18\x02 \x01(\x03R\ftotalMembers\x12%\n" +
+	"\x0eonline_members\x18\x03 \x01(\x03R\ronlineMembers\x12\x19\n" +
+	"\bnode_ids\x18\x04 \x03(\tR\anodeIds\x12\x17\n" +
+	"\amsg_qps\x18\x05 \x01(\x03R\x06msgQps\"O\n" +
+	"\rQueryRouteReq\x12!\n" +
+	"\auser_id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\x06userId\x12\x1b\n" +
+	"\tdevice_id\x18\x02 \x01(\tR\bdeviceId\"\xdc\x02\n" +
+	"\x0eQueryRouteResp\x12\x14\n" +
+	"\x05found\x18\x01 \x01(\bR\x05found\x12<\n" +
+	"\x06routes\x18\x02 \x03(\v2$.gateway.v1.QueryRouteResp.RouteInfoR\x06routes\x1a\xf5\x01\n" +
+	"\tRouteInfo\x12\x1b\n" +
+	"\tdevice_id\x18\x01 \x01(\tR\bdeviceId\x12\x17\n" +
+	"\anode_id\x18\x02 \x01(\tR\x06nodeId\x12\x1b\n" +
+	"\tnode_addr\x18\x03 \x01(\tR\bnodeAddr\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x04 \x01(\tR\tsessionId\x12\x17\n" +
+	"\aconn_id\x18\x05 \x01(\tR\x06connId\x12\x14\n" +
+	"\x05state\x18\x06 \x01(\tR\x05state\x12$\n" +
+	"\x0elast_active_at\x18\a \x01(\x03R\flastActiveAt\x12!\n" +
+	"\fconnect_time\x18\b \x01(\x03R\vconnectTime\":\n" +
+	"\x0fQuerySessionReq\x12'\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\tsessionId\"\xdf\x02\n" +
+	"\x10QuerySessionResp\x12\x14\n" +
+	"\x05found\x18\x01 \x01(\bR\x05found\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x1b\n" +
+	"\tdevice_id\x18\x03 \x01(\tR\bdeviceId\x12\x14\n" +
+	"\x05state\x18\x04 \x01(\tR\x05state\x12$\n" +
+	"\x0elast_active_at\x18\x05 \x01(\x03R\flastActiveAt\x12\x1f\n" +
+	"\vcreate_time\x18\x06 \x01(\x03R\n" +
+	"createTime\x12\x19\n" +
+	"\bbiz_code\x18\a \x01(\tR\abizCode\x12\x14\n" +
+	"\x05rooms\x18\b \x03(\tR\x05rooms\x12\x16\n" +
+	"\x06topics\x18\t \x03(\tR\x06topics\x12\x17\n" +
+	"\aconn_id\x18\n" +
+	" \x01(\tR\x06connId\x12\x1f\n" +
+	"\vremote_addr\x18\v \x01(\tR\n" +
+	"remoteAddr\x12\x1f\n" +
+	"\vdevice_type\x18\f \x01(\tR\n" +
+	"deviceType\"\xba\x01\n" +
+	"\x0fListSessionsReq\x12\x17\n" +
+	"\auser_id\x18\x01 \x01(\tR\x06userId\x12\x17\n" +
+	"\aroom_id\x18\x02 \x01(\tR\x06roomId\x12\x14\n" +
+	"\x05topic\x18\x03 \x01(\tR\x05topic\x12\x19\n" +
+	"\bbiz_code\x18\x04 \x01(\tR\abizCode\x12\x1b\n" +
+	"\x04page\x18\x05 \x01(\x05B\a\xfaB\x04\x1a\x02(\x01R\x04page\x12'\n" +
+	"\tpage_size\x18\x06 \x01(\x05B\n" +
+	"\xfaB\a\x1a\x05\x18\xe8\a(\x01R\bpageSize\"\xd3\x02\n" +
+	"\x10ListSessionsResp\x12\x14\n" +
+	"\x05total\x18\x01 \x01(\x05R\x05total\x12\x12\n" +
+	"\x04page\x18\x02 \x01(\x05R\x04page\x12\x1b\n" +
+	"\tpage_size\x18\x03 \x01(\x05R\bpageSize\x12>\n" +
+	"\x05items\x18\x04 \x03(\v2(.gateway.v1.ListSessionsResp.SessionItemR\x05items\x1a\xb7\x01\n" +
+	"\vSessionItem\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x17\n" +
+	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x1b\n" +
+	"\tdevice_id\x18\x03 \x01(\tR\bdeviceId\x12\x14\n" +
+	"\x05state\x18\x04 \x01(\tR\x05state\x12$\n" +
+	"\x0elast_active_at\x18\x05 \x01(\x03R\flastActiveAt\x12\x17\n" +
+	"\anode_id\x18\x06 \x01(\tR\x06nodeId2\xa2\v\n" +
+	"\x0fGatewayInternal\x12F\n" +
+	"\vPushMessage\x12\x1a.gateway.v1.PushMessageReq\x1a\x1b.gateway.v1.PushMessageResp\x12U\n" +
+	"\x10BatchPushMessage\x12\x1f.gateway.v1.BatchPushMessageReq\x1a .gateway.v1.BatchPushMessageResp\x12R\n" +
+	"\x0fBroadcastToRoom\x12\x1e.gateway.v1.BroadcastToRoomReq\x1a\x1f.gateway.v1.BroadcastToRoomResp\x12U\n" +
+	"\x10BroadcastToTopic\x12\x1f.gateway.v1.BroadcastToTopicReq\x1a .gateway.v1.BroadcastToTopicResp\x12O\n" +
+	"\x0eBroadcastToAll\x12\x1d.gateway.v1.BroadcastToAllReq\x1a\x1e.gateway.v1.BroadcastToAllResp\x12U\n" +
+	"\x10ForwardToSession\x12\x1f.gateway.v1.ForwardToSessionReq\x1a .gateway.v1.ForwardToSessionResp\x12L\n" +
+	"\rForwardToRoom\x12\x1c.gateway.v1.ForwardToRoomReq\x1a\x1d.gateway.v1.ForwardToRoomResp\x12=\n" +
+	"\bKickUser\x12\x17.gateway.v1.KickUserReq\x1a\x18.gateway.v1.KickUserResp\x12F\n" +
+	"\vKickSession\x12\x1a.gateway.v1.KickSessionReq\x1a\x1b.gateway.v1.KickSessionResp\x12C\n" +
+	"\n" +
+	"KickDevice\x12\x19.gateway.v1.KickDeviceReq\x1a\x1a.gateway.v1.KickDeviceResp\x12@\n" +
+	"\tDrainNode\x12\x18.gateway.v1.DrainNodeReq\x1a\x19.gateway.v1.DrainNodeResp\x12F\n" +
+	"\vUndrainNode\x12\x1a.gateway.v1.UndrainNodeReq\x1a\x1b.gateway.v1.UndrainNodeResp\x12L\n" +
+	"\rGetNodeStatus\x12\x1c.gateway.v1.GetNodeStatusReq\x1a\x1d.gateway.v1.GetNodeStatusResp\x12=\n" +
+	"\bGetStats\x12\x17.gateway.v1.GetStatsReq\x1a\x18.gateway.v1.GetStatsResp\x12F\n" +
+	"\vGetBizStats\x12\x1a.gateway.v1.GetBizStatsReq\x1a\x1b.gateway.v1.GetBizStatsResp\x12I\n" +
+	"\fGetRoomStats\x12\x1b.gateway.v1.GetRoomStatsReq\x1a\x1c.gateway.v1.GetRoomStatsResp\x12C\n" +
+	"\n" +
+	"QueryRoute\x12\x19.gateway.v1.QueryRouteReq\x1a\x1a.gateway.v1.QueryRouteResp\x12I\n" +
+	"\fQuerySession\x12\x1b.gateway.v1.QuerySessionReq\x1a\x1c.gateway.v1.QuerySessionResp\x12I\n" +
+	"\fListSessions\x12\x1b.gateway.v1.ListSessionsReq\x1a\x1c.gateway.v1.ListSessionsRespBHZFgithub.com/vadam-zhan/long-gw/common-protocol/gen/gateway/v1;gatewayv1b\x06proto3"
 
 var (
 	file_gateway_v1_gateway_service_proto_rawDescOnce sync.Once
@@ -161,19 +3684,145 @@ func file_gateway_v1_gateway_service_proto_rawDescGZIP() []byte {
 	return file_gateway_v1_gateway_service_proto_rawDescData
 }
 
-var file_gateway_v1_gateway_service_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_gateway_v1_gateway_service_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_gateway_v1_gateway_service_proto_msgTypes = make([]protoimpl.MessageInfo, 46)
 var file_gateway_v1_gateway_service_proto_goTypes = []any{
-	(*PushMessageReq)(nil),  // 0: gateway.v1.PushMessageReq
-	(*PushMessageResp)(nil), // 1: gateway.v1.PushMessageResp
+	(PushMessageResp_Status)(0),             // 0: gateway.v1.PushMessageResp.Status
+	(DrainNodeResp_DrainState)(0),           // 1: gateway.v1.DrainNodeResp.DrainState
+	(*PushMessageReq)(nil),                  // 2: gateway.v1.PushMessageReq
+	(*PushMessageResp)(nil),                 // 3: gateway.v1.PushMessageResp
+	(*BatchPushMessageReq)(nil),             // 4: gateway.v1.BatchPushMessageReq
+	(*BatchPushMessageResp)(nil),            // 5: gateway.v1.BatchPushMessageResp
+	(*BroadcastToRoomReq)(nil),              // 6: gateway.v1.BroadcastToRoomReq
+	(*BroadcastToRoomResp)(nil),             // 7: gateway.v1.BroadcastToRoomResp
+	(*BroadcastToTopicReq)(nil),             // 8: gateway.v1.BroadcastToTopicReq
+	(*BroadcastToTopicResp)(nil),            // 9: gateway.v1.BroadcastToTopicResp
+	(*BroadcastToAllReq)(nil),               // 10: gateway.v1.BroadcastToAllReq
+	(*BroadcastToAllResp)(nil),              // 11: gateway.v1.BroadcastToAllResp
+	(*ForwardToSessionReq)(nil),             // 12: gateway.v1.ForwardToSessionReq
+	(*ForwardToSessionResp)(nil),            // 13: gateway.v1.ForwardToSessionResp
+	(*ForwardToRoomReq)(nil),                // 14: gateway.v1.ForwardToRoomReq
+	(*ForwardToRoomResp)(nil),               // 15: gateway.v1.ForwardToRoomResp
+	(*KickUserReq)(nil),                     // 16: gateway.v1.KickUserReq
+	(*KickUserResp)(nil),                    // 17: gateway.v1.KickUserResp
+	(*KickSessionReq)(nil),                  // 18: gateway.v1.KickSessionReq
+	(*KickSessionResp)(nil),                 // 19: gateway.v1.KickSessionResp
+	(*KickDeviceReq)(nil),                   // 20: gateway.v1.KickDeviceReq
+	(*KickDeviceResp)(nil),                  // 21: gateway.v1.KickDeviceResp
+	(*DrainNodeReq)(nil),                    // 22: gateway.v1.DrainNodeReq
+	(*DrainNodeResp)(nil),                   // 23: gateway.v1.DrainNodeResp
+	(*UndrainNodeReq)(nil),                  // 24: gateway.v1.UndrainNodeReq
+	(*UndrainNodeResp)(nil),                 // 25: gateway.v1.UndrainNodeResp
+	(*GetNodeStatusReq)(nil),                // 26: gateway.v1.GetNodeStatusReq
+	(*GetNodeStatusResp)(nil),               // 27: gateway.v1.GetNodeStatusResp
+	(*GetStatsReq)(nil),                     // 28: gateway.v1.GetStatsReq
+	(*GetStatsResp)(nil),                    // 29: gateway.v1.GetStatsResp
+	(*GetBizStatsReq)(nil),                  // 30: gateway.v1.GetBizStatsReq
+	(*GetBizStatsResp)(nil),                 // 31: gateway.v1.GetBizStatsResp
+	(*GetRoomStatsReq)(nil),                 // 32: gateway.v1.GetRoomStatsReq
+	(*GetRoomStatsResp)(nil),                // 33: gateway.v1.GetRoomStatsResp
+	(*QueryRouteReq)(nil),                   // 34: gateway.v1.QueryRouteReq
+	(*QueryRouteResp)(nil),                  // 35: gateway.v1.QueryRouteResp
+	(*QuerySessionReq)(nil),                 // 36: gateway.v1.QuerySessionReq
+	(*QuerySessionResp)(nil),                // 37: gateway.v1.QuerySessionResp
+	(*ListSessionsReq)(nil),                 // 38: gateway.v1.ListSessionsReq
+	(*ListSessionsResp)(nil),                // 39: gateway.v1.ListSessionsResp
+	nil,                                     // 40: gateway.v1.PushMessageReq.HeadersEntry
+	(*BatchPushMessageResp_FailedItem)(nil), // 41: gateway.v1.BatchPushMessageResp.FailedItem
+	nil,                                     // 42: gateway.v1.BroadcastToRoomReq.FilterLabelsEntry
+	nil,                                     // 43: gateway.v1.ForwardToSessionReq.HeadersEntry
+	(*GetStatsResp_BizStat)(nil),            // 44: gateway.v1.GetStatsResp.BizStat
+	(*GetStatsResp_RoomStat)(nil),           // 45: gateway.v1.GetStatsResp.RoomStat
+	(*QueryRouteResp_RouteInfo)(nil),        // 46: gateway.v1.QueryRouteResp.RouteInfo
+	(*ListSessionsResp_SessionItem)(nil),    // 47: gateway.v1.ListSessionsResp.SessionItem
+	(*RouteTarget)(nil),                     // 48: gateway.v1.RouteTarget
+	(*Delivery)(nil),                        // 49: gateway.v1.Delivery
+	(*Body)(nil),                            // 50: gateway.v1.Body
+	(ErrorCode)(0),                          // 51: gateway.v1.ErrorCode
 }
 var file_gateway_v1_gateway_service_proto_depIdxs = []int32{
-	0, // 0: gateway.v1.Gateway.PushMessage:input_type -> gateway.v1.PushMessageReq
-	1, // 1: gateway.v1.Gateway.PushMessage:output_type -> gateway.v1.PushMessageResp
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	48, // 0: gateway.v1.PushMessageReq.to:type_name -> gateway.v1.RouteTarget
+	49, // 1: gateway.v1.PushMessageReq.delivery:type_name -> gateway.v1.Delivery
+	50, // 2: gateway.v1.PushMessageReq.body:type_name -> gateway.v1.Body
+	40, // 3: gateway.v1.PushMessageReq.headers:type_name -> gateway.v1.PushMessageReq.HeadersEntry
+	0,  // 4: gateway.v1.PushMessageResp.status:type_name -> gateway.v1.PushMessageResp.Status
+	51, // 5: gateway.v1.PushMessageResp.error_code:type_name -> gateway.v1.ErrorCode
+	48, // 6: gateway.v1.BatchPushMessageReq.to_list:type_name -> gateway.v1.RouteTarget
+	49, // 7: gateway.v1.BatchPushMessageReq.delivery:type_name -> gateway.v1.Delivery
+	50, // 8: gateway.v1.BatchPushMessageReq.body:type_name -> gateway.v1.Body
+	41, // 9: gateway.v1.BatchPushMessageResp.failed_items:type_name -> gateway.v1.BatchPushMessageResp.FailedItem
+	49, // 10: gateway.v1.BroadcastToRoomReq.delivery:type_name -> gateway.v1.Delivery
+	50, // 11: gateway.v1.BroadcastToRoomReq.body:type_name -> gateway.v1.Body
+	42, // 12: gateway.v1.BroadcastToRoomReq.filter_labels:type_name -> gateway.v1.BroadcastToRoomReq.FilterLabelsEntry
+	51, // 13: gateway.v1.BroadcastToRoomResp.error_code:type_name -> gateway.v1.ErrorCode
+	49, // 14: gateway.v1.BroadcastToTopicReq.delivery:type_name -> gateway.v1.Delivery
+	50, // 15: gateway.v1.BroadcastToTopicReq.body:type_name -> gateway.v1.Body
+	51, // 16: gateway.v1.BroadcastToTopicResp.error_code:type_name -> gateway.v1.ErrorCode
+	49, // 17: gateway.v1.BroadcastToAllReq.delivery:type_name -> gateway.v1.Delivery
+	50, // 18: gateway.v1.BroadcastToAllReq.body:type_name -> gateway.v1.Body
+	51, // 19: gateway.v1.BroadcastToAllResp.error_code:type_name -> gateway.v1.ErrorCode
+	49, // 20: gateway.v1.ForwardToSessionReq.delivery:type_name -> gateway.v1.Delivery
+	50, // 21: gateway.v1.ForwardToSessionReq.body:type_name -> gateway.v1.Body
+	43, // 22: gateway.v1.ForwardToSessionReq.headers:type_name -> gateway.v1.ForwardToSessionReq.HeadersEntry
+	51, // 23: gateway.v1.ForwardToSessionResp.error_code:type_name -> gateway.v1.ErrorCode
+	49, // 24: gateway.v1.ForwardToRoomReq.delivery:type_name -> gateway.v1.Delivery
+	50, // 25: gateway.v1.ForwardToRoomReq.body:type_name -> gateway.v1.Body
+	51, // 26: gateway.v1.ForwardToRoomResp.error_code:type_name -> gateway.v1.ErrorCode
+	51, // 27: gateway.v1.KickUserReq.code:type_name -> gateway.v1.ErrorCode
+	51, // 28: gateway.v1.KickSessionReq.code:type_name -> gateway.v1.ErrorCode
+	51, // 29: gateway.v1.KickSessionResp.error_code:type_name -> gateway.v1.ErrorCode
+	51, // 30: gateway.v1.KickDeviceReq.code:type_name -> gateway.v1.ErrorCode
+	1,  // 31: gateway.v1.DrainNodeResp.state:type_name -> gateway.v1.DrainNodeResp.DrainState
+	1,  // 32: gateway.v1.UndrainNodeResp.previous_state:type_name -> gateway.v1.DrainNodeResp.DrainState
+	1,  // 33: gateway.v1.GetNodeStatusResp.drain_state:type_name -> gateway.v1.DrainNodeResp.DrainState
+	44, // 34: gateway.v1.GetStatsResp.biz_stats:type_name -> gateway.v1.GetStatsResp.BizStat
+	45, // 35: gateway.v1.GetStatsResp.room_stats:type_name -> gateway.v1.GetStatsResp.RoomStat
+	46, // 36: gateway.v1.QueryRouteResp.routes:type_name -> gateway.v1.QueryRouteResp.RouteInfo
+	47, // 37: gateway.v1.ListSessionsResp.items:type_name -> gateway.v1.ListSessionsResp.SessionItem
+	51, // 38: gateway.v1.BatchPushMessageResp.FailedItem.error_code:type_name -> gateway.v1.ErrorCode
+	2,  // 39: gateway.v1.GatewayInternal.PushMessage:input_type -> gateway.v1.PushMessageReq
+	4,  // 40: gateway.v1.GatewayInternal.BatchPushMessage:input_type -> gateway.v1.BatchPushMessageReq
+	6,  // 41: gateway.v1.GatewayInternal.BroadcastToRoom:input_type -> gateway.v1.BroadcastToRoomReq
+	8,  // 42: gateway.v1.GatewayInternal.BroadcastToTopic:input_type -> gateway.v1.BroadcastToTopicReq
+	10, // 43: gateway.v1.GatewayInternal.BroadcastToAll:input_type -> gateway.v1.BroadcastToAllReq
+	12, // 44: gateway.v1.GatewayInternal.ForwardToSession:input_type -> gateway.v1.ForwardToSessionReq
+	14, // 45: gateway.v1.GatewayInternal.ForwardToRoom:input_type -> gateway.v1.ForwardToRoomReq
+	16, // 46: gateway.v1.GatewayInternal.KickUser:input_type -> gateway.v1.KickUserReq
+	18, // 47: gateway.v1.GatewayInternal.KickSession:input_type -> gateway.v1.KickSessionReq
+	20, // 48: gateway.v1.GatewayInternal.KickDevice:input_type -> gateway.v1.KickDeviceReq
+	22, // 49: gateway.v1.GatewayInternal.DrainNode:input_type -> gateway.v1.DrainNodeReq
+	24, // 50: gateway.v1.GatewayInternal.UndrainNode:input_type -> gateway.v1.UndrainNodeReq
+	26, // 51: gateway.v1.GatewayInternal.GetNodeStatus:input_type -> gateway.v1.GetNodeStatusReq
+	28, // 52: gateway.v1.GatewayInternal.GetStats:input_type -> gateway.v1.GetStatsReq
+	30, // 53: gateway.v1.GatewayInternal.GetBizStats:input_type -> gateway.v1.GetBizStatsReq
+	32, // 54: gateway.v1.GatewayInternal.GetRoomStats:input_type -> gateway.v1.GetRoomStatsReq
+	34, // 55: gateway.v1.GatewayInternal.QueryRoute:input_type -> gateway.v1.QueryRouteReq
+	36, // 56: gateway.v1.GatewayInternal.QuerySession:input_type -> gateway.v1.QuerySessionReq
+	38, // 57: gateway.v1.GatewayInternal.ListSessions:input_type -> gateway.v1.ListSessionsReq
+	3,  // 58: gateway.v1.GatewayInternal.PushMessage:output_type -> gateway.v1.PushMessageResp
+	5,  // 59: gateway.v1.GatewayInternal.BatchPushMessage:output_type -> gateway.v1.BatchPushMessageResp
+	7,  // 60: gateway.v1.GatewayInternal.BroadcastToRoom:output_type -> gateway.v1.BroadcastToRoomResp
+	9,  // 61: gateway.v1.GatewayInternal.BroadcastToTopic:output_type -> gateway.v1.BroadcastToTopicResp
+	11, // 62: gateway.v1.GatewayInternal.BroadcastToAll:output_type -> gateway.v1.BroadcastToAllResp
+	13, // 63: gateway.v1.GatewayInternal.ForwardToSession:output_type -> gateway.v1.ForwardToSessionResp
+	15, // 64: gateway.v1.GatewayInternal.ForwardToRoom:output_type -> gateway.v1.ForwardToRoomResp
+	17, // 65: gateway.v1.GatewayInternal.KickUser:output_type -> gateway.v1.KickUserResp
+	19, // 66: gateway.v1.GatewayInternal.KickSession:output_type -> gateway.v1.KickSessionResp
+	21, // 67: gateway.v1.GatewayInternal.KickDevice:output_type -> gateway.v1.KickDeviceResp
+	23, // 68: gateway.v1.GatewayInternal.DrainNode:output_type -> gateway.v1.DrainNodeResp
+	25, // 69: gateway.v1.GatewayInternal.UndrainNode:output_type -> gateway.v1.UndrainNodeResp
+	27, // 70: gateway.v1.GatewayInternal.GetNodeStatus:output_type -> gateway.v1.GetNodeStatusResp
+	29, // 71: gateway.v1.GatewayInternal.GetStats:output_type -> gateway.v1.GetStatsResp
+	31, // 72: gateway.v1.GatewayInternal.GetBizStats:output_type -> gateway.v1.GetBizStatsResp
+	33, // 73: gateway.v1.GatewayInternal.GetRoomStats:output_type -> gateway.v1.GetRoomStatsResp
+	35, // 74: gateway.v1.GatewayInternal.QueryRoute:output_type -> gateway.v1.QueryRouteResp
+	37, // 75: gateway.v1.GatewayInternal.QuerySession:output_type -> gateway.v1.QuerySessionResp
+	39, // 76: gateway.v1.GatewayInternal.ListSessions:output_type -> gateway.v1.ListSessionsResp
+	58, // [58:77] is the sub-list for method output_type
+	39, // [39:58] is the sub-list for method input_type
+	39, // [39:39] is the sub-list for extension type_name
+	39, // [39:39] is the sub-list for extension extendee
+	0,  // [0:39] is the sub-list for field type_name
 }
 
 func init() { file_gateway_v1_gateway_service_proto_init() }
@@ -181,18 +3830,20 @@ func file_gateway_v1_gateway_service_proto_init() {
 	if File_gateway_v1_gateway_service_proto != nil {
 		return
 	}
+	file_gateway_v1_common_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gateway_v1_gateway_service_proto_rawDesc), len(file_gateway_v1_gateway_service_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   2,
+			NumEnums:      2,
+			NumMessages:   46,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_gateway_v1_gateway_service_proto_goTypes,
 		DependencyIndexes: file_gateway_v1_gateway_service_proto_depIdxs,
+		EnumInfos:         file_gateway_v1_gateway_service_proto_enumTypes,
 		MessageInfos:      file_gateway_v1_gateway_service_proto_msgTypes,
 	}.Build()
 	File_gateway_v1_gateway_service_proto = out.File

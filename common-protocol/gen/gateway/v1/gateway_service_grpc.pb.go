@@ -18,84 +18,752 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// GatewayClient is the client API for Gateway service.
+// GatewayInternalClient is the client API for GatewayInternal service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type GatewayClient interface {
+type GatewayInternalClient interface {
+	// ── 单条推送 ────────────────────────────────────────────────────────────
 	PushMessage(ctx context.Context, in *PushMessageReq, opts ...grpc.CallOption) (*PushMessageResp, error)
+	// ── 批量推送 ────────────────────────────────────────────────────────────
+	BatchPushMessage(ctx context.Context, in *BatchPushMessageReq, opts ...grpc.CallOption) (*BatchPushMessageResp, error)
+	// ── 房间广播 ────────────────────────────────────────────────────────────
+	BroadcastToRoom(ctx context.Context, in *BroadcastToRoomReq, opts ...grpc.CallOption) (*BroadcastToRoomResp, error)
+	// ── Topic 广播 ──────────────────────────────────────────────────────────
+	BroadcastToTopic(ctx context.Context, in *BroadcastToTopicReq, opts ...grpc.CallOption) (*BroadcastToTopicResp, error)
+	// ── 全量广播 ────────────────────────────────────────────────────────────
+	BroadcastToAll(ctx context.Context, in *BroadcastToAllReq, opts ...grpc.CallOption) (*BroadcastToAllResp, error)
+	// ── 跨节点投递（消费 Kafka 的节点向目标节点转发）─────────────────────────
+	ForwardToSession(ctx context.Context, in *ForwardToSessionReq, opts ...grpc.CallOption) (*ForwardToSessionResp, error)
+	ForwardToRoom(ctx context.Context, in *ForwardToRoomReq, opts ...grpc.CallOption) (*ForwardToRoomResp, error)
+	// ── 用户管理 ────────────────────────────────────────────────────────────
+	KickUser(ctx context.Context, in *KickUserReq, opts ...grpc.CallOption) (*KickUserResp, error)
+	KickSession(ctx context.Context, in *KickSessionReq, opts ...grpc.CallOption) (*KickSessionResp, error)
+	KickDevice(ctx context.Context, in *KickDeviceReq, opts ...grpc.CallOption) (*KickDeviceResp, error)
+	// ── 节点治理 ────────────────────────────────────────────────────────────
+	DrainNode(ctx context.Context, in *DrainNodeReq, opts ...grpc.CallOption) (*DrainNodeResp, error)
+	UndrainNode(ctx context.Context, in *UndrainNodeReq, opts ...grpc.CallOption) (*UndrainNodeResp, error)
+	GetNodeStatus(ctx context.Context, in *GetNodeStatusReq, opts ...grpc.CallOption) (*GetNodeStatusResp, error)
+	// ── 集群统计 ────────────────────────────────────────────────────────────
+	GetStats(ctx context.Context, in *GetStatsReq, opts ...grpc.CallOption) (*GetStatsResp, error)
+	GetBizStats(ctx context.Context, in *GetBizStatsReq, opts ...grpc.CallOption) (*GetBizStatsResp, error)
+	GetRoomStats(ctx context.Context, in *GetRoomStatsReq, opts ...grpc.CallOption) (*GetRoomStatsResp, error)
+	// ── 路由查询 ────────────────────────────────────────────────────────────
+	QueryRoute(ctx context.Context, in *QueryRouteReq, opts ...grpc.CallOption) (*QueryRouteResp, error)
+	QuerySession(ctx context.Context, in *QuerySessionReq, opts ...grpc.CallOption) (*QuerySessionResp, error)
+	ListSessions(ctx context.Context, in *ListSessionsReq, opts ...grpc.CallOption) (*ListSessionsResp, error)
 }
 
-type gatewayClient struct {
+type gatewayInternalClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewGatewayClient(cc grpc.ClientConnInterface) GatewayClient {
-	return &gatewayClient{cc}
+func NewGatewayInternalClient(cc grpc.ClientConnInterface) GatewayInternalClient {
+	return &gatewayInternalClient{cc}
 }
 
-func (c *gatewayClient) PushMessage(ctx context.Context, in *PushMessageReq, opts ...grpc.CallOption) (*PushMessageResp, error) {
+func (c *gatewayInternalClient) PushMessage(ctx context.Context, in *PushMessageReq, opts ...grpc.CallOption) (*PushMessageResp, error) {
 	out := new(PushMessageResp)
-	err := c.cc.Invoke(ctx, "/gateway.v1.Gateway/PushMessage", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/gateway.v1.GatewayInternal/PushMessage", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// GatewayServer is the server API for Gateway service.
-// All implementations should embed UnimplementedGatewayServer
+func (c *gatewayInternalClient) BatchPushMessage(ctx context.Context, in *BatchPushMessageReq, opts ...grpc.CallOption) (*BatchPushMessageResp, error) {
+	out := new(BatchPushMessageResp)
+	err := c.cc.Invoke(ctx, "/gateway.v1.GatewayInternal/BatchPushMessage", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gatewayInternalClient) BroadcastToRoom(ctx context.Context, in *BroadcastToRoomReq, opts ...grpc.CallOption) (*BroadcastToRoomResp, error) {
+	out := new(BroadcastToRoomResp)
+	err := c.cc.Invoke(ctx, "/gateway.v1.GatewayInternal/BroadcastToRoom", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gatewayInternalClient) BroadcastToTopic(ctx context.Context, in *BroadcastToTopicReq, opts ...grpc.CallOption) (*BroadcastToTopicResp, error) {
+	out := new(BroadcastToTopicResp)
+	err := c.cc.Invoke(ctx, "/gateway.v1.GatewayInternal/BroadcastToTopic", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gatewayInternalClient) BroadcastToAll(ctx context.Context, in *BroadcastToAllReq, opts ...grpc.CallOption) (*BroadcastToAllResp, error) {
+	out := new(BroadcastToAllResp)
+	err := c.cc.Invoke(ctx, "/gateway.v1.GatewayInternal/BroadcastToAll", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gatewayInternalClient) ForwardToSession(ctx context.Context, in *ForwardToSessionReq, opts ...grpc.CallOption) (*ForwardToSessionResp, error) {
+	out := new(ForwardToSessionResp)
+	err := c.cc.Invoke(ctx, "/gateway.v1.GatewayInternal/ForwardToSession", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gatewayInternalClient) ForwardToRoom(ctx context.Context, in *ForwardToRoomReq, opts ...grpc.CallOption) (*ForwardToRoomResp, error) {
+	out := new(ForwardToRoomResp)
+	err := c.cc.Invoke(ctx, "/gateway.v1.GatewayInternal/ForwardToRoom", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gatewayInternalClient) KickUser(ctx context.Context, in *KickUserReq, opts ...grpc.CallOption) (*KickUserResp, error) {
+	out := new(KickUserResp)
+	err := c.cc.Invoke(ctx, "/gateway.v1.GatewayInternal/KickUser", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gatewayInternalClient) KickSession(ctx context.Context, in *KickSessionReq, opts ...grpc.CallOption) (*KickSessionResp, error) {
+	out := new(KickSessionResp)
+	err := c.cc.Invoke(ctx, "/gateway.v1.GatewayInternal/KickSession", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gatewayInternalClient) KickDevice(ctx context.Context, in *KickDeviceReq, opts ...grpc.CallOption) (*KickDeviceResp, error) {
+	out := new(KickDeviceResp)
+	err := c.cc.Invoke(ctx, "/gateway.v1.GatewayInternal/KickDevice", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gatewayInternalClient) DrainNode(ctx context.Context, in *DrainNodeReq, opts ...grpc.CallOption) (*DrainNodeResp, error) {
+	out := new(DrainNodeResp)
+	err := c.cc.Invoke(ctx, "/gateway.v1.GatewayInternal/DrainNode", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gatewayInternalClient) UndrainNode(ctx context.Context, in *UndrainNodeReq, opts ...grpc.CallOption) (*UndrainNodeResp, error) {
+	out := new(UndrainNodeResp)
+	err := c.cc.Invoke(ctx, "/gateway.v1.GatewayInternal/UndrainNode", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gatewayInternalClient) GetNodeStatus(ctx context.Context, in *GetNodeStatusReq, opts ...grpc.CallOption) (*GetNodeStatusResp, error) {
+	out := new(GetNodeStatusResp)
+	err := c.cc.Invoke(ctx, "/gateway.v1.GatewayInternal/GetNodeStatus", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gatewayInternalClient) GetStats(ctx context.Context, in *GetStatsReq, opts ...grpc.CallOption) (*GetStatsResp, error) {
+	out := new(GetStatsResp)
+	err := c.cc.Invoke(ctx, "/gateway.v1.GatewayInternal/GetStats", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gatewayInternalClient) GetBizStats(ctx context.Context, in *GetBizStatsReq, opts ...grpc.CallOption) (*GetBizStatsResp, error) {
+	out := new(GetBizStatsResp)
+	err := c.cc.Invoke(ctx, "/gateway.v1.GatewayInternal/GetBizStats", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gatewayInternalClient) GetRoomStats(ctx context.Context, in *GetRoomStatsReq, opts ...grpc.CallOption) (*GetRoomStatsResp, error) {
+	out := new(GetRoomStatsResp)
+	err := c.cc.Invoke(ctx, "/gateway.v1.GatewayInternal/GetRoomStats", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gatewayInternalClient) QueryRoute(ctx context.Context, in *QueryRouteReq, opts ...grpc.CallOption) (*QueryRouteResp, error) {
+	out := new(QueryRouteResp)
+	err := c.cc.Invoke(ctx, "/gateway.v1.GatewayInternal/QueryRoute", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gatewayInternalClient) QuerySession(ctx context.Context, in *QuerySessionReq, opts ...grpc.CallOption) (*QuerySessionResp, error) {
+	out := new(QuerySessionResp)
+	err := c.cc.Invoke(ctx, "/gateway.v1.GatewayInternal/QuerySession", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gatewayInternalClient) ListSessions(ctx context.Context, in *ListSessionsReq, opts ...grpc.CallOption) (*ListSessionsResp, error) {
+	out := new(ListSessionsResp)
+	err := c.cc.Invoke(ctx, "/gateway.v1.GatewayInternal/ListSessions", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// GatewayInternalServer is the server API for GatewayInternal service.
+// All implementations should embed UnimplementedGatewayInternalServer
 // for forward compatibility
-type GatewayServer interface {
+type GatewayInternalServer interface {
+	// ── 单条推送 ────────────────────────────────────────────────────────────
 	PushMessage(context.Context, *PushMessageReq) (*PushMessageResp, error)
+	// ── 批量推送 ────────────────────────────────────────────────────────────
+	BatchPushMessage(context.Context, *BatchPushMessageReq) (*BatchPushMessageResp, error)
+	// ── 房间广播 ────────────────────────────────────────────────────────────
+	BroadcastToRoom(context.Context, *BroadcastToRoomReq) (*BroadcastToRoomResp, error)
+	// ── Topic 广播 ──────────────────────────────────────────────────────────
+	BroadcastToTopic(context.Context, *BroadcastToTopicReq) (*BroadcastToTopicResp, error)
+	// ── 全量广播 ────────────────────────────────────────────────────────────
+	BroadcastToAll(context.Context, *BroadcastToAllReq) (*BroadcastToAllResp, error)
+	// ── 跨节点投递（消费 Kafka 的节点向目标节点转发）─────────────────────────
+	ForwardToSession(context.Context, *ForwardToSessionReq) (*ForwardToSessionResp, error)
+	ForwardToRoom(context.Context, *ForwardToRoomReq) (*ForwardToRoomResp, error)
+	// ── 用户管理 ────────────────────────────────────────────────────────────
+	KickUser(context.Context, *KickUserReq) (*KickUserResp, error)
+	KickSession(context.Context, *KickSessionReq) (*KickSessionResp, error)
+	KickDevice(context.Context, *KickDeviceReq) (*KickDeviceResp, error)
+	// ── 节点治理 ────────────────────────────────────────────────────────────
+	DrainNode(context.Context, *DrainNodeReq) (*DrainNodeResp, error)
+	UndrainNode(context.Context, *UndrainNodeReq) (*UndrainNodeResp, error)
+	GetNodeStatus(context.Context, *GetNodeStatusReq) (*GetNodeStatusResp, error)
+	// ── 集群统计 ────────────────────────────────────────────────────────────
+	GetStats(context.Context, *GetStatsReq) (*GetStatsResp, error)
+	GetBizStats(context.Context, *GetBizStatsReq) (*GetBizStatsResp, error)
+	GetRoomStats(context.Context, *GetRoomStatsReq) (*GetRoomStatsResp, error)
+	// ── 路由查询 ────────────────────────────────────────────────────────────
+	QueryRoute(context.Context, *QueryRouteReq) (*QueryRouteResp, error)
+	QuerySession(context.Context, *QuerySessionReq) (*QuerySessionResp, error)
+	ListSessions(context.Context, *ListSessionsReq) (*ListSessionsResp, error)
 }
 
-// UnimplementedGatewayServer should be embedded to have forward compatible implementations.
-type UnimplementedGatewayServer struct {
+// UnimplementedGatewayInternalServer should be embedded to have forward compatible implementations.
+type UnimplementedGatewayInternalServer struct {
 }
 
-func (UnimplementedGatewayServer) PushMessage(context.Context, *PushMessageReq) (*PushMessageResp, error) {
+func (UnimplementedGatewayInternalServer) PushMessage(context.Context, *PushMessageReq) (*PushMessageResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PushMessage not implemented")
 }
+func (UnimplementedGatewayInternalServer) BatchPushMessage(context.Context, *BatchPushMessageReq) (*BatchPushMessageResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BatchPushMessage not implemented")
+}
+func (UnimplementedGatewayInternalServer) BroadcastToRoom(context.Context, *BroadcastToRoomReq) (*BroadcastToRoomResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BroadcastToRoom not implemented")
+}
+func (UnimplementedGatewayInternalServer) BroadcastToTopic(context.Context, *BroadcastToTopicReq) (*BroadcastToTopicResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BroadcastToTopic not implemented")
+}
+func (UnimplementedGatewayInternalServer) BroadcastToAll(context.Context, *BroadcastToAllReq) (*BroadcastToAllResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BroadcastToAll not implemented")
+}
+func (UnimplementedGatewayInternalServer) ForwardToSession(context.Context, *ForwardToSessionReq) (*ForwardToSessionResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ForwardToSession not implemented")
+}
+func (UnimplementedGatewayInternalServer) ForwardToRoom(context.Context, *ForwardToRoomReq) (*ForwardToRoomResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ForwardToRoom not implemented")
+}
+func (UnimplementedGatewayInternalServer) KickUser(context.Context, *KickUserReq) (*KickUserResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method KickUser not implemented")
+}
+func (UnimplementedGatewayInternalServer) KickSession(context.Context, *KickSessionReq) (*KickSessionResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method KickSession not implemented")
+}
+func (UnimplementedGatewayInternalServer) KickDevice(context.Context, *KickDeviceReq) (*KickDeviceResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method KickDevice not implemented")
+}
+func (UnimplementedGatewayInternalServer) DrainNode(context.Context, *DrainNodeReq) (*DrainNodeResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DrainNode not implemented")
+}
+func (UnimplementedGatewayInternalServer) UndrainNode(context.Context, *UndrainNodeReq) (*UndrainNodeResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UndrainNode not implemented")
+}
+func (UnimplementedGatewayInternalServer) GetNodeStatus(context.Context, *GetNodeStatusReq) (*GetNodeStatusResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetNodeStatus not implemented")
+}
+func (UnimplementedGatewayInternalServer) GetStats(context.Context, *GetStatsReq) (*GetStatsResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetStats not implemented")
+}
+func (UnimplementedGatewayInternalServer) GetBizStats(context.Context, *GetBizStatsReq) (*GetBizStatsResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetBizStats not implemented")
+}
+func (UnimplementedGatewayInternalServer) GetRoomStats(context.Context, *GetRoomStatsReq) (*GetRoomStatsResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRoomStats not implemented")
+}
+func (UnimplementedGatewayInternalServer) QueryRoute(context.Context, *QueryRouteReq) (*QueryRouteResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method QueryRoute not implemented")
+}
+func (UnimplementedGatewayInternalServer) QuerySession(context.Context, *QuerySessionReq) (*QuerySessionResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method QuerySession not implemented")
+}
+func (UnimplementedGatewayInternalServer) ListSessions(context.Context, *ListSessionsReq) (*ListSessionsResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListSessions not implemented")
+}
 
-// UnsafeGatewayServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to GatewayServer will
+// UnsafeGatewayInternalServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to GatewayInternalServer will
 // result in compilation errors.
-type UnsafeGatewayServer interface {
-	mustEmbedUnimplementedGatewayServer()
+type UnsafeGatewayInternalServer interface {
+	mustEmbedUnimplementedGatewayInternalServer()
 }
 
-func RegisterGatewayServer(s grpc.ServiceRegistrar, srv GatewayServer) {
-	s.RegisterService(&Gateway_ServiceDesc, srv)
+func RegisterGatewayInternalServer(s grpc.ServiceRegistrar, srv GatewayInternalServer) {
+	s.RegisterService(&GatewayInternal_ServiceDesc, srv)
 }
 
-func _Gateway_PushMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _GatewayInternal_PushMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(PushMessageReq)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(GatewayServer).PushMessage(ctx, in)
+		return srv.(GatewayInternalServer).PushMessage(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/gateway.v1.Gateway/PushMessage",
+		FullMethod: "/gateway.v1.GatewayInternal/PushMessage",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(GatewayServer).PushMessage(ctx, req.(*PushMessageReq))
+		return srv.(GatewayInternalServer).PushMessage(ctx, req.(*PushMessageReq))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// Gateway_ServiceDesc is the grpc.ServiceDesc for Gateway service.
+func _GatewayInternal_BatchPushMessage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchPushMessageReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GatewayInternalServer).BatchPushMessage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gateway.v1.GatewayInternal/BatchPushMessage",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GatewayInternalServer).BatchPushMessage(ctx, req.(*BatchPushMessageReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GatewayInternal_BroadcastToRoom_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BroadcastToRoomReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GatewayInternalServer).BroadcastToRoom(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gateway.v1.GatewayInternal/BroadcastToRoom",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GatewayInternalServer).BroadcastToRoom(ctx, req.(*BroadcastToRoomReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GatewayInternal_BroadcastToTopic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BroadcastToTopicReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GatewayInternalServer).BroadcastToTopic(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gateway.v1.GatewayInternal/BroadcastToTopic",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GatewayInternalServer).BroadcastToTopic(ctx, req.(*BroadcastToTopicReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GatewayInternal_BroadcastToAll_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BroadcastToAllReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GatewayInternalServer).BroadcastToAll(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gateway.v1.GatewayInternal/BroadcastToAll",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GatewayInternalServer).BroadcastToAll(ctx, req.(*BroadcastToAllReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GatewayInternal_ForwardToSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ForwardToSessionReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GatewayInternalServer).ForwardToSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gateway.v1.GatewayInternal/ForwardToSession",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GatewayInternalServer).ForwardToSession(ctx, req.(*ForwardToSessionReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GatewayInternal_ForwardToRoom_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ForwardToRoomReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GatewayInternalServer).ForwardToRoom(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gateway.v1.GatewayInternal/ForwardToRoom",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GatewayInternalServer).ForwardToRoom(ctx, req.(*ForwardToRoomReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GatewayInternal_KickUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(KickUserReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GatewayInternalServer).KickUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gateway.v1.GatewayInternal/KickUser",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GatewayInternalServer).KickUser(ctx, req.(*KickUserReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GatewayInternal_KickSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(KickSessionReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GatewayInternalServer).KickSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gateway.v1.GatewayInternal/KickSession",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GatewayInternalServer).KickSession(ctx, req.(*KickSessionReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GatewayInternal_KickDevice_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(KickDeviceReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GatewayInternalServer).KickDevice(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gateway.v1.GatewayInternal/KickDevice",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GatewayInternalServer).KickDevice(ctx, req.(*KickDeviceReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GatewayInternal_DrainNode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DrainNodeReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GatewayInternalServer).DrainNode(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gateway.v1.GatewayInternal/DrainNode",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GatewayInternalServer).DrainNode(ctx, req.(*DrainNodeReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GatewayInternal_UndrainNode_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UndrainNodeReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GatewayInternalServer).UndrainNode(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gateway.v1.GatewayInternal/UndrainNode",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GatewayInternalServer).UndrainNode(ctx, req.(*UndrainNodeReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GatewayInternal_GetNodeStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetNodeStatusReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GatewayInternalServer).GetNodeStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gateway.v1.GatewayInternal/GetNodeStatus",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GatewayInternalServer).GetNodeStatus(ctx, req.(*GetNodeStatusReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GatewayInternal_GetStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetStatsReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GatewayInternalServer).GetStats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gateway.v1.GatewayInternal/GetStats",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GatewayInternalServer).GetStats(ctx, req.(*GetStatsReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GatewayInternal_GetBizStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetBizStatsReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GatewayInternalServer).GetBizStats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gateway.v1.GatewayInternal/GetBizStats",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GatewayInternalServer).GetBizStats(ctx, req.(*GetBizStatsReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GatewayInternal_GetRoomStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRoomStatsReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GatewayInternalServer).GetRoomStats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gateway.v1.GatewayInternal/GetRoomStats",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GatewayInternalServer).GetRoomStats(ctx, req.(*GetRoomStatsReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GatewayInternal_QueryRoute_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryRouteReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GatewayInternalServer).QueryRoute(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gateway.v1.GatewayInternal/QueryRoute",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GatewayInternalServer).QueryRoute(ctx, req.(*QueryRouteReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GatewayInternal_QuerySession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QuerySessionReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GatewayInternalServer).QuerySession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gateway.v1.GatewayInternal/QuerySession",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GatewayInternalServer).QuerySession(ctx, req.(*QuerySessionReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _GatewayInternal_ListSessions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSessionsReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GatewayInternalServer).ListSessions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/gateway.v1.GatewayInternal/ListSessions",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GatewayInternalServer).ListSessions(ctx, req.(*ListSessionsReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// GatewayInternal_ServiceDesc is the grpc.ServiceDesc for GatewayInternal service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var Gateway_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "gateway.v1.Gateway",
-	HandlerType: (*GatewayServer)(nil),
+var GatewayInternal_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "gateway.v1.GatewayInternal",
+	HandlerType: (*GatewayInternalServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "PushMessage",
-			Handler:    _Gateway_PushMessage_Handler,
+			Handler:    _GatewayInternal_PushMessage_Handler,
+		},
+		{
+			MethodName: "BatchPushMessage",
+			Handler:    _GatewayInternal_BatchPushMessage_Handler,
+		},
+		{
+			MethodName: "BroadcastToRoom",
+			Handler:    _GatewayInternal_BroadcastToRoom_Handler,
+		},
+		{
+			MethodName: "BroadcastToTopic",
+			Handler:    _GatewayInternal_BroadcastToTopic_Handler,
+		},
+		{
+			MethodName: "BroadcastToAll",
+			Handler:    _GatewayInternal_BroadcastToAll_Handler,
+		},
+		{
+			MethodName: "ForwardToSession",
+			Handler:    _GatewayInternal_ForwardToSession_Handler,
+		},
+		{
+			MethodName: "ForwardToRoom",
+			Handler:    _GatewayInternal_ForwardToRoom_Handler,
+		},
+		{
+			MethodName: "KickUser",
+			Handler:    _GatewayInternal_KickUser_Handler,
+		},
+		{
+			MethodName: "KickSession",
+			Handler:    _GatewayInternal_KickSession_Handler,
+		},
+		{
+			MethodName: "KickDevice",
+			Handler:    _GatewayInternal_KickDevice_Handler,
+		},
+		{
+			MethodName: "DrainNode",
+			Handler:    _GatewayInternal_DrainNode_Handler,
+		},
+		{
+			MethodName: "UndrainNode",
+			Handler:    _GatewayInternal_UndrainNode_Handler,
+		},
+		{
+			MethodName: "GetNodeStatus",
+			Handler:    _GatewayInternal_GetNodeStatus_Handler,
+		},
+		{
+			MethodName: "GetStats",
+			Handler:    _GatewayInternal_GetStats_Handler,
+		},
+		{
+			MethodName: "GetBizStats",
+			Handler:    _GatewayInternal_GetBizStats_Handler,
+		},
+		{
+			MethodName: "GetRoomStats",
+			Handler:    _GatewayInternal_GetRoomStats_Handler,
+		},
+		{
+			MethodName: "QueryRoute",
+			Handler:    _GatewayInternal_QueryRoute_Handler,
+		},
+		{
+			MethodName: "QuerySession",
+			Handler:    _GatewayInternal_QuerySession_Handler,
+		},
+		{
+			MethodName: "ListSessions",
+			Handler:    _GatewayInternal_ListSessions_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

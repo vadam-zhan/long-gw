@@ -43,7 +43,7 @@ func (f *Factory) CreateAndRun(ctx context.Context, tp transport.Transport) {
 	authInfo, authReqMsg, err := f.doHandshake(ctx, tp)
 	if err != nil {
 		slog.Error("factory: handshake failed", "remote", tp.RemoteAddr(), "error", err)
-		f.sendRawKick(ctx, tp, 4010, err.Error())
+		f.sendRawKick(ctx, tp, gatewayv1.ERR_HANDSHAKE_FAILED, err.Error())
 		tp.Close()
 		return
 	}
@@ -180,19 +180,20 @@ func (f *Factory) sendAuthResponse(
 		},
 	}
 
-	payload := &gatewayv1.AuthResponse{
-		Code:              0,
-		Result:            true,
-		SessionId:         sessionID,
-		HeartbeatInternal: uint32(f.deps.HeartbeatTimeout.Seconds()),
-		MaxBodySize:       f.deps.MaxBodySize,
-		ReplayFrom:        lastSeq + 1,
+	payload := &gatewayv1.HandshakeResponse{
+		Success:             true,
+		ErrorCode:           gatewayv1.ERROR_CODE_UNSPECIFIED,
+		SessionId:           sessionID,
+		HeartbeatInterval:   int32(f.deps.HeartbeatTimeout.Seconds()),
+		MaxBodySize:         int64(f.deps.MaxBodySize),
+		ReplayFrom:          lastSeq + 1,
 	}
 
 	pay, _ := proto.Marshal(payload)
 	resp.Body = &gatewayv1.Body{
-		Type: "auth_response",
-		Data: pay,
+		Codec:        gatewayv1.Codec_PROTOBUF,
+		CompressAlgo: gatewayv1.CompressAlgo_NONE,
+		Data:         pay,
 	}
 
 	// DirectWrite is safe here because WriteLoop has not started.
@@ -200,18 +201,18 @@ func (f *Factory) sendAuthResponse(
 }
 
 // sendRawKick sends a Kick frame directly on tp (before Connection is created).
-func (f *Factory) sendRawKick(ctx context.Context, tp transport.Transport, code int32, reason string) {
+func (f *Factory) sendRawKick(ctx context.Context, tp transport.Transport, code gatewayv1.ErrorCode, reason string) {
 	payload := &gatewayv1.KickRequest{
 		Code:   code,
 		Reason: reason,
-		// ReconnectAfter: ,
 	}
 	p, _ := proto.Marshal(payload)
 	kick := &gatewayv1.Message{
 		Type: gatewayv1.FrameType_KICK,
 		Body: &gatewayv1.Body{
-			Type: "kick",
-			Data: p,
+			Codec:        gatewayv1.Codec_PROTOBUF,
+			CompressAlgo: gatewayv1.CompressAlgo_NONE,
+			Data:         p,
 		},
 	}
 

@@ -4,17 +4,512 @@ package gateway.v1;
 
 option go_package = "github.com/vadam-zhan/long-gw/common-protocol/gen/gateway/v1;gatewayv1";
 
+import "gateway/v1/common.proto";
+import "validate/validate.proto";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GatewayInternal：网关内部 gRPC 服务
+//
+// 面向：
+//   1. 业务后端（Business）：通过 Push/Broadcast 接口向客户端投递消息
+//   2. 管理后台（Admin）：通过 Kick/Drain/Stats 接口治理网关集群
+//   3. 其他网关节点（Cross-Node）：通过 Forward 接口做跨节点消息投递
+//
+// 设计原则：
+//   1. 所有推送接口支持异步投递（返回 Accepted，不等待客户端 ACK）
+//   2. 批量接口支持部分成功（返回成功列表 + 失败列表）
+//   3. 管理接口支持节点级操作（DrainNode）和集群级查询（GetStats）
+// ─────────────────────────────────────────────────────────────────────────────
+
+service GatewayInternal {
+    // ── 单条推送 ────────────────────────────────────────────────────────────
+    rpc PushMessage(PushMessageReq) returns (PushMessageResp);
+
+    // ── 批量推送 ────────────────────────────────────────────────────────────
+    rpc BatchPushMessage(BatchPushMessageReq) returns (BatchPushMessageResp);
+
+    // ── 房间广播 ────────────────────────────────────────────────────────────
+    rpc BroadcastToRoom(BroadcastToRoomReq) returns (BroadcastToRoomResp);
+
+    // ── Topic 广播 ──────────────────────────────────────────────────────────
+    rpc BroadcastToTopic(BroadcastToTopicReq) returns (BroadcastToTopicResp);
+
+    // ── 全量广播 ────────────────────────────────────────────────────────────
+    rpc BroadcastToAll(BroadcastToAllReq) returns (BroadcastToAllResp);
+
+    // ── 跨节点投递（消费 Kafka 的节点向目标节点转发）─────────────────────────
+    rpc ForwardToSession(ForwardToSessionReq) returns (ForwardToSessionResp);
+    rpc ForwardToRoom(ForwardToRoomReq) returns (ForwardToRoomResp);
+
+    // ── 用户管理 ────────────────────────────────────────────────────────────
+    rpc KickUser(KickUserReq) returns (KickUserResp);
+    rpc KickSession(KickSessionReq) returns (KickSessionResp);
+    rpc KickDevice(KickDeviceReq) returns (KickDeviceResp);
+
+    // ── 节点治理 ────────────────────────────────────────────────────────────
+    rpc DrainNode(DrainNodeReq) returns (DrainNodeResp);
+    rpc UndrainNode(UndrainNodeReq) returns (UndrainNodeResp);
+    rpc GetNodeStatus(GetNodeStatusReq) returns (GetNodeStatusResp);
+
+    // ── 集群统计 ────────────────────────────────────────────────────────────
+    rpc GetStats(GetStatsReq) returns (GetStatsResp);
+    rpc GetBizStats(GetBizStatsReq) returns (GetBizStatsResp);
+    rpc GetRoomStats(GetRoomStatsReq) returns (GetRoomStatsResp);
+
+    // ── 路由查询 ────────────────────────────────────────────────────────────
+    rpc QueryRoute(QueryRouteReq) returns (QueryRouteResp);
+    rpc QuerySession(QuerySessionReq) returns (QuerySessionResp);
+    rpc ListSessions(ListSessionsReq) returns (ListSessionsResp);
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 推送接口
+// ═════════════════════════════════════════════════════════════════════════════
+
 message PushMessageReq {
-    string receiver = 1; // 接收者 ID
-    bytes payload = 2; // 业务载荷
-    string business_type = 4; // 业务类型
+    // 目标：单用户、单设备、单 Session 或单连接
+    RouteTarget to = 1 [(validate.rules).message = {required: true}];
+
+    // 业务域标识（用于 WorkerPool 路由和限流）
+    string biz_code = 2 [(validate.rules).string = {max_len: 128}];
+
+    // 投递控制（QoS、优先级、是否离线存储）
+    Delivery delivery = 3;
+
+    // 业务载荷
+    Body body = 4 [(validate.rules).message = {required: true}];
+
+    // 可选：指定消息来源（用于审计和调试）
+    string origin = 5;  // "pushapi" | "business" | "system"
+
+    // 可选：透传 headers（网关会清理非白名单 headers 后发给客户端）
+    map<string, string> headers = 6;
 }
 
 message PushMessageResp {
-    bool success = 1; // 是否成功
-    string message = 2; // 错误信息
+    bool accepted = 1;  // true = 已接受投递（不保证客户端已收到）
+
+    // 投递结果详情
+    enum Status {
+        STATUS_UNSPECIFIED = 0;
+        DELIVERED          = 1;  // 已投递到客户端连接
+        QUEUED             = 2;  // 客户端离线，已入队列/离线存储
+        TARGET_OFFLINE     = 3;  // 目标离线且未配置离线存储
+        TARGET_NOT_FOUND   = 4;  // 目标不存在（用户未登录或 Session 已关闭）
+        RATE_LIMITED       = 5;  // 触发限流，消息被拒绝
+    }
+    Status status = 2;
+
+    // 如果成功投递，返回实际送达的 session_id 和 seq_id
+    string session_id = 3;
+    uint64 seq_id     = 4;
+
+    // 失败时的结构化错误
+    ErrorCode error_code   = 5;
+    string    error_message = 6;
 }
 
-service Gateway {
-    rpc PushMessage(PushMessageReq) returns (PushMessageResp);
+message BatchPushMessageReq {
+    // 批量目标（每个目标独立投递，共享 body 和 delivery）
+    repeated RouteTarget to_list = 1 [(validate.rules).repeated = {min_items: 1, max_items: 1000}];
+
+    string biz_code = 2 [(validate.rules).string = {max_len: 128}];
+    Delivery delivery = 3;
+    Body body = 4 [(validate.rules).message = {required: true}];
+    string origin = 5;
+}
+
+message BatchPushMessageResp {
+    // 总体统计
+    int32 total_count   = 1;
+    int32 success_count = 2;
+    int32 fail_count    = 3;
+
+    // 失败详情（key = target_key，value = 错误信息）
+    message FailedItem {
+        string target_key = 1;
+        ErrorCode error_code = 2;
+        string error_message = 3;
+    }
+    repeated FailedItem failed_items = 4;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 广播接口
+// ═════════════════════════════════════════════════════════════════════════════
+
+message BroadcastToRoomReq {
+    string room_id = 1 [(validate.rules).string = {min_len: 1, max_len: 256}];
+    string biz_code = 2 [(validate.rules).string = {max_len: 128}];
+    Delivery delivery = 3;
+    Body body = 4 [(validate.rules).message = {required: true}];
+
+    // 可选：排除发送者本人（用于 IM 群聊时发送者不收到自己的消息）
+    bool exclude_sender = 5;
+    string sender_user_id = 6;  // exclude_sender=true 时必填
+
+    // 可选：按条件过滤接收者
+    //   例如：只发给 device_type="mobile" 的用户
+    map<string, string> filter_labels = 7;
+}
+
+message BroadcastToRoomResp {
+    bool accepted = 1;
+
+    // 广播统计（异步返回预估值，实际投递通过 metrics 确认）
+    int64 target_count = 2;   // 房间总人数
+    int64 online_count = 3;   // 在线人数（实际会收到广播）
+    int64 node_count   = 4;   // 涉及多少个网关节点（跨节点广播时）
+
+    ErrorCode error_code = 5;
+    string error_message = 6;
+}
+
+message BroadcastToTopicReq {
+    string topic = 1 [(validate.rules).string = {min_len: 1, max_len: 256}];
+    string biz_code = 2 [(validate.rules).string = {max_len: 128}];
+    Delivery delivery = 3;
+    Body body = 4 [(validate.rules).message = {required: true}];
+    bool exclude_sender = 5;
+    string sender_user_id = 6;
+}
+
+message BroadcastToTopicResp {
+    bool accepted = 1;
+    int64 subscriber_count = 2;
+    int64 node_count = 3;
+    ErrorCode error_code = 4;
+    string error_message = 5;
+}
+
+message BroadcastToAllReq {
+    string biz_code = 1 [(validate.rules).string = {max_len: 128}];
+    Delivery delivery = 2;
+    Body body = 3 [(validate.rules).message = {required: true}];
+
+    // 可选：按业务域过滤（如只发给 biz_code="im" 的在线用户）
+    repeated string filter_biz_codes = 4;
+
+    // 可选：渐进式广播（分批投递，防止瞬间洪峰）
+    //   batch_size: 每批投递多少用户，batch_interval_ms: 批次间隔
+    int32 batch_size = 5;
+    int32 batch_interval_ms = 6;
+}
+
+message BroadcastToAllResp {
+    bool accepted = 1;
+    int64 total_online_users = 2;  // 当前全集群在线用户总数
+    int64 estimated_duration_ms = 3;  // 预估完成时间（基于 batch 配置）
+    ErrorCode error_code = 4;
+    string error_message = 5;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 跨节点投递接口
+// ═════════════════════════════════════════════════════════════════════════════
+
+message ForwardToSessionReq {
+    // 目标 Session 信息（用于目标节点定位 Session）
+    string session_id = 1 [(validate.rules).string = {max_len: 128}];
+    string user_id    = 2 [(validate.rules).string = {max_len: 128}];
+    string device_id  = 3 [(validate.rules).string = {max_len: 128}];
+
+    // 原始消息上下文（从 Kafka 消费的消息）
+    string msg_id = 4;
+    uint64 seq_id = 5;
+    string biz_code = 6;
+    Delivery delivery = 7;
+    Body body = 8;
+    map<string, string> headers = 9;
+
+    // 来源节点信息（用于追踪和避免循环）
+    string from_node_id = 10;
+    int32  hop_count = 11;  // 转发跳数，超过阈值拒绝（防循环）
+}
+
+message ForwardToSessionResp {
+    bool delivered = 1;
+    ErrorCode error_code = 2;
+    string error_message = 3;
+}
+
+message ForwardToRoomReq {
+    string room_id = 1 [(validate.rules).string = {min_len: 1, max_len: 256}];
+    string biz_code = 2 [(validate.rules).string = {max_len: 128}];
+    Delivery delivery = 3;
+    Body body = 4 [(validate.rules).message = {required: true}];
+
+    // 目标节点列表（由 Broadcast Coordinator 计算）
+    repeated string target_node_ids = 5;
+
+    string from_node_id = 6;
+    int32 hop_count = 7;
+}
+
+message ForwardToRoomResp {
+    bool accepted = 1;
+    int32 forwarded_nodes = 2;  // 成功转发了多少个节点
+    ErrorCode error_code = 3;
+    string error_message = 4;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 用户管理接口
+// ═════════════════════════════════════════════════════════════════════════════
+
+message KickUserReq {
+    string user_id = 1 [(validate.rules).string = {max_len: 128}];
+
+    // 可选：只踢特定设备，空字符串表示踢全部设备
+    string device_id = 2;
+
+    ErrorCode code = 3;  // 踢人原因码
+    string reason = 4;
+    int32 reconnect_after = 5;  // 建议重连等待时间（秒）
+    bool permanent = 6;         // true = 加入黑名单，禁止自动重连
+}
+
+message KickUserResp {
+    int32 kicked_sessions = 1;  // 实际踢掉了多少个 Session
+    int32 kicked_devices  = 2;  // 涉及多少个设备
+}
+
+message KickSessionReq {
+    string session_id = 1 [(validate.rules).string = {max_len: 128}];
+    ErrorCode code = 2;
+    string reason = 3;
+}
+
+message KickSessionResp {
+    bool found = 1;
+    bool kicked = 2;
+    ErrorCode error_code = 3;
+    string error_message = 4;
+}
+
+message KickDeviceReq {
+    string device_id = 1 [(validate.rules).string = {max_len: 128}];
+    ErrorCode code = 2;
+    string reason = 3;
+}
+
+message KickDeviceResp {
+    int32 kicked_sessions = 1;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 节点治理接口
+// ═════════════════════════════════════════════════════════════════════════════
+
+message DrainNodeReq {
+    // 可选：指定摘流超时时间，超过后强制关闭剩余连接
+    int32 timeout_sec = 1;
+
+    // 可选：只拒绝新连接，已存在的连接等待自然关闭
+    bool graceful = 2;
+
+    // 可选：摘流原因（用于日志和审计）
+    string reason = 3;
+}
+
+message DrainNodeResp {
+    bool accepted = 1;
+
+    // 当前节点状态
+    enum DrainState {
+        DRAIN_STATE_UNSPECIFIED = 0;
+        SERVING   = 1;  // 正常服务
+        DRAINING  = 2;  // 摘流中（拒绝新连接，等待旧连接关闭）
+        DRAINED   = 3;  // 已摘流（可以安全下线）
+    }
+    DrainState state = 2;
+
+    int32 remaining_connections = 3;  // 剩余连接数
+    int32 remaining_sessions    = 4;  // 剩余 Session 数
+}
+
+message UndrainNodeReq {
+    // 空请求，恢复服务
+}
+
+message UndrainNodeResp {
+    bool success = 1;
+    DrainNodeResp.DrainState previous_state = 2;
+}
+
+message GetNodeStatusReq {
+    // 空请求，查询当前节点状态
+}
+
+message GetNodeStatusResp {
+    string node_id = 1;
+    string node_addr = 2;
+    DrainNodeResp.DrainState drain_state = 3;
+
+    // 连接统计
+    int64 connection_count = 4;
+    int64 session_count = 5;
+    int64 user_count = 6;
+
+    // 资源使用
+    float cpu_percent = 7;
+    float memory_percent = 8;
+    int64 goroutine_count = 9;
+
+    // 消息统计（最近 1 分钟）
+    int64 upstream_qps = 10;
+    int64 downstream_qps = 11;
+    int64 broadcast_qps = 12;
+
+    // 启动时间
+    int64 start_time = 13;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 集群统计接口
+// ═════════════════════════════════════════════════════════════════════════════
+
+message GetStatsReq {
+    // 可选：聚合时间窗口（秒），默认 60
+    int32 window_sec = 1;
+
+    // 可选：是否包含各业务域详细统计
+    bool include_biz_breakdown = 2;
+
+    // 可选：是否包含房间统计（Top N 房间）
+    int32 top_rooms = 3;
+}
+
+message GetStatsResp {
+    // 集群总体
+    int64 total_nodes = 1;
+    int64 total_connections = 2;
+    int64 total_sessions = 3;
+    int64 total_users = 4;
+
+    // 消息吞吐量（最近 window_sec 秒的平均值）
+    int64 upstream_qps = 5;
+    int64 downstream_qps = 6;
+    int64 broadcast_qps = 7;
+
+    // 各业务域统计
+    message BizStat {
+        string biz_code = 1;
+        int64 connection_count = 2;
+        int64 session_count = 3;
+        int64 upstream_qps = 4;
+        int64 downstream_qps = 5;
+    }
+    repeated BizStat biz_stats = 8;
+
+    // Top 房间统计
+    message RoomStat {
+        string room_id = 1;
+        int64 member_count = 2;
+        int64 online_count = 3;
+        int64 msg_qps = 4;
+    }
+    repeated RoomStat room_stats = 9;
+}
+
+message GetBizStatsReq {
+    string biz_code = 1 [(validate.rules).string = {max_len: 128}];
+}
+
+message GetBizStatsResp {
+    string biz_code = 1;
+    int64 connection_count = 2;
+    int64 session_count = 3;
+    int64 user_count = 4;
+    int64 upstream_qps = 5;
+    int64 downstream_qps = 6;
+    int64 offline_queue_size = 7;  // 离线消息队列积压数
+}
+
+message GetRoomStatsReq {
+    string room_id = 1 [(validate.rules).string = {min_len: 1, max_len: 256}];
+}
+
+message GetRoomStatsResp {
+    string room_id = 1;
+    int64 total_members = 2;     // 房间总人数（跨所有节点）
+    int64 online_members = 3;    // 在线人数
+    repeated string node_ids = 4; // 房间成员分布在哪些节点
+    int64 msg_qps = 5;           // 最近 1 分钟消息 QPS
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 路由查询接口
+// ═════════════════════════════════════════════════════════════════════════════
+
+message QueryRouteReq {
+    string user_id = 1 [(validate.rules).string = {max_len: 128}];
+    string device_id = 2;  // 可选，空表示查询用户所有设备
+}
+
+message QueryRouteResp {
+    bool found = 1;
+
+    message RouteInfo {
+        string device_id = 1;
+        string node_id = 2;
+        string node_addr = 3;
+        string session_id = 4;
+        string conn_id = 5;
+        string state = 6;  // "active" | "suspended" | "closed"
+        int64 last_active_at = 7;
+        int64 connect_time = 8;
+    }
+    repeated RouteInfo routes = 2;
+}
+
+message QuerySessionReq {
+    string session_id = 1 [(validate.rules).string = {max_len: 128}];
+}
+
+message QuerySessionResp {
+    bool found = 1;
+
+    string user_id = 2;
+    string device_id = 3;
+    string state = 4;  // "authenticating" | "active" | "suspended" | "closed"
+    int64 last_active_at = 5;
+    int64 create_time = 6;
+    string biz_code = 7;
+
+    repeated string rooms = 8;
+    repeated string topics = 9;
+
+    // 连接信息
+    string conn_id = 10;
+    string remote_addr = 11;
+    string device_type = 12;
+}
+
+message ListSessionsReq {
+    // 过滤条件（至少填一个）
+    string user_id = 1;
+    string room_id = 2;
+    string topic = 3;
+    string biz_code = 4;
+
+    // 分页
+    int32 page = 5 [(validate.rules).int32 = {gte: 1}];
+    int32 page_size = 6 [(validate.rules).int32 = {gte: 1, lte: 1000}];
+}
+
+message ListSessionsResp {
+    int32 total = 1;
+    int32 page = 2;
+    int32 page_size = 3;
+
+    message SessionItem {
+        string session_id = 1;
+        string user_id = 2;
+        string device_id = 3;
+        string state = 4;
+        int64 last_active_at = 5;
+        string node_id = 6;
+    }
+    repeated SessionItem items = 4;
 }

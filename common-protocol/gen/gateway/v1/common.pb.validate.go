@@ -223,16 +223,20 @@ func (m *TraceContext) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	if utf8.RuneCountInString(m.GetTraceParent()) > 256 {
+	if utf8.RuneCountInString(m.GetParentSpanId()) > 64 {
 		err := TraceContextValidationError{
-			field:  "TraceParent",
-			reason: "value length must be at most 256 runes",
+			field:  "ParentSpanId",
+			reason: "value length must be at most 64 runes",
 		}
 		if !all {
 			return err
 		}
 		errors = append(errors, err)
 	}
+
+	// no validation rules for Sampled
+
+	// no validation rules for Baggage
 
 	if len(errors) > 0 {
 		return TraceContextMultiError(errors)
@@ -339,6 +343,10 @@ func (m *Delivery) validate(all bool) error {
 
 	// no validation rules for MaxRetry
 
+	// no validation rules for Priority
+
+	// no validation rules for CompressBody
+
 	if m.AckId != nil {
 		// no validation rules for AckId
 	}
@@ -441,10 +449,21 @@ func (m *Message) validate(all bool) error {
 
 	var errors []error
 
-	if m.GetVersion() < 0 {
+	if m.GetVersion() < 1 {
 		err := MessageValidationError{
 			field:  "Version",
-			reason: "value must be greater than or equal to 0",
+			reason: "value must be greater than or equal to 1",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if _, ok := _Message_Type_NotInLookup[m.GetType()]; ok {
+		err := MessageValidationError{
+			field:  "Type",
+			reason: "value must not be in list [0]",
 		}
 		if !all {
 			return err
@@ -463,10 +482,10 @@ func (m *Message) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	if utf8.RuneCountInString(m.GetMsgId()) > 128 {
+	if l := utf8.RuneCountInString(m.GetMsgId()); l < 1 || l > 128 {
 		err := MessageValidationError{
 			field:  "MsgId",
-			reason: "value length must be at most 128 runes",
+			reason: "value length must be between 1 and 128 runes, inclusive",
 		}
 		if !all {
 			return err
@@ -474,38 +493,9 @@ func (m *Message) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	if m.GetSeqId() < 0 {
-		err := MessageValidationError{
-			field:  "SeqId",
-			reason: "value must be greater than or equal to 0",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
+	// no validation rules for SeqId
 
-	if m.GetTimestamp() < 0 {
-		err := MessageValidationError{
-			field:  "Timestamp",
-			reason: "value must be greater than or equal to 0",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
-
-	if m.GetFrom() == nil {
-		err := MessageValidationError{
-			field:  "From",
-			reason: "value is required",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
+	// no validation rules for Timestamp
 
 	if all {
 		switch v := interface{}(m.GetFrom()).(type) {
@@ -534,17 +524,6 @@ func (m *Message) validate(all bool) error {
 				cause:  err,
 			}
 		}
-	}
-
-	if m.GetTo() == nil {
-		err := MessageValidationError{
-			field:  "To",
-			reason: "value is required",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
 	}
 
 	if all {
@@ -576,17 +555,6 @@ func (m *Message) validate(all bool) error {
 		}
 	}
 
-	if m.GetDelivery() == nil {
-		err := MessageValidationError{
-			field:  "Delivery",
-			reason: "value is required",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
-
 	if all {
 		switch v := interface{}(m.GetDelivery()).(type) {
 		case interface{ ValidateAll() error }:
@@ -616,32 +584,12 @@ func (m *Message) validate(all bool) error {
 		}
 	}
 
-	if m.GetExpireAt() < 0 {
-		err := MessageValidationError{
-			field:  "ExpireAt",
-			reason: "value must be greater than or equal to 0",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
+	// no validation rules for ExpireAt
 
 	if utf8.RuneCountInString(m.GetBizCode()) > 128 {
 		err := MessageValidationError{
 			field:  "BizCode",
 			reason: "value length must be at most 128 runes",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
-
-	if m.GetTraceContext() == nil {
-		err := MessageValidationError{
-			field:  "TraceContext",
-			reason: "value is required",
 		}
 		if !all {
 			return err
@@ -680,17 +628,6 @@ func (m *Message) validate(all bool) error {
 
 	// no validation rules for Headers
 
-	if m.GetBody() == nil {
-		err := MessageValidationError{
-			field:  "Body",
-			reason: "value is required",
-		}
-		if !all {
-			return err
-		}
-		errors = append(errors, err)
-	}
-
 	if all {
 		switch v := interface{}(m.GetBody()).(type) {
 		case interface{ ValidateAll() error }:
@@ -719,6 +656,10 @@ func (m *Message) validate(all bool) error {
 			}
 		}
 	}
+
+	// no validation rules for Origin
+
+	// no validation rules for RecvAt
 
 	if len(errors) > 0 {
 		return MessageMultiError(errors)
@@ -797,6 +738,10 @@ var _ interface {
 	ErrorName() string
 } = MessageValidationError{}
 
+var _Message_Type_NotInLookup = map[FrameType]struct{}{
+	0: {},
+}
+
 // Validate checks the field values on Body with the rules defined in the proto
 // definition for this message. If any rules are violated, the first error
 // encountered is returned, or nil if there are no violations.
@@ -818,10 +763,10 @@ func (m *Body) validate(all bool) error {
 
 	var errors []error
 
-	if utf8.RuneCountInString(m.GetType()) > 128 {
+	if _, ok := _Body_Codec_NotInLookup[m.GetCodec()]; ok {
 		err := BodyValidationError{
-			field:  "Type",
-			reason: "value length must be at most 128 runes",
+			field:  "Codec",
+			reason: "value must not be in list [0]",
 		}
 		if !all {
 			return err
@@ -829,18 +774,49 @@ func (m *Body) validate(all bool) error {
 		errors = append(errors, err)
 	}
 
-	if len(m.GetData()) > 4194304 {
+	if _, ok := Codec_name[int32(m.GetCodec())]; !ok {
+		err := BodyValidationError{
+			field:  "Codec",
+			reason: "value must be one of the defined enum values",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if _, ok := _Body_CompressAlgo_NotInLookup[m.GetCompressAlgo()]; ok {
+		err := BodyValidationError{
+			field:  "CompressAlgo",
+			reason: "value must not be in list [0]",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if _, ok := CompressAlgo_name[int32(m.GetCompressAlgo())]; !ok {
+		err := BodyValidationError{
+			field:  "CompressAlgo",
+			reason: "value must be one of the defined enum values",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if l := len(m.GetData()); l < 1 || l > 4194304 {
 		err := BodyValidationError{
 			field:  "Data",
-			reason: "value length must be at most 4194304 bytes",
+			reason: "value length must be between 1 and 4194304 bytes, inclusive",
 		}
 		if !all {
 			return err
 		}
 		errors = append(errors, err)
 	}
-
-	// no validation rules for Ext
 
 	if len(errors) > 0 {
 		return BodyMultiError(errors)
@@ -918,3 +894,543 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = BodyValidationError{}
+
+var _Body_Codec_NotInLookup = map[Codec]struct{}{
+	0: {},
+}
+
+var _Body_CompressAlgo_NotInLookup = map[CompressAlgo]struct{}{
+	0: {},
+}
+
+// Validate checks the field values on BatchMessage with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *BatchMessage) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on BatchMessage with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in BatchMessageMultiError, or
+// nil if none found.
+func (m *BatchMessage) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *BatchMessage) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if all {
+		switch v := interface{}(m.GetShared()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, BatchMessageValidationError{
+					field:  "Shared",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, BatchMessageValidationError{
+					field:  "Shared",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetShared()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return BatchMessageValidationError{
+				field:  "Shared",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if l := len(m.GetItems()); l < 1 || l > 100 {
+		err := BatchMessageValidationError{
+			field:  "Items",
+			reason: "value must contain between 1 and 100 items, inclusive",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	for idx, item := range m.GetItems() {
+		_, _ = idx, item
+
+		if all {
+			switch v := interface{}(item).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, BatchMessageValidationError{
+						field:  fmt.Sprintf("Items[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, BatchMessageValidationError{
+						field:  fmt.Sprintf("Items[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return BatchMessageValidationError{
+					field:  fmt.Sprintf("Items[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	if len(errors) > 0 {
+		return BatchMessageMultiError(errors)
+	}
+
+	return nil
+}
+
+// BatchMessageMultiError is an error wrapping multiple validation errors
+// returned by BatchMessage.ValidateAll() if the designated constraints aren't met.
+type BatchMessageMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m BatchMessageMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m BatchMessageMultiError) AllErrors() []error { return m }
+
+// BatchMessageValidationError is the validation error returned by
+// BatchMessage.Validate if the designated constraints aren't met.
+type BatchMessageValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e BatchMessageValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e BatchMessageValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e BatchMessageValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e BatchMessageValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e BatchMessageValidationError) ErrorName() string { return "BatchMessageValidationError" }
+
+// Error satisfies the builtin error interface
+func (e BatchMessageValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sBatchMessage.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = BatchMessageValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = BatchMessageValidationError{}
+
+// Validate checks the field values on BatchMessage_SharedMeta with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *BatchMessage_SharedMeta) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on BatchMessage_SharedMeta with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// BatchMessage_SharedMetaMultiError, or nil if none found.
+func (m *BatchMessage_SharedMeta) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *BatchMessage_SharedMeta) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if all {
+		switch v := interface{}(m.GetFrom()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, BatchMessage_SharedMetaValidationError{
+					field:  "From",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, BatchMessage_SharedMetaValidationError{
+					field:  "From",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetFrom()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return BatchMessage_SharedMetaValidationError{
+				field:  "From",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	// no validation rules for BizCode
+
+	if all {
+		switch v := interface{}(m.GetTraceContext()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, BatchMessage_SharedMetaValidationError{
+					field:  "TraceContext",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, BatchMessage_SharedMetaValidationError{
+					field:  "TraceContext",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetTraceContext()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return BatchMessage_SharedMetaValidationError{
+				field:  "TraceContext",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if all {
+		switch v := interface{}(m.GetDelivery()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, BatchMessage_SharedMetaValidationError{
+					field:  "Delivery",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, BatchMessage_SharedMetaValidationError{
+					field:  "Delivery",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetDelivery()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return BatchMessage_SharedMetaValidationError{
+				field:  "Delivery",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	// no validation rules for Headers
+
+	if len(errors) > 0 {
+		return BatchMessage_SharedMetaMultiError(errors)
+	}
+
+	return nil
+}
+
+// BatchMessage_SharedMetaMultiError is an error wrapping multiple validation
+// errors returned by BatchMessage_SharedMeta.ValidateAll() if the designated
+// constraints aren't met.
+type BatchMessage_SharedMetaMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m BatchMessage_SharedMetaMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m BatchMessage_SharedMetaMultiError) AllErrors() []error { return m }
+
+// BatchMessage_SharedMetaValidationError is the validation error returned by
+// BatchMessage_SharedMeta.Validate if the designated constraints aren't met.
+type BatchMessage_SharedMetaValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e BatchMessage_SharedMetaValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e BatchMessage_SharedMetaValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e BatchMessage_SharedMetaValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e BatchMessage_SharedMetaValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e BatchMessage_SharedMetaValidationError) ErrorName() string {
+	return "BatchMessage_SharedMetaValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e BatchMessage_SharedMetaValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sBatchMessage_SharedMeta.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = BatchMessage_SharedMetaValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = BatchMessage_SharedMetaValidationError{}
+
+// Validate checks the field values on BatchMessage_Item with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *BatchMessage_Item) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on BatchMessage_Item with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// BatchMessage_ItemMultiError, or nil if none found.
+func (m *BatchMessage_Item) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *BatchMessage_Item) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for MsgId
+
+	// no validation rules for SeqId
+
+	if all {
+		switch v := interface{}(m.GetTo()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, BatchMessage_ItemValidationError{
+					field:  "To",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, BatchMessage_ItemValidationError{
+					field:  "To",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetTo()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return BatchMessage_ItemValidationError{
+				field:  "To",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	// no validation rules for ExpireAt
+
+	if all {
+		switch v := interface{}(m.GetBody()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, BatchMessage_ItemValidationError{
+					field:  "Body",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, BatchMessage_ItemValidationError{
+					field:  "Body",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetBody()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return BatchMessage_ItemValidationError{
+				field:  "Body",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if len(errors) > 0 {
+		return BatchMessage_ItemMultiError(errors)
+	}
+
+	return nil
+}
+
+// BatchMessage_ItemMultiError is an error wrapping multiple validation errors
+// returned by BatchMessage_Item.ValidateAll() if the designated constraints
+// aren't met.
+type BatchMessage_ItemMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m BatchMessage_ItemMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m BatchMessage_ItemMultiError) AllErrors() []error { return m }
+
+// BatchMessage_ItemValidationError is the validation error returned by
+// BatchMessage_Item.Validate if the designated constraints aren't met.
+type BatchMessage_ItemValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e BatchMessage_ItemValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e BatchMessage_ItemValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e BatchMessage_ItemValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e BatchMessage_ItemValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e BatchMessage_ItemValidationError) ErrorName() string {
+	return "BatchMessage_ItemValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e BatchMessage_ItemValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sBatchMessage_Item.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = BatchMessage_ItemValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = BatchMessage_ItemValidationError{}

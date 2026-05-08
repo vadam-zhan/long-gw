@@ -26,49 +26,88 @@ type FrameType int32
 
 const (
 	FrameType_FrameType_UNSPECIFIED FrameType = 0
-	// ── 控制面 (1–99) ── 网关内部，不转发给业务 ──────────────────────────────
-	// 生命周期 - 握手、认证刷新、恢复、关闭
-	FrameType_HANDSHAKE        FrameType = 1 // Client→Gateway  初始认证握手
-	FrameType_HANDSHAKE_ACK    FrameType = 2 // Gateway→Client  握手结果
-	FrameType_AUTH_REFRESH     FrameType = 3 // Gateway→Client  认证刷新
-	FrameType_AUTH_REFRESH_ACK FrameType = 4 // Client→Gateway  认证刷新结果
-	FrameType_RESUME           FrameType = 5 // Client→Gateway  恢复连接
-	FrameType_RESUME_ACK       FrameType = 6 // Gateway→Client  恢复连接结果
-	FrameType_CLOSE            FrameType = 7 // Client→Gateway  关闭连接
-	FrameType_CLOSE_ACK        FrameType = 8 // Gateway→Client  关闭连接结果
-	// 心跳 - 探针、回应
-	FrameType_PING FrameType = 10 // Client→Gateway  心跳探针
-	FrameType_PONG FrameType = 11 // Gateway→Client  心跳回应
-	// 可靠性 - 强制断连、错误通知、确认、重放 Client <--→ Gateway
-	FrameType_ERROR           FrameType = 20 //             错误通知
-	FrameType_ACK             FrameType = 21 //             QoS-1/2 确认帧
-	FrameType_REPLAY_REQUEST  FrameType = 22 //            消息重放请求
-	FrameType_REPLAY_RESPONSE FrameType = 23 //           消息重放响应
-	// 强制断连 - Gateway → Client
-	FrameType_KICK         FrameType = 30 // Gateway→Client  强制断连通知
-	FrameType_RATE_LIMITED FrameType = 31 // Gateway→Client  限流通知
-	// ── 数据面通用 (100) ─────────────────────────────────────────────────────
-	FrameType_BUSINESS       FrameType = 100 // 通用数据帧，BizCode+Body.type 细分路由
-	FrameType_BUSINESS_BATCH FrameType = 101 // 批量数据帧，BizCode+Body.type 细分路由
-	// ── IM 域 (110–199) ──────────────────────────────────────────────────────
-	FrameType_IM_CHAT    FrameType = 110 // 单聊 / 群聊消息
-	FrameType_IM_RECEIPT FrameType = 111 // 投递 / 已读回执
-	FrameType_IM_REVOKE  FrameType = 112 // 消息撤回
-	FrameType_IM_TYPING  FrameType = 113 // 正在输入指示
-	// ── Push 域 (201–299) ────────────────────────────────────────────────────
-	FrameType_PUSH_NOTIFY FrameType = 201 // 服务端主动推送
-	FrameType_PUSH_ACK    FrameType = 202 // 客户端推送确认
-	// ── Live 域 (301–399) ────────────────────────────────────────────────────
-	FrameType_LIVE_JOIN        FrameType = 301
-	FrameType_LIVE_JOIN_ACK    FrameType = 302
-	FrameType_LIVE_LEAVE       FrameType = 303
-	FrameType_LIVE_LEAVE_ACK   FrameType = 304
-	FrameType_LIVE_GIFT        FrameType = 305
-	FrameType_LIVE_GIFT_ACK    FrameType = 306
-	FrameType_LIVE_COMMENT     FrameType = 307
-	FrameType_LIVE_COMMENT_ACK FrameType = 308
-	FrameType_LIVE_SIGNAL      FrameType = 309
-	FrameType_LIVE_SIGNAL_ACK  FrameType = 310
+	// ═══════════════════════════════════════════════════════════════════════
+	// 控制面：生命周期（1–9）
+	// ═══════════════════════════════════════════════════════════════════════
+	FrameType_HANDSHAKE        FrameType = 1 // Client → Gateway  初始认证握手
+	FrameType_HANDSHAKE_ACK    FrameType = 2 // Gateway → Client  握手结果
+	FrameType_AUTH_REFRESH     FrameType = 3 // Client → Gateway  Token 续期
+	FrameType_AUTH_REFRESH_ACK FrameType = 4 // Gateway → Client  续期结果
+	FrameType_RESUME           FrameType = 5 // Client → Gateway  断线后恢复会话
+	FrameType_RESUME_ACK       FrameType = 6 // Gateway → Client  恢复结果（含离线消息摘要）
+	FrameType_CLOSE            FrameType = 7 // Client → Gateway  主动关闭连接
+	FrameType_CLOSE_ACK        FrameType = 8 // Gateway → Client  关闭确认
+	// ═══════════════════════════════════════════════════════════════════════
+	// 控制面：心跳（10–11）
+	// ═══════════════════════════════════════════════════════════════════════
+	FrameType_PING FrameType = 10 // Client → Gateway  心跳探针（含可选负载：客户端 RTT 样本）
+	FrameType_PONG FrameType = 11 // Gateway → Client  心跳回应（含服务端时间戳，用于时钟校准）
+	// ═══════════════════════════════════════════════════════════════════════
+	// 可靠性：错误与确认（20–29）
+	// ═══════════════════════════════════════════════════════════════════════
+	FrameType_ERROR           FrameType = 20 // Gateway ↔ Client  通用错误通知（含 ErrorCode）
+	FrameType_MSG_ACK         FrameType = 21 // Client → Gateway  单条消息 QoS-1 确认
+	FrameType_BATCH_ACK       FrameType = 22 // Client → Gateway  批量确认（一次确认 N 条，降低上行流量）
+	FrameType_DELIVERY_ACK    FrameType = 23 // Gateway → Client  服务端投递成功确认（用于 QoS-2 Exactly-Once）
+	FrameType_READ_RECEIPT    FrameType = 24 // Client → Gateway  已读回执（区别于传输层 ACK）
+	FrameType_REPLAY_REQUEST  FrameType = 25 // Client → Gateway  请求补发离线消息
+	FrameType_REPLAY_RESPONSE FrameType = 26 // Gateway → Client  离线消息补发响应
+	// ═══════════════════════════════════════════════════════════════════════
+	// 治理：服务端主动控制（30–39）
+	// ═══════════════════════════════════════════════════════════════════════
+	FrameType_KICK             FrameType = 30 // Gateway → Client  强制断连（含 reason code + 建议重连时间）
+	FrameType_RATE_LIMITED     FrameType = 31 // Gateway → Client  限流/背压通知
+	FrameType_SYSTEM_BROADCAST FrameType = 32 // Gateway → Client  系统级广播（运维公告、全局配置变更）
+	FrameType_ADMIN_NOTICE     FrameType = 33 // Gateway → Client  管理通知（踢人原因、权限变更）
+	// ═══════════════════════════════════════════════════════════════════════
+	// Presence & 订阅管理（40–59）
+	// ═══════════════════════════════════════════════════════════════════════
+	// 说明：Presence 帧由网关直接处理，负责状态扩散和订阅索引维护
+	FrameType_PRESENCE_UPDATE        FrameType = 40 // Client → Gateway  用户在线状态变更（在线/离开/隐身/忙碌）
+	FrameType_PRESENCE_SUBSCRIBE     FrameType = 41 // Client → Gateway  订阅某用户/房间的状态
+	FrameType_PRESENCE_SUBSCRIBE_ACK FrameType = 42 // Gateway → Client  订阅结果
+	FrameType_PRESENCE_UNSUBSCRIBE   FrameType = 43 // Client → Gateway  取消状态订阅
+	FrameType_SUBSCRIBE              FrameType = 50 // Client → Gateway  订阅房间/Topic/群组
+	FrameType_SUBSCRIBE_ACK          FrameType = 51 // Gateway → Client  订阅结果（含房间成员数、Topic 最新消息 seq）
+	FrameType_UNSUBSCRIBE            FrameType = 52 // Client → Gateway  取消订阅
+	FrameType_UNSUBSCRIBE_ACK        FrameType = 53 // Gateway → Client  取消结果
+	// ═══════════════════════════════════════════════════════════════════════
+	// 业务面通用（100–101）
+	// ═══════════════════════════════════════════════════════════════════════
+	// 说明：网关只按 biz_code + to 路由，不解析 Body.payload
+	FrameType_BUSINESS       FrameType = 100 // 单条业务消息
+	FrameType_BUSINESS_BATCH FrameType = 101 // 批量业务消息（Body 内包含多条 Message 的序列化数组）
+	// ═══════════════════════════════════════════════════════════════════════
+	// IM 域（110–119）
+	// ═══════════════════════════════════════════════════════════════════════
+	FrameType_IM_CHAT     FrameType = 110 // 单聊 / 群聊消息
+	FrameType_IM_RECEIPT  FrameType = 111 // 投递 / 已读回执（客户端发送）
+	FrameType_IM_REVOKE   FrameType = 112 // 消息撤回
+	FrameType_IM_TYPING   FrameType = 113 // 正在输入指示（高频低优，需单独限流）
+	FrameType_IM_REACTION FrameType = 114 // 消息表情回应
+	FrameType_IM_PIN      FrameType = 115 // 消息置顶
+	// ═══════════════════════════════════════════════════════════════════════
+	// Push 域（120–129）
+	// ═══════════════════════════════════════════════════════════════════════
+	FrameType_PUSH_NOTIFY FrameType = 120 // 服务端主动推送
+	FrameType_PUSH_ACK    FrameType = 121 // 客户端推送确认
+	// ═══════════════════════════════════════════════════════════════════════
+	// Live 域（130–139）
+	// ═══════════════════════════════════════════════════════════════════════
+	FrameType_LIVE_COMMENT FrameType = 130 // 直播弹幕
+	FrameType_LIVE_GIFT    FrameType = 131 // 直播礼物
+	FrameType_LIVE_SIGNAL  FrameType = 132 // 直播音视频信令（连麦、PK、低延迟控制）
+	FrameType_LIVE_JOIN    FrameType = 133 // 进入直播间
+	FrameType_LIVE_LEAVE   FrameType = 134 // 离开直播间
+	FrameType_LIVE_STATE   FrameType = 135 // 直播间状态变更（开始/结束/禁言/全员静音）
+	// ═══════════════════════════════════════════════════════════════════════
+	// 音视频通话域（140–149）
+	// ═══════════════════════════════════════════════════════════════════════
+	FrameType_CALL_OFFER  FrameType = 140 // 呼叫请求
+	FrameType_CALL_ANSWER FrameType = 141 // 呼叫应答
+	FrameType_CALL_ICE    FrameType = 142 // ICE candidate
+	FrameType_CALL_HANGUP FrameType = 143 // 挂断
+	FrameType_CALL_MODIFY FrameType = 144 // 通话中修改（切换摄像头、静音等）
 )
 
 // Enum value maps for FrameType.
@@ -86,66 +125,98 @@ var (
 		10:  "PING",
 		11:  "PONG",
 		20:  "ERROR",
-		21:  "ACK",
-		22:  "REPLAY_REQUEST",
-		23:  "REPLAY_RESPONSE",
+		21:  "MSG_ACK",
+		22:  "BATCH_ACK",
+		23:  "DELIVERY_ACK",
+		24:  "READ_RECEIPT",
+		25:  "REPLAY_REQUEST",
+		26:  "REPLAY_RESPONSE",
 		30:  "KICK",
 		31:  "RATE_LIMITED",
+		32:  "SYSTEM_BROADCAST",
+		33:  "ADMIN_NOTICE",
+		40:  "PRESENCE_UPDATE",
+		41:  "PRESENCE_SUBSCRIBE",
+		42:  "PRESENCE_SUBSCRIBE_ACK",
+		43:  "PRESENCE_UNSUBSCRIBE",
+		50:  "SUBSCRIBE",
+		51:  "SUBSCRIBE_ACK",
+		52:  "UNSUBSCRIBE",
+		53:  "UNSUBSCRIBE_ACK",
 		100: "BUSINESS",
 		101: "BUSINESS_BATCH",
 		110: "IM_CHAT",
 		111: "IM_RECEIPT",
 		112: "IM_REVOKE",
 		113: "IM_TYPING",
-		201: "PUSH_NOTIFY",
-		202: "PUSH_ACK",
-		301: "LIVE_JOIN",
-		302: "LIVE_JOIN_ACK",
-		303: "LIVE_LEAVE",
-		304: "LIVE_LEAVE_ACK",
-		305: "LIVE_GIFT",
-		306: "LIVE_GIFT_ACK",
-		307: "LIVE_COMMENT",
-		308: "LIVE_COMMENT_ACK",
-		309: "LIVE_SIGNAL",
-		310: "LIVE_SIGNAL_ACK",
+		114: "IM_REACTION",
+		115: "IM_PIN",
+		120: "PUSH_NOTIFY",
+		121: "PUSH_ACK",
+		130: "LIVE_COMMENT",
+		131: "LIVE_GIFT",
+		132: "LIVE_SIGNAL",
+		133: "LIVE_JOIN",
+		134: "LIVE_LEAVE",
+		135: "LIVE_STATE",
+		140: "CALL_OFFER",
+		141: "CALL_ANSWER",
+		142: "CALL_ICE",
+		143: "CALL_HANGUP",
+		144: "CALL_MODIFY",
 	}
 	FrameType_value = map[string]int32{
-		"FrameType_UNSPECIFIED": 0,
-		"HANDSHAKE":             1,
-		"HANDSHAKE_ACK":         2,
-		"AUTH_REFRESH":          3,
-		"AUTH_REFRESH_ACK":      4,
-		"RESUME":                5,
-		"RESUME_ACK":            6,
-		"CLOSE":                 7,
-		"CLOSE_ACK":             8,
-		"PING":                  10,
-		"PONG":                  11,
-		"ERROR":                 20,
-		"ACK":                   21,
-		"REPLAY_REQUEST":        22,
-		"REPLAY_RESPONSE":       23,
-		"KICK":                  30,
-		"RATE_LIMITED":          31,
-		"BUSINESS":              100,
-		"BUSINESS_BATCH":        101,
-		"IM_CHAT":               110,
-		"IM_RECEIPT":            111,
-		"IM_REVOKE":             112,
-		"IM_TYPING":             113,
-		"PUSH_NOTIFY":           201,
-		"PUSH_ACK":              202,
-		"LIVE_JOIN":             301,
-		"LIVE_JOIN_ACK":         302,
-		"LIVE_LEAVE":            303,
-		"LIVE_LEAVE_ACK":        304,
-		"LIVE_GIFT":             305,
-		"LIVE_GIFT_ACK":         306,
-		"LIVE_COMMENT":          307,
-		"LIVE_COMMENT_ACK":      308,
-		"LIVE_SIGNAL":           309,
-		"LIVE_SIGNAL_ACK":       310,
+		"FrameType_UNSPECIFIED":  0,
+		"HANDSHAKE":              1,
+		"HANDSHAKE_ACK":          2,
+		"AUTH_REFRESH":           3,
+		"AUTH_REFRESH_ACK":       4,
+		"RESUME":                 5,
+		"RESUME_ACK":             6,
+		"CLOSE":                  7,
+		"CLOSE_ACK":              8,
+		"PING":                   10,
+		"PONG":                   11,
+		"ERROR":                  20,
+		"MSG_ACK":                21,
+		"BATCH_ACK":              22,
+		"DELIVERY_ACK":           23,
+		"READ_RECEIPT":           24,
+		"REPLAY_REQUEST":         25,
+		"REPLAY_RESPONSE":        26,
+		"KICK":                   30,
+		"RATE_LIMITED":           31,
+		"SYSTEM_BROADCAST":       32,
+		"ADMIN_NOTICE":           33,
+		"PRESENCE_UPDATE":        40,
+		"PRESENCE_SUBSCRIBE":     41,
+		"PRESENCE_SUBSCRIBE_ACK": 42,
+		"PRESENCE_UNSUBSCRIBE":   43,
+		"SUBSCRIBE":              50,
+		"SUBSCRIBE_ACK":          51,
+		"UNSUBSCRIBE":            52,
+		"UNSUBSCRIBE_ACK":        53,
+		"BUSINESS":               100,
+		"BUSINESS_BATCH":         101,
+		"IM_CHAT":                110,
+		"IM_RECEIPT":             111,
+		"IM_REVOKE":              112,
+		"IM_TYPING":              113,
+		"IM_REACTION":            114,
+		"IM_PIN":                 115,
+		"PUSH_NOTIFY":            120,
+		"PUSH_ACK":               121,
+		"LIVE_COMMENT":           130,
+		"LIVE_GIFT":              131,
+		"LIVE_SIGNAL":            132,
+		"LIVE_JOIN":              133,
+		"LIVE_LEAVE":             134,
+		"LIVE_STATE":             135,
+		"CALL_OFFER":             140,
+		"CALL_ANSWER":            141,
+		"CALL_ICE":               142,
+		"CALL_HANGUP":            143,
+		"CALL_MODIFY":            144,
 	}
 )
 
@@ -176,13 +247,154 @@ func (FrameType) EnumDescriptor() ([]byte, []int) {
 	return file_gateway_v1_common_proto_rawDescGZIP(), []int{0}
 }
 
-// QosClass 消息 QoS 等级
+type ErrorCode int32
+
+const (
+	ErrorCode_ERROR_CODE_UNSPECIFIED ErrorCode = 0
+	// ── 连接层（1xxx）────────────────────────────────────────────────────────
+	ErrorCode_ERR_HEARTBEAT_TIMEOUT     ErrorCode = 1001 // 心跳超时，连接将被关闭
+	ErrorCode_ERR_HANDSHAKE_FAILED      ErrorCode = 1002 // 握手失败（Token 无效/过期/格式错误）
+	ErrorCode_ERR_AUTH_EXPIRED          ErrorCode = 1003 // 认证过期，需要重新握手或刷新 Token
+	ErrorCode_ERR_REPLACED_BY_NEW_LOGIN ErrorCode = 1004 // 同设备被新连接踢下线
+	ErrorCode_ERR_SESSION_SUSPENDED     ErrorCode = 1005 // Session 进入 Suspended，等待重连
+	ErrorCode_ERR_SESSION_CLOSED        ErrorCode = 1006 // Session 已永久关闭
+	ErrorCode_ERR_PROTOCOL_VERSION      ErrorCode = 1007 // 协议版本不兼容
+	ErrorCode_ERR_CONN_RATE_LIMITED     ErrorCode = 1008 // 连接建立速率超限（防 CC 攻击）
+	// ── 认证层（2xxx）────────────────────────────────────────────────────────
+	ErrorCode_ERR_TOKEN_INVALID     ErrorCode = 2001 // Token 签名无效
+	ErrorCode_ERR_TOKEN_EXPIRED     ErrorCode = 2002 // Token 已过期
+	ErrorCode_ERR_PERMISSION_DENIED ErrorCode = 2003 // 权限不足（如尝试发送未授权业务）
+	ErrorCode_ERR_DEVICE_BLOCKED    ErrorCode = 2004 // 设备被拉黑
+	ErrorCode_ERR_IP_BLOCKED        ErrorCode = 2005 // IP 被拉黑
+	// ── 消息层（3xxx）────────────────────────────────────────────────────────
+	ErrorCode_ERR_MESSAGE_TOO_LARGE  ErrorCode = 3001 // 消息体超过 max_body_size
+	ErrorCode_ERR_INVALID_FRAME_TYPE ErrorCode = 3002 // 不支持的帧类型
+	ErrorCode_ERR_MESSAGE_MALFORMED  ErrorCode = 3003 // 消息格式错误（protobuf 反序列化失败）
+	ErrorCode_ERR_MESSAGE_EXPIRED    ErrorCode = 3004 // 消息已过期
+	ErrorCode_ERR_RATE_LIMITED       ErrorCode = 3005 // 单用户/单设备消息速率超限
+	ErrorCode_ERR_BAD_REQUEST        ErrorCode = 3006 // 业务参数校验失败
+	// ── 投递层（4xxx）────────────────────────────────────────────────────────
+	ErrorCode_ERR_UPSTREAM_SEND_FAILED ErrorCode = 4001 // 上行发送到 Kafka/后端失败
+	ErrorCode_ERR_OFFLINE_STORE_FAILED ErrorCode = 4002 // 离线存储失败
+	ErrorCode_ERR_MAX_RETRY_EXCEEDED   ErrorCode = 4003 // QoS-1 重试耗尽
+	ErrorCode_ERR_ROUTE_NOT_FOUND      ErrorCode = 4004 // 目标路由不存在（用户离线且无离线存储）
+	ErrorCode_ERR_TARGET_UNAVAILABLE   ErrorCode = 4005 // 目标用户不在线且不允许离线存储
+	ErrorCode_ERR_DELIVERY_TIMEOUT     ErrorCode = 4006 // 投递超时
+	// ── 订阅层（5xxx）────────────────────────────────────────────────────────
+	ErrorCode_ERR_ROOM_NOT_FOUND     ErrorCode = 5001 // 房间不存在
+	ErrorCode_ERR_TOPIC_NOT_FOUND    ErrorCode = 5002 // Topic 不存在
+	ErrorCode_ERR_ALREADY_SUBSCRIBED ErrorCode = 5003 // 重复订阅
+	ErrorCode_ERR_NOT_SUBSCRIBED     ErrorCode = 5004 // 未订阅就取消
+	ErrorCode_ERR_ROOM_FULL          ErrorCode = 5005 // 房间人数已达上限
+)
+
+// Enum value maps for ErrorCode.
+var (
+	ErrorCode_name = map[int32]string{
+		0:    "ERROR_CODE_UNSPECIFIED",
+		1001: "ERR_HEARTBEAT_TIMEOUT",
+		1002: "ERR_HANDSHAKE_FAILED",
+		1003: "ERR_AUTH_EXPIRED",
+		1004: "ERR_REPLACED_BY_NEW_LOGIN",
+		1005: "ERR_SESSION_SUSPENDED",
+		1006: "ERR_SESSION_CLOSED",
+		1007: "ERR_PROTOCOL_VERSION",
+		1008: "ERR_CONN_RATE_LIMITED",
+		2001: "ERR_TOKEN_INVALID",
+		2002: "ERR_TOKEN_EXPIRED",
+		2003: "ERR_PERMISSION_DENIED",
+		2004: "ERR_DEVICE_BLOCKED",
+		2005: "ERR_IP_BLOCKED",
+		3001: "ERR_MESSAGE_TOO_LARGE",
+		3002: "ERR_INVALID_FRAME_TYPE",
+		3003: "ERR_MESSAGE_MALFORMED",
+		3004: "ERR_MESSAGE_EXPIRED",
+		3005: "ERR_RATE_LIMITED",
+		3006: "ERR_BAD_REQUEST",
+		4001: "ERR_UPSTREAM_SEND_FAILED",
+		4002: "ERR_OFFLINE_STORE_FAILED",
+		4003: "ERR_MAX_RETRY_EXCEEDED",
+		4004: "ERR_ROUTE_NOT_FOUND",
+		4005: "ERR_TARGET_UNAVAILABLE",
+		4006: "ERR_DELIVERY_TIMEOUT",
+		5001: "ERR_ROOM_NOT_FOUND",
+		5002: "ERR_TOPIC_NOT_FOUND",
+		5003: "ERR_ALREADY_SUBSCRIBED",
+		5004: "ERR_NOT_SUBSCRIBED",
+		5005: "ERR_ROOM_FULL",
+	}
+	ErrorCode_value = map[string]int32{
+		"ERROR_CODE_UNSPECIFIED":    0,
+		"ERR_HEARTBEAT_TIMEOUT":     1001,
+		"ERR_HANDSHAKE_FAILED":      1002,
+		"ERR_AUTH_EXPIRED":          1003,
+		"ERR_REPLACED_BY_NEW_LOGIN": 1004,
+		"ERR_SESSION_SUSPENDED":     1005,
+		"ERR_SESSION_CLOSED":        1006,
+		"ERR_PROTOCOL_VERSION":      1007,
+		"ERR_CONN_RATE_LIMITED":     1008,
+		"ERR_TOKEN_INVALID":         2001,
+		"ERR_TOKEN_EXPIRED":         2002,
+		"ERR_PERMISSION_DENIED":     2003,
+		"ERR_DEVICE_BLOCKED":        2004,
+		"ERR_IP_BLOCKED":            2005,
+		"ERR_MESSAGE_TOO_LARGE":     3001,
+		"ERR_INVALID_FRAME_TYPE":    3002,
+		"ERR_MESSAGE_MALFORMED":     3003,
+		"ERR_MESSAGE_EXPIRED":       3004,
+		"ERR_RATE_LIMITED":          3005,
+		"ERR_BAD_REQUEST":           3006,
+		"ERR_UPSTREAM_SEND_FAILED":  4001,
+		"ERR_OFFLINE_STORE_FAILED":  4002,
+		"ERR_MAX_RETRY_EXCEEDED":    4003,
+		"ERR_ROUTE_NOT_FOUND":       4004,
+		"ERR_TARGET_UNAVAILABLE":    4005,
+		"ERR_DELIVERY_TIMEOUT":      4006,
+		"ERR_ROOM_NOT_FOUND":        5001,
+		"ERR_TOPIC_NOT_FOUND":       5002,
+		"ERR_ALREADY_SUBSCRIBED":    5003,
+		"ERR_NOT_SUBSCRIBED":        5004,
+		"ERR_ROOM_FULL":             5005,
+	}
+)
+
+func (x ErrorCode) Enum() *ErrorCode {
+	p := new(ErrorCode)
+	*p = x
+	return p
+}
+
+func (x ErrorCode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ErrorCode) Descriptor() protoreflect.EnumDescriptor {
+	return file_gateway_v1_common_proto_enumTypes[1].Descriptor()
+}
+
+func (ErrorCode) Type() protoreflect.EnumType {
+	return &file_gateway_v1_common_proto_enumTypes[1]
+}
+
+func (x ErrorCode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ErrorCode.Descriptor instead.
+func (ErrorCode) EnumDescriptor() ([]byte, []int) {
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{1}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// QosClass：消息 QoS 等级
+// ─────────────────────────────────────────────────────────────────────────────
 type QosClass int32
 
 const (
 	QosClass_QOS_CLASS_UNSPECIFIED QosClass = 0
-	QosClass_AT_MOST_ONCE          QosClass = 1 // 最多一次：发完即忘，无 ACK（弹幕、位置）
-	QosClass_AT_LEAST_ONCE         QosClass = 2 // 至少一次：SDK 重试直到收到 ACK，可能重复（IM）
+	QosClass_AT_MOST_ONCE          QosClass = 1 // 最多一次：发完即忘，无 ACK（弹幕、位置、心跳）
+	QosClass_AT_LEAST_ONCE         QosClass = 2 // 至少一次：SDK 重试直到收到 ACK，可能重复（IM 消息）
+	QosClass_EXACTLY_ONCE          QosClass = 3 // 精确一次：需要 DELIVERY_ACK + 服务端幂等（金融交易、支付）
 )
 
 // Enum value maps for QosClass.
@@ -191,11 +403,13 @@ var (
 		0: "QOS_CLASS_UNSPECIFIED",
 		1: "AT_MOST_ONCE",
 		2: "AT_LEAST_ONCE",
+		3: "EXACTLY_ONCE",
 	}
 	QosClass_value = map[string]int32{
 		"QOS_CLASS_UNSPECIFIED": 0,
 		"AT_MOST_ONCE":          1,
 		"AT_LEAST_ONCE":         2,
+		"EXACTLY_ONCE":          3,
 	}
 )
 
@@ -210,11 +424,11 @@ func (x QosClass) String() string {
 }
 
 func (QosClass) Descriptor() protoreflect.EnumDescriptor {
-	return file_gateway_v1_common_proto_enumTypes[1].Descriptor()
+	return file_gateway_v1_common_proto_enumTypes[2].Descriptor()
 }
 
 func (QosClass) Type() protoreflect.EnumType {
-	return &file_gateway_v1_common_proto_enumTypes[1]
+	return &file_gateway_v1_common_proto_enumTypes[2]
 }
 
 func (x QosClass) Number() protoreflect.EnumNumber {
@@ -223,17 +437,19 @@ func (x QosClass) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use QosClass.Descriptor instead.
 func (QosClass) EnumDescriptor() ([]byte, []int) {
-	return file_gateway_v1_common_proto_rawDescGZIP(), []int{1}
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{2}
 }
 
-// Codec 消息编码格式：作用于 Body.payload 字节的序列化方式
+// ─────────────────────────────────────────────────────────────────────────────
+// Codec：业务载荷编码格式
+// ─────────────────────────────────────────────────────────────────────────────
 type Codec int32
 
 const (
 	Codec_CODEC_UNSPECIFIED Codec = 0
-	Codec_JSON              Codec = 1 // JSON 编码
-	Codec_PROTOBUF          Codec = 2 // 生产首选，紧凑高效
-	Codec_MSGPACK           Codec = 3 // 动态语言场景
+	Codec_JSON              Codec = 1 // JSON 编码（Web/动态语言首选）
+	Codec_PROTOBUF          Codec = 2 // Protobuf（生产首选，紧凑高效）
+	Codec_MSGPACK           Codec = 3 // MessagePack（动态语言场景）
 )
 
 // Enum value maps for Codec.
@@ -263,11 +479,11 @@ func (x Codec) String() string {
 }
 
 func (Codec) Descriptor() protoreflect.EnumDescriptor {
-	return file_gateway_v1_common_proto_enumTypes[2].Descriptor()
+	return file_gateway_v1_common_proto_enumTypes[3].Descriptor()
 }
 
 func (Codec) Type() protoreflect.EnumType {
-	return &file_gateway_v1_common_proto_enumTypes[2]
+	return &file_gateway_v1_common_proto_enumTypes[3]
 }
 
 func (x Codec) Number() protoreflect.EnumNumber {
@@ -276,18 +492,20 @@ func (x Codec) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Codec.Descriptor instead.
 func (Codec) EnumDescriptor() ([]byte, []int) {
-	return file_gateway_v1_common_proto_rawDescGZIP(), []int{2}
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{3}
 }
 
-// CompressAlgo 消息压缩算法：作用于 Body.payload 字节的压缩方式
+// ─────────────────────────────────────────────────────────────────────────────
+// CompressAlgo：业务载荷压缩算法
+// ─────────────────────────────────────────────────────────────────────────────
 type CompressAlgo int32
 
 const (
 	CompressAlgo_COMPRESS_ALGO_UNSPECIFIED CompressAlgo = 0
-	CompressAlgo_NONE                      CompressAlgo = 1 // 不压缩
-	CompressAlgo_GZIP                      CompressAlgo = 2 // GZIP 压缩
-	CompressAlgo_ZSTD                      CompressAlgo = 3 // 推荐：压缩比与速度最优
-	CompressAlgo_SNAPPY                    CompressAlgo = 4 // 低延迟场景
+	CompressAlgo_NONE                      CompressAlgo = 1 // 不压缩（小消息或高频低延迟场景）
+	CompressAlgo_GZIP                      CompressAlgo = 2 // GZIP（通用兼容）
+	CompressAlgo_ZSTD                      CompressAlgo = 3 // Zstandard（推荐：压缩比与速度最优）
+	CompressAlgo_SNAPPY                    CompressAlgo = 4 // Snappy（极低延迟，适合直播弹幕）
 )
 
 // Enum value maps for CompressAlgo.
@@ -319,11 +537,11 @@ func (x CompressAlgo) String() string {
 }
 
 func (CompressAlgo) Descriptor() protoreflect.EnumDescriptor {
-	return file_gateway_v1_common_proto_enumTypes[3].Descriptor()
+	return file_gateway_v1_common_proto_enumTypes[4].Descriptor()
 }
 
 func (CompressAlgo) Type() protoreflect.EnumType {
-	return &file_gateway_v1_common_proto_enumTypes[3]
+	return &file_gateway_v1_common_proto_enumTypes[4]
 }
 
 func (x CompressAlgo) Number() protoreflect.EnumNumber {
@@ -332,22 +550,25 @@ func (x CompressAlgo) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use CompressAlgo.Descriptor instead.
 func (CompressAlgo) EnumDescriptor() ([]byte, []int) {
-	return file_gateway_v1_common_proto_rawDescGZIP(), []int{3}
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{4}
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// RouteTargetType：路由目标类型
+// ─────────────────────────────────────────────────────────────────────────────
 type RouteTargetType int32
 
 const (
 	RouteTargetType_ROUTE_TARGET_TYPE_UNSPECIFIED RouteTargetType = 0
-	RouteTargetType_USER                          RouteTargetType = 1 // 用户 → 单用户，全设备扇出
-	RouteTargetType_DEVICE                        RouteTargetType = 2 // 设备
-	RouteTargetType_SESSION                       RouteTargetType = 3 // 会话
+	RouteTargetType_USER                          RouteTargetType = 1 // 用户 → 全设备扇出
+	RouteTargetType_DEVICE                        RouteTargetType = 2 // 设备 → 单设备
+	RouteTargetType_SESSION                       RouteTargetType = 3 // 会话 → 单 Session
 	RouteTargetType_CONNECTION                    RouteTargetType = 4 // 连接 → 原始连接 ID（内部路由/调试）
 	RouteTargetType_ROOM                          RouteTargetType = 5 // 房间 → 房间广播（直播弹幕）
 	RouteTargetType_TOPIC                         RouteTargetType = 6 // 主题 → Pub/Sub Topic
-	RouteTargetType_GROUP                         RouteTargetType = 7 // 群组 → 群组，网关侧解析成员列表
-	RouteTargetType_NODE                          RouteTargetType = 8 // 节点
-	RouteTargetType_BROADCAST                     RouteTargetType = 9 // 广播
+	RouteTargetType_GROUP                         RouteTargetType = 7 // 群组 → 网关侧解析成员列表后扇出
+	RouteTargetType_NODE                          RouteTargetType = 8 // 节点 → 跨节点内部路由
+	RouteTargetType_BROADCAST                     RouteTargetType = 9 // 广播 → 全量在线用户
 )
 
 // Enum value maps for RouteTargetType.
@@ -389,11 +610,11 @@ func (x RouteTargetType) String() string {
 }
 
 func (RouteTargetType) Descriptor() protoreflect.EnumDescriptor {
-	return file_gateway_v1_common_proto_enumTypes[4].Descriptor()
+	return file_gateway_v1_common_proto_enumTypes[5].Descriptor()
 }
 
 func (RouteTargetType) Type() protoreflect.EnumType {
-	return &file_gateway_v1_common_proto_enumTypes[4]
+	return &file_gateway_v1_common_proto_enumTypes[5]
 }
 
 func (x RouteTargetType) Number() protoreflect.EnumNumber {
@@ -402,27 +623,28 @@ func (x RouteTargetType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use RouteTargetType.Descriptor instead.
 func (RouteTargetType) EnumDescriptor() ([]byte, []int) {
-	return file_gateway_v1_common_proto_rawDescGZIP(), []int{4}
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{5}
 }
 
 type RouteTarget struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Type  RouteTargetType        `protobuf:"varint,1,opt,name=type,proto3,enum=gateway.v1.RouteTargetType" json:"type,omitempty"`
-	// key examples:
-	// USER: uid
-	// DEVICE: uid
-	// SESSION: session_id
-	// CONNECTION: conn_id
-	// ROOM: room_id
-	// TOPIC: topic
-	// GROUP: group_id
-	// NODE: node_id
+	// key 根据 type 取值：
+	//
+	//	USER:       uid
+	//	DEVICE:     device_id
+	//	SESSION:    session_id
+	//	ROOM:       room_id
+	//	TOPIC:      topic_name
+	//	GROUP:      group_id
+	//	NODE:       node_id
+	//	BROADCAST:  "*" 或空
 	Key string `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	// optional qualifiers
-	DeviceId      string            `protobuf:"bytes,3,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
-	NodeId        string            `protobuf:"bytes,4,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	ShardKey      string            `protobuf:"bytes,5,opt,name=shard_key,json=shardKey,proto3" json:"shard_key,omitempty"`
-	Labels        map[string]string `protobuf:"bytes,6,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// 可选限定符
+	DeviceId      string            `protobuf:"bytes,3,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`                                                       // 当 type=USER 时，指定只发给某设备
+	NodeId        string            `protobuf:"bytes,4,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`                                                             // 当 type=NODE 时，指定目标节点
+	ShardKey      string            `protobuf:"bytes,5,opt,name=shard_key,json=shardKey,proto3" json:"shard_key,omitempty"`                                                       // 分片键（用于一致性哈希路由）
+	Labels        map[string]string `protobuf:"bytes,6,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // 标签匹配（用于高级路由策略）
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -499,11 +721,16 @@ func (x *RouteTarget) GetLabels() map[string]string {
 	return nil
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// TraceContext：分布式追踪上下文
+// ─────────────────────────────────────────────────────────────────────────────
 type TraceContext struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TraceId       string                 `protobuf:"bytes,1,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
 	SpanId        string                 `protobuf:"bytes,2,opt,name=span_id,json=spanId,proto3" json:"span_id,omitempty"`
-	TraceParent   string                 `protobuf:"bytes,3,opt,name=trace_parent,json=traceParent,proto3" json:"trace_parent,omitempty"`
+	ParentSpanId  string                 `protobuf:"bytes,3,opt,name=parent_span_id,json=parentSpanId,proto3" json:"parent_span_id,omitempty"`
+	Sampled       bool                   `protobuf:"varint,4,opt,name=sampled,proto3" json:"sampled,omitempty"`                                                                          // 是否采样
+	Baggage       map[string]string      `protobuf:"bytes,5,rep,name=baggage,proto3" json:"baggage,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // 透传 baggage
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -552,24 +779,51 @@ func (x *TraceContext) GetSpanId() string {
 	return ""
 }
 
-func (x *TraceContext) GetTraceParent() string {
+func (x *TraceContext) GetParentSpanId() string {
 	if x != nil {
-		return x.TraceParent
+		return x.ParentSpanId
 	}
 	return ""
 }
 
+func (x *TraceContext) GetSampled() bool {
+	if x != nil {
+		return x.Sampled
+	}
+	return false
+}
+
+func (x *TraceContext) GetBaggage() map[string]string {
+	if x != nil {
+		return x.Baggage
+	}
+	return nil
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Delivery：投递控制元数据
+// ─────────────────────────────────────────────────────────────────────────────
 type Delivery struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Qos   QosClass               `protobuf:"varint,1,opt,name=qos,proto3,enum=gateway.v1.QosClass" json:"qos,omitempty"`
-	// 可选的 ack_id: 网关向客户端回 ACK 时填写，值为被确认消息的 msg_id。
-	//
-	//	SDK 收到后从重试队列删除对应消息。
+	// ack_id: 网关向客户端回 ACK 时填写，值为被确认消息的 msg_id
 	AckId *string `protobuf:"bytes,2,opt,name=ack_id,json=ackId,proto3,oneof" json:"ack_id,omitempty"`
-	// offline: true = 目标离线时持久化，联网后补投。
+	// offline: true = 目标离线时持久化，联网后补投
 	Offline bool `protobuf:"varint,3,opt,name=offline,proto3" json:"offline,omitempty"`
-	// max_retry: 最大重试次数，为 0 表示不重试。
-	MaxRetry      int32 `protobuf:"varint,4,opt,name=max_retry,json=maxRetry,proto3" json:"max_retry,omitempty"`
+	// max_retry: 最大重试次数，0 表示使用业务默认策略
+	MaxRetry int32 `protobuf:"varint,4,opt,name=max_retry,json=maxRetry,proto3" json:"max_retry,omitempty"`
+	// priority: 投递优先级，数值越小优先级越高
+	//
+	//	0: 系统级（握手响应、KICK）
+	//	1: 高优（IM 消息、Call 信令）
+	//	5: 普通（Push 通知）
+	//	10: 低优（Live 弹幕、Typing）
+	Priority int32 `protobuf:"varint,5,opt,name=priority,proto3" json:"priority,omitempty"`
+	// compress_body: 是否对 Body.data 启用压缩
+	//
+	//	注意：这是投递层的压缩提示，与 Body.compress_algo 独立
+	//	true 时网关会根据消息大小自动选择 ZSTD/SNAPPY
+	CompressBody  bool `protobuf:"varint,6,opt,name=compress_body,json=compressBody,proto3" json:"compress_body,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -632,51 +886,73 @@ func (x *Delivery) GetMaxRetry() int32 {
 	return 0
 }
 
+func (x *Delivery) GetPriority() int32 {
+	if x != nil {
+		return x.Priority
+	}
+	return 0
+}
+
+func (x *Delivery) GetCompressBody() bool {
+	if x != nil {
+		return x.CompressBody
+	}
+	return false
+}
+
 type Message struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// ── 帧身份 ──────────────────────────────────────────────────────────────
-	// version: 协议版本，用于平滑升级。当前 = 1。
+	// version: 协议版本，用于平滑升级和兼容性检查
+	//
+	//	当前 = 1，未来版本协商在 Handshake 中完成
 	Version uint32    `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
 	Type    FrameType `protobuf:"varint,2,opt,name=type,proto3,enum=gateway.v1.FrameType" json:"type,omitempty"`
-	// msg_id: 发送方生成的全局唯一 ID（UUID v4 或雪花 ID）。
+	// msg_id: 发送方生成的全局唯一 ID（建议 UUID v7 或雪花 ID）
 	//
-	//	用途：① ACK 关联  ② 幂等去重（QoS-2）  ③ 追踪日志关联
+	//	用途：ACK 关联、幂等去重、日志追踪
 	MsgId string `protobuf:"bytes,3,opt,name=msg_id,json=msgId,proto3" json:"msg_id,omitempty"`
-	// seq_id: 发送方单向单调递增序号。
+	// seq_id: 发送方单向单调递增序号（每个连接独立）
 	//
-	//	用途：① 接收方检测丢包间隙  ② 断线重连时告知网关"从哪里补发"
-	//	注意：与 msg_id 职责不同——msg_id 是全局唯一 ID，seq_id 是顺序标记。
+	//	用途：接收方检测丢包、断线重连时告知"从哪里补发"
 	SeqId uint64 `protobuf:"varint,4,opt,name=seq_id,json=seqId,proto3" json:"seq_id,omitempty"`
-	// timestamp: 发送方时间戳，Unix 毫秒。
+	// timestamp: 发送方时间戳（Unix 毫秒）
 	//
-	//	用途：① 端到端延迟度量  ② 客户端时钟校准（与 HandshakeAck.server_time 对比）
+	//	用途：端到端延迟度量、消息过期检测辅助
 	Timestamp int64 `protobuf:"varint,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	// ── 寻址 ────────────────────────────────────────────────────────────────
-	// from: 发送方标识
 	From *RouteTarget `protobuf:"bytes,6,opt,name=from,proto3" json:"from,omitempty"`
-	// to: 目标地址
-	To *RouteTarget `protobuf:"bytes,7,opt,name=to,proto3" json:"to,omitempty"`
+	To   *RouteTarget `protobuf:"bytes,7,opt,name=to,proto3" json:"to,omitempty"`
 	// ── 投递控制 ─────────────────────────────────────────────────────────────
 	Delivery *Delivery `protobuf:"bytes,8,opt,name=delivery,proto3" json:"delivery,omitempty"`
-	// expire_at: 绝对过期时间戳（Unix 毫秒）。为 0 表示永不过期。
-	//
-	//	使用绝对时间而非 TTL：消息经多节点转发时各节点判断结果一致。
+	// expire_at: 绝对过期时间戳（Unix 毫秒），0 表示永不过期
 	ExpireAt int64 `protobuf:"varint,9,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
-	// ── 路由提示（网关中间件读取，不透传给业务） ──────────────────────────────
-	// biz_code: 业务域标识，用于网关侧 plugin 选择（限流策略、审核规则等）。
+	// ── 路由提示 ─────────────────────────────────────────────────────────────
+	// biz_code: 业务域标识，用于 WorkerPool 路由和限流策略
 	//
-	//	约定："im" | "push" | "live" | "custom.{name}"
+	//	约定："im" | "live" | "push" | "call" | "custom.{name}"
 	BizCode string `protobuf:"bytes,10,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
-	// TraceContext: 分布式追踪 ID，跨服务传播。格式建议 W3C TraceContext。
+	// trace_context: 分布式追踪上下文
 	TraceContext *TraceContext `protobuf:"bytes,11,opt,name=trace_context,json=traceContext,proto3" json:"trace_context,omitempty"`
 	// ── 扩展 ─────────────────────────────────────────────────────────────────
-	// headers: 中间件 K-V 元数据。网关 plugin 可读写。
+	// headers: 中间件 K-V 元数据
 	//
-	//	Key 规范：小写，"x-" 前缀表示私有扩展。
-	//	示例：{"x-retry-count":"2", "x-priority":"high", "x-content-type":"image"}
+	//	网关保留头（以 x-gw- 前缀）：
+	//	  x-gw-recv-ts:  网关收到时间戳
+	//	  x-gw-node:     处理节点 ID
+	//	  x-gw-retry:    重试次数
+	//	  x-gw-priority: 优先级覆盖
+	//	业务头（以 x-biz- 前缀）：网关透传但不做特殊处理
 	Headers map[string]string `protobuf:"bytes,12,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// body: 业务载荷容器。网关转发时不解析 body.payload。
-	Body          *Body `protobuf:"bytes,13,opt,name=body,proto3" json:"body,omitempty"`
+	// ── 业务载荷 ─────────────────────────────────────────────────────────────
+	Body *Body `protobuf:"bytes,13,opt,name=body,proto3" json:"body,omitempty"`
+	// ── 网关元数据（由网关填充，客户端只读）────────────────────────────────────
+	// origin: 消息来源，用于区分客户端原始发送和服务端生成
+	//
+	//	"client" | "retry" | "replay" | "broadcast" | "pushapi" | "system"
+	Origin string `protobuf:"bytes,14,opt,name=origin,proto3" json:"origin,omitempty"`
+	// recv_at: 网关收到时间（Unix 毫秒），用于计算网关处理延迟
+	RecvAt        int64 `protobuf:"varint,15,opt,name=recv_at,json=recvAt,proto3" json:"recv_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -802,26 +1078,34 @@ func (x *Message) GetBody() *Body {
 	return nil
 }
 
-// Body 是业务载荷的容器。
-// payload 对网关完全不透明——网关转发时不反序列化，只按外层字段路由。
+func (x *Message) GetOrigin() string {
+	if x != nil {
+		return x.Origin
+	}
+	return ""
+}
+
+func (x *Message) GetRecvAt() int64 {
+	if x != nil {
+		return x.RecvAt
+	}
+	return 0
+}
+
 type Body struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// type: 业务子类型字符串，由各域 SDK 定义。
+	// codec: 业务载荷的序列化格式
 	//
-	//	IM:   "text" | "image" | "video" | "file" | "location" | "custom"
-	//	Push: "alert" | "silent" | "badge"
-	//	Live: "comment" | "gift" | "signal" | "pklive"
-	Type string `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
-	// payload: 按 Message.body_codec 编码、Message.compress 压缩后的字节。
+	//	接收方按此字段选择反序列化器
+	Codec Codec `protobuf:"varint,1,opt,name=codec,proto3,enum=gateway.v1.Codec" json:"codec,omitempty"`
+	// compress_algo: 业务载荷的压缩算法
 	//
-	//	网关：直接转发，不 unmarshal。
-	//	SDK：按 body_codec 反序列化为 WellKnownPayload 或业务私有结构。
-	Data []byte `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
-	// ext: 轻量扩展字段，存放不值得独立字段的元数据。
+	//	接收方先解压再解码
+	CompressAlgo CompressAlgo `protobuf:"varint,2,opt,name=compress_algo,json=compressAlgo,proto3,enum=gateway.v1.CompressAlgo" json:"compress_algo,omitempty"`
+	// data: 编码并压缩后的业务 payload
 	//
-	//	示例：{"mention_uids":"[\"u1\",\"u2\"]", "reply_to_mid":"msg_abc"}
-	//	注意：value 存储为字符串（避免 Any 的额外 type_url 开销）。
-	Ext           map[string]string `protobuf:"bytes,3,rep,name=ext,proto3" json:"ext,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	//	最大 4MB（含压缩后），超过则返回 ERR_MESSAGE_TOO_LARGE
+	Data          []byte `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -856,11 +1140,18 @@ func (*Body) Descriptor() ([]byte, []int) {
 	return file_gateway_v1_common_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *Body) GetType() string {
+func (x *Body) GetCodec() Codec {
 	if x != nil {
-		return x.Type
+		return x.Codec
 	}
-	return ""
+	return Codec_CODEC_UNSPECIFIED
+}
+
+func (x *Body) GetCompressAlgo() CompressAlgo {
+	if x != nil {
+		return x.CompressAlgo
+	}
+	return CompressAlgo_COMPRESS_ALGO_UNSPECIFIED
 }
 
 func (x *Body) GetData() []byte {
@@ -870,9 +1161,210 @@ func (x *Body) GetData() []byte {
 	return nil
 }
 
-func (x *Body) GetExt() map[string]string {
+type BatchMessage struct {
+	state         protoimpl.MessageState   `protogen:"open.v1"`
+	Shared        *BatchMessage_SharedMeta `protobuf:"bytes,1,opt,name=shared,proto3" json:"shared,omitempty"`
+	Items         []*BatchMessage_Item     `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BatchMessage) Reset() {
+	*x = BatchMessage{}
+	mi := &file_gateway_v1_common_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BatchMessage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchMessage) ProtoMessage() {}
+
+func (x *BatchMessage) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_common_proto_msgTypes[5]
 	if x != nil {
-		return x.Ext
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchMessage.ProtoReflect.Descriptor instead.
+func (*BatchMessage) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *BatchMessage) GetShared() *BatchMessage_SharedMeta {
+	if x != nil {
+		return x.Shared
+	}
+	return nil
+}
+
+func (x *BatchMessage) GetItems() []*BatchMessage_Item {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+// shared: 批量消息共享的元数据（避免每条消息重复携带）
+type BatchMessage_SharedMeta struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	From          *RouteTarget           `protobuf:"bytes,1,opt,name=from,proto3" json:"from,omitempty"`
+	BizCode       string                 `protobuf:"bytes,2,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
+	TraceContext  *TraceContext          `protobuf:"bytes,3,opt,name=trace_context,json=traceContext,proto3" json:"trace_context,omitempty"`
+	Delivery      *Delivery              `protobuf:"bytes,4,opt,name=delivery,proto3" json:"delivery,omitempty"`
+	Headers       map[string]string      `protobuf:"bytes,5,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BatchMessage_SharedMeta) Reset() {
+	*x = BatchMessage_SharedMeta{}
+	mi := &file_gateway_v1_common_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BatchMessage_SharedMeta) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchMessage_SharedMeta) ProtoMessage() {}
+
+func (x *BatchMessage_SharedMeta) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_common_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchMessage_SharedMeta.ProtoReflect.Descriptor instead.
+func (*BatchMessage_SharedMeta) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{5, 0}
+}
+
+func (x *BatchMessage_SharedMeta) GetFrom() *RouteTarget {
+	if x != nil {
+		return x.From
+	}
+	return nil
+}
+
+func (x *BatchMessage_SharedMeta) GetBizCode() string {
+	if x != nil {
+		return x.BizCode
+	}
+	return ""
+}
+
+func (x *BatchMessage_SharedMeta) GetTraceContext() *TraceContext {
+	if x != nil {
+		return x.TraceContext
+	}
+	return nil
+}
+
+func (x *BatchMessage_SharedMeta) GetDelivery() *Delivery {
+	if x != nil {
+		return x.Delivery
+	}
+	return nil
+}
+
+func (x *BatchMessage_SharedMeta) GetHeaders() map[string]string {
+	if x != nil {
+		return x.Headers
+	}
+	return nil
+}
+
+// items: 批量消息项，每条只包含差异化字段
+//
+//	如果某字段为空，则使用 shared 中的值
+type BatchMessage_Item struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	MsgId         string                 `protobuf:"bytes,1,opt,name=msg_id,json=msgId,proto3" json:"msg_id,omitempty"`
+	SeqId         uint64                 `protobuf:"varint,2,opt,name=seq_id,json=seqId,proto3" json:"seq_id,omitempty"`
+	To            *RouteTarget           `protobuf:"bytes,3,opt,name=to,proto3" json:"to,omitempty"`
+	ExpireAt      int64                  `protobuf:"varint,4,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
+	Body          *Body                  `protobuf:"bytes,5,opt,name=body,proto3" json:"body,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BatchMessage_Item) Reset() {
+	*x = BatchMessage_Item{}
+	mi := &file_gateway_v1_common_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BatchMessage_Item) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchMessage_Item) ProtoMessage() {}
+
+func (x *BatchMessage_Item) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_common_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchMessage_Item.ProtoReflect.Descriptor instead.
+func (*BatchMessage_Item) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{5, 1}
+}
+
+func (x *BatchMessage_Item) GetMsgId() string {
+	if x != nil {
+		return x.MsgId
+	}
+	return ""
+}
+
+func (x *BatchMessage_Item) GetSeqId() uint64 {
+	if x != nil {
+		return x.SeqId
+	}
+	return 0
+}
+
+func (x *BatchMessage_Item) GetTo() *RouteTarget {
+	if x != nil {
+		return x.To
+	}
+	return nil
+}
+
+func (x *BatchMessage_Item) GetExpireAt() int64 {
+	if x != nil {
+		return x.ExpireAt
+	}
+	return 0
+}
+
+func (x *BatchMessage_Item) GetBody() *Body {
+	if x != nil {
+		return x.Body
 	}
 	return nil
 }
@@ -894,43 +1386,72 @@ const file_gateway_v1_common_proto_rawDesc = "" +
 	"\x06labels\x18\x06 \x03(\v2#.gateway.v1.RouteTarget.LabelsEntryR\x06labels\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x82\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x9b\x02\n" +
 	"\fTraceContext\x12#\n" +
 	"\btrace_id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\atraceId\x12 \n" +
-	"\aspan_id\x18\x02 \x01(\tB\a\xfaB\x04r\x02\x18@R\x06spanId\x12+\n" +
-	"\ftrace_parent\x18\x03 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x02R\vtraceParent\"\x90\x01\n" +
+	"\aspan_id\x18\x02 \x01(\tB\a\xfaB\x04r\x02\x18@R\x06spanId\x12-\n" +
+	"\x0eparent_span_id\x18\x03 \x01(\tB\a\xfaB\x04r\x02\x18@R\fparentSpanId\x12\x18\n" +
+	"\asampled\x18\x04 \x01(\bR\asampled\x12?\n" +
+	"\abaggage\x18\x05 \x03(\v2%.gateway.v1.TraceContext.BaggageEntryR\abaggage\x1a:\n" +
+	"\fBaggageEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xd1\x01\n" +
 	"\bDelivery\x12&\n" +
 	"\x03qos\x18\x01 \x01(\x0e2\x14.gateway.v1.QosClassR\x03qos\x12\x1a\n" +
 	"\x06ack_id\x18\x02 \x01(\tH\x00R\x05ackId\x88\x01\x01\x12\x18\n" +
 	"\aoffline\x18\x03 \x01(\bR\aoffline\x12\x1b\n" +
-	"\tmax_retry\x18\x04 \x01(\x05R\bmaxRetryB\t\n" +
-	"\a_ack_id\"\xab\x05\n" +
+	"\tmax_retry\x18\x04 \x01(\x05R\bmaxRetry\x12\x1a\n" +
+	"\bpriority\x18\x05 \x01(\x05R\bpriority\x12#\n" +
+	"\rcompress_body\x18\x06 \x01(\bR\fcompressBodyB\t\n" +
+	"\a_ack_id\"\x93\x05\n" +
 	"\aMessage\x12!\n" +
-	"\aversion\x18\x01 \x01(\rB\a\xfaB\x04*\x02(\x00R\aversion\x123\n" +
-	"\x04type\x18\x02 \x01(\x0e2\x15.gateway.v1.FrameTypeB\b\xfaB\x05\x82\x01\x02\x10\x01R\x04type\x12\x1f\n" +
-	"\x06msg_id\x18\x03 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\x05msgId\x12\x1e\n" +
-	"\x06seq_id\x18\x04 \x01(\x04B\a\xfaB\x042\x02(\x00R\x05seqId\x12%\n" +
-	"\ttimestamp\x18\x05 \x01(\x03B\a\xfaB\x04\"\x02(\x00R\ttimestamp\x125\n" +
-	"\x04from\x18\x06 \x01(\v2\x17.gateway.v1.RouteTargetB\b\xfaB\x05\x8a\x01\x02\x10\x01R\x04from\x121\n" +
-	"\x02to\x18\a \x01(\v2\x17.gateway.v1.RouteTargetB\b\xfaB\x05\x8a\x01\x02\x10\x01R\x02to\x12:\n" +
-	"\bdelivery\x18\b \x01(\v2\x14.gateway.v1.DeliveryB\b\xfaB\x05\x8a\x01\x02\x10\x01R\bdelivery\x12$\n" +
-	"\texpire_at\x18\t \x01(\x03B\a\xfaB\x04\"\x02(\x00R\bexpireAt\x12#\n" +
+	"\aversion\x18\x01 \x01(\rB\a\xfaB\x04*\x02(\x01R\aversion\x125\n" +
+	"\x04type\x18\x02 \x01(\x0e2\x15.gateway.v1.FrameTypeB\n" +
+	"\xfaB\a\x82\x01\x04\x10\x01 \x00R\x04type\x12!\n" +
+	"\x06msg_id\x18\x03 \x01(\tB\n" +
+	"\xfaB\ar\x05\x10\x01\x18\x80\x01R\x05msgId\x12\x15\n" +
+	"\x06seq_id\x18\x04 \x01(\x04R\x05seqId\x12\x1c\n" +
+	"\ttimestamp\x18\x05 \x01(\x03R\ttimestamp\x12+\n" +
+	"\x04from\x18\x06 \x01(\v2\x17.gateway.v1.RouteTargetR\x04from\x12'\n" +
+	"\x02to\x18\a \x01(\v2\x17.gateway.v1.RouteTargetR\x02to\x120\n" +
+	"\bdelivery\x18\b \x01(\v2\x14.gateway.v1.DeliveryR\bdelivery\x12\x1b\n" +
+	"\texpire_at\x18\t \x01(\x03R\bexpireAt\x12#\n" +
 	"\bbiz_code\x18\n" +
-	" \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\abizCode\x12G\n" +
-	"\rtrace_context\x18\v \x01(\v2\x18.gateway.v1.TraceContextB\b\xfaB\x05\x8a\x01\x02\x10\x01R\ftraceContext\x12:\n" +
-	"\aheaders\x18\f \x03(\v2 .gateway.v1.Message.HeadersEntryR\aheaders\x12.\n" +
-	"\x04body\x18\r \x01(\v2\x10.gateway.v1.BodyB\b\xfaB\x05\x8a\x01\x02\x10\x01R\x04body\x1a:\n" +
+	" \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\abizCode\x12=\n" +
+	"\rtrace_context\x18\v \x01(\v2\x18.gateway.v1.TraceContextR\ftraceContext\x12:\n" +
+	"\aheaders\x18\f \x03(\v2 .gateway.v1.Message.HeadersEntryR\aheaders\x12$\n" +
+	"\x04body\x18\r \x01(\v2\x10.gateway.v1.BodyR\x04body\x12\x16\n" +
+	"\x06origin\x18\x0e \x01(\tR\x06origin\x12\x17\n" +
+	"\arecv_at\x18\x0f \x01(\x03R\x06recvAt\x1a:\n" +
 	"\fHeadersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa9\x01\n" +
-	"\x04Body\x12\x1c\n" +
-	"\x04type\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\x04type\x12\x1e\n" +
-	"\x04data\x18\x02 \x01(\fB\n" +
-	"\xfaB\az\x05\x18\x80\x80\x80\x02R\x04data\x12+\n" +
-	"\x03ext\x18\x03 \x03(\v2\x19.gateway.v1.Body.ExtEntryR\x03ext\x1a6\n" +
-	"\bExtEntry\x12\x10\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa8\x01\n" +
+	"\x04Body\x123\n" +
+	"\x05codec\x18\x01 \x01(\x0e2\x11.gateway.v1.CodecB\n" +
+	"\xfaB\a\x82\x01\x04\x10\x01 \x00R\x05codec\x12I\n" +
+	"\rcompress_algo\x18\x02 \x01(\x0e2\x18.gateway.v1.CompressAlgoB\n" +
+	"\xfaB\a\x82\x01\x04\x10\x01 \x00R\fcompressAlgo\x12 \n" +
+	"\x04data\x18\x03 \x01(\fB\f\xfaB\tz\a\x10\x01\x18\x80\x80\x80\x02R\x04data\"\xff\x04\n" +
+	"\fBatchMessage\x12;\n" +
+	"\x06shared\x18\x01 \x01(\v2#.gateway.v1.BatchMessage.SharedMetaR\x06shared\x12?\n" +
+	"\x05items\x18\x02 \x03(\v2\x1d.gateway.v1.BatchMessage.ItemB\n" +
+	"\xfaB\a\x92\x01\x04\b\x01\x10dR\x05items\x1a\xcd\x02\n" +
+	"\n" +
+	"SharedMeta\x12+\n" +
+	"\x04from\x18\x01 \x01(\v2\x17.gateway.v1.RouteTargetR\x04from\x12\x19\n" +
+	"\bbiz_code\x18\x02 \x01(\tR\abizCode\x12=\n" +
+	"\rtrace_context\x18\x03 \x01(\v2\x18.gateway.v1.TraceContextR\ftraceContext\x120\n" +
+	"\bdelivery\x18\x04 \x01(\v2\x14.gateway.v1.DeliveryR\bdelivery\x12J\n" +
+	"\aheaders\x18\x05 \x03(\v20.gateway.v1.BatchMessage.SharedMeta.HeadersEntryR\aheaders\x1a:\n" +
+	"\fHeadersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01*\xd1\x04\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a\xa0\x01\n" +
+	"\x04Item\x12\x15\n" +
+	"\x06msg_id\x18\x01 \x01(\tR\x05msgId\x12\x15\n" +
+	"\x06seq_id\x18\x02 \x01(\x04R\x05seqId\x12'\n" +
+	"\x02to\x18\x03 \x01(\v2\x17.gateway.v1.RouteTargetR\x02to\x12\x1b\n" +
+	"\texpire_at\x18\x04 \x01(\x03R\bexpireAt\x12$\n" +
+	"\x04body\x18\x05 \x01(\v2\x10.gateway.v1.BodyR\x04body*\xf3\x06\n" +
 	"\tFrameType\x12\x19\n" +
 	"\x15FrameType_UNSPECIFIED\x10\x00\x12\r\n" +
 	"\tHANDSHAKE\x10\x01\x12\x11\n" +
@@ -946,36 +1467,88 @@ const file_gateway_v1_common_proto_rawDesc = "" +
 	"\x04PING\x10\n" +
 	"\x12\b\n" +
 	"\x04PONG\x10\v\x12\t\n" +
-	"\x05ERROR\x10\x14\x12\a\n" +
-	"\x03ACK\x10\x15\x12\x12\n" +
-	"\x0eREPLAY_REQUEST\x10\x16\x12\x13\n" +
-	"\x0fREPLAY_RESPONSE\x10\x17\x12\b\n" +
+	"\x05ERROR\x10\x14\x12\v\n" +
+	"\aMSG_ACK\x10\x15\x12\r\n" +
+	"\tBATCH_ACK\x10\x16\x12\x10\n" +
+	"\fDELIVERY_ACK\x10\x17\x12\x10\n" +
+	"\fREAD_RECEIPT\x10\x18\x12\x12\n" +
+	"\x0eREPLAY_REQUEST\x10\x19\x12\x13\n" +
+	"\x0fREPLAY_RESPONSE\x10\x1a\x12\b\n" +
 	"\x04KICK\x10\x1e\x12\x10\n" +
-	"\fRATE_LIMITED\x10\x1f\x12\f\n" +
+	"\fRATE_LIMITED\x10\x1f\x12\x14\n" +
+	"\x10SYSTEM_BROADCAST\x10 \x12\x10\n" +
+	"\fADMIN_NOTICE\x10!\x12\x13\n" +
+	"\x0fPRESENCE_UPDATE\x10(\x12\x16\n" +
+	"\x12PRESENCE_SUBSCRIBE\x10)\x12\x1a\n" +
+	"\x16PRESENCE_SUBSCRIBE_ACK\x10*\x12\x18\n" +
+	"\x14PRESENCE_UNSUBSCRIBE\x10+\x12\r\n" +
+	"\tSUBSCRIBE\x102\x12\x11\n" +
+	"\rSUBSCRIBE_ACK\x103\x12\x0f\n" +
+	"\vUNSUBSCRIBE\x104\x12\x13\n" +
+	"\x0fUNSUBSCRIBE_ACK\x105\x12\f\n" +
 	"\bBUSINESS\x10d\x12\x12\n" +
 	"\x0eBUSINESS_BATCH\x10e\x12\v\n" +
 	"\aIM_CHAT\x10n\x12\x0e\n" +
 	"\n" +
 	"IM_RECEIPT\x10o\x12\r\n" +
 	"\tIM_REVOKE\x10p\x12\r\n" +
-	"\tIM_TYPING\x10q\x12\x10\n" +
-	"\vPUSH_NOTIFY\x10\xc9\x01\x12\r\n" +
-	"\bPUSH_ACK\x10\xca\x01\x12\x0e\n" +
-	"\tLIVE_JOIN\x10\xad\x02\x12\x12\n" +
-	"\rLIVE_JOIN_ACK\x10\xae\x02\x12\x0f\n" +
+	"\tIM_TYPING\x10q\x12\x0f\n" +
+	"\vIM_REACTION\x10r\x12\n" +
 	"\n" +
-	"LIVE_LEAVE\x10\xaf\x02\x12\x13\n" +
-	"\x0eLIVE_LEAVE_ACK\x10\xb0\x02\x12\x0e\n" +
-	"\tLIVE_GIFT\x10\xb1\x02\x12\x12\n" +
-	"\rLIVE_GIFT_ACK\x10\xb2\x02\x12\x11\n" +
-	"\fLIVE_COMMENT\x10\xb3\x02\x12\x15\n" +
-	"\x10LIVE_COMMENT_ACK\x10\xb4\x02\x12\x10\n" +
-	"\vLIVE_SIGNAL\x10\xb5\x02\x12\x14\n" +
-	"\x0fLIVE_SIGNAL_ACK\x10\xb6\x02*J\n" +
+	"\x06IM_PIN\x10s\x12\x0f\n" +
+	"\vPUSH_NOTIFY\x10x\x12\f\n" +
+	"\bPUSH_ACK\x10y\x12\x11\n" +
+	"\fLIVE_COMMENT\x10\x82\x01\x12\x0e\n" +
+	"\tLIVE_GIFT\x10\x83\x01\x12\x10\n" +
+	"\vLIVE_SIGNAL\x10\x84\x01\x12\x0e\n" +
+	"\tLIVE_JOIN\x10\x85\x01\x12\x0f\n" +
+	"\n" +
+	"LIVE_LEAVE\x10\x86\x01\x12\x0f\n" +
+	"\n" +
+	"LIVE_STATE\x10\x87\x01\x12\x0f\n" +
+	"\n" +
+	"CALL_OFFER\x10\x8c\x01\x12\x10\n" +
+	"\vCALL_ANSWER\x10\x8d\x01\x12\r\n" +
+	"\bCALL_ICE\x10\x8e\x01\x12\x10\n" +
+	"\vCALL_HANGUP\x10\x8f\x01\x12\x10\n" +
+	"\vCALL_MODIFY\x10\x90\x01*\xc1\x06\n" +
+	"\tErrorCode\x12\x1a\n" +
+	"\x16ERROR_CODE_UNSPECIFIED\x10\x00\x12\x1a\n" +
+	"\x15ERR_HEARTBEAT_TIMEOUT\x10\xe9\a\x12\x19\n" +
+	"\x14ERR_HANDSHAKE_FAILED\x10\xea\a\x12\x15\n" +
+	"\x10ERR_AUTH_EXPIRED\x10\xeb\a\x12\x1e\n" +
+	"\x19ERR_REPLACED_BY_NEW_LOGIN\x10\xec\a\x12\x1a\n" +
+	"\x15ERR_SESSION_SUSPENDED\x10\xed\a\x12\x17\n" +
+	"\x12ERR_SESSION_CLOSED\x10\xee\a\x12\x19\n" +
+	"\x14ERR_PROTOCOL_VERSION\x10\xef\a\x12\x1a\n" +
+	"\x15ERR_CONN_RATE_LIMITED\x10\xf0\a\x12\x16\n" +
+	"\x11ERR_TOKEN_INVALID\x10\xd1\x0f\x12\x16\n" +
+	"\x11ERR_TOKEN_EXPIRED\x10\xd2\x0f\x12\x1a\n" +
+	"\x15ERR_PERMISSION_DENIED\x10\xd3\x0f\x12\x17\n" +
+	"\x12ERR_DEVICE_BLOCKED\x10\xd4\x0f\x12\x13\n" +
+	"\x0eERR_IP_BLOCKED\x10\xd5\x0f\x12\x1a\n" +
+	"\x15ERR_MESSAGE_TOO_LARGE\x10\xb9\x17\x12\x1b\n" +
+	"\x16ERR_INVALID_FRAME_TYPE\x10\xba\x17\x12\x1a\n" +
+	"\x15ERR_MESSAGE_MALFORMED\x10\xbb\x17\x12\x18\n" +
+	"\x13ERR_MESSAGE_EXPIRED\x10\xbc\x17\x12\x15\n" +
+	"\x10ERR_RATE_LIMITED\x10\xbd\x17\x12\x14\n" +
+	"\x0fERR_BAD_REQUEST\x10\xbe\x17\x12\x1d\n" +
+	"\x18ERR_UPSTREAM_SEND_FAILED\x10\xa1\x1f\x12\x1d\n" +
+	"\x18ERR_OFFLINE_STORE_FAILED\x10\xa2\x1f\x12\x1b\n" +
+	"\x16ERR_MAX_RETRY_EXCEEDED\x10\xa3\x1f\x12\x18\n" +
+	"\x13ERR_ROUTE_NOT_FOUND\x10\xa4\x1f\x12\x1b\n" +
+	"\x16ERR_TARGET_UNAVAILABLE\x10\xa5\x1f\x12\x19\n" +
+	"\x14ERR_DELIVERY_TIMEOUT\x10\xa6\x1f\x12\x17\n" +
+	"\x12ERR_ROOM_NOT_FOUND\x10\x89'\x12\x18\n" +
+	"\x13ERR_TOPIC_NOT_FOUND\x10\x8a'\x12\x1b\n" +
+	"\x16ERR_ALREADY_SUBSCRIBED\x10\x8b'\x12\x17\n" +
+	"\x12ERR_NOT_SUBSCRIBED\x10\x8c'\x12\x12\n" +
+	"\rERR_ROOM_FULL\x10\x8d'*\\\n" +
 	"\bQosClass\x12\x19\n" +
 	"\x15QOS_CLASS_UNSPECIFIED\x10\x00\x12\x10\n" +
 	"\fAT_MOST_ONCE\x10\x01\x12\x11\n" +
-	"\rAT_LEAST_ONCE\x10\x02*C\n" +
+	"\rAT_LEAST_ONCE\x10\x02\x12\x10\n" +
+	"\fEXACTLY_ONCE\x10\x03*C\n" +
 	"\x05Codec\x12\x15\n" +
 	"\x11CODEC_UNSPECIFIED\x10\x00\x12\b\n" +
 	"\x04JSON\x10\x01\x12\f\n" +
@@ -1014,40 +1587,55 @@ func file_gateway_v1_common_proto_rawDescGZIP() []byte {
 	return file_gateway_v1_common_proto_rawDescData
 }
 
-var file_gateway_v1_common_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_gateway_v1_common_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_gateway_v1_common_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
+var file_gateway_v1_common_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_gateway_v1_common_proto_goTypes = []any{
-	(FrameType)(0),       // 0: gateway.v1.FrameType
-	(QosClass)(0),        // 1: gateway.v1.QosClass
-	(Codec)(0),           // 2: gateway.v1.Codec
-	(CompressAlgo)(0),    // 3: gateway.v1.CompressAlgo
-	(RouteTargetType)(0), // 4: gateway.v1.RouteTargetType
-	(*RouteTarget)(nil),  // 5: gateway.v1.RouteTarget
-	(*TraceContext)(nil), // 6: gateway.v1.TraceContext
-	(*Delivery)(nil),     // 7: gateway.v1.Delivery
-	(*Message)(nil),      // 8: gateway.v1.Message
-	(*Body)(nil),         // 9: gateway.v1.Body
-	nil,                  // 10: gateway.v1.RouteTarget.LabelsEntry
-	nil,                  // 11: gateway.v1.Message.HeadersEntry
-	nil,                  // 12: gateway.v1.Body.ExtEntry
+	(FrameType)(0),                  // 0: gateway.v1.FrameType
+	(ErrorCode)(0),                  // 1: gateway.v1.ErrorCode
+	(QosClass)(0),                   // 2: gateway.v1.QosClass
+	(Codec)(0),                      // 3: gateway.v1.Codec
+	(CompressAlgo)(0),               // 4: gateway.v1.CompressAlgo
+	(RouteTargetType)(0),            // 5: gateway.v1.RouteTargetType
+	(*RouteTarget)(nil),             // 6: gateway.v1.RouteTarget
+	(*TraceContext)(nil),            // 7: gateway.v1.TraceContext
+	(*Delivery)(nil),                // 8: gateway.v1.Delivery
+	(*Message)(nil),                 // 9: gateway.v1.Message
+	(*Body)(nil),                    // 10: gateway.v1.Body
+	(*BatchMessage)(nil),            // 11: gateway.v1.BatchMessage
+	nil,                             // 12: gateway.v1.RouteTarget.LabelsEntry
+	nil,                             // 13: gateway.v1.TraceContext.BaggageEntry
+	nil,                             // 14: gateway.v1.Message.HeadersEntry
+	(*BatchMessage_SharedMeta)(nil), // 15: gateway.v1.BatchMessage.SharedMeta
+	(*BatchMessage_Item)(nil),       // 16: gateway.v1.BatchMessage.Item
+	nil,                             // 17: gateway.v1.BatchMessage.SharedMeta.HeadersEntry
 }
 var file_gateway_v1_common_proto_depIdxs = []int32{
-	4,  // 0: gateway.v1.RouteTarget.type:type_name -> gateway.v1.RouteTargetType
-	10, // 1: gateway.v1.RouteTarget.labels:type_name -> gateway.v1.RouteTarget.LabelsEntry
-	1,  // 2: gateway.v1.Delivery.qos:type_name -> gateway.v1.QosClass
-	0,  // 3: gateway.v1.Message.type:type_name -> gateway.v1.FrameType
-	5,  // 4: gateway.v1.Message.from:type_name -> gateway.v1.RouteTarget
-	5,  // 5: gateway.v1.Message.to:type_name -> gateway.v1.RouteTarget
-	7,  // 6: gateway.v1.Message.delivery:type_name -> gateway.v1.Delivery
-	6,  // 7: gateway.v1.Message.trace_context:type_name -> gateway.v1.TraceContext
-	11, // 8: gateway.v1.Message.headers:type_name -> gateway.v1.Message.HeadersEntry
-	9,  // 9: gateway.v1.Message.body:type_name -> gateway.v1.Body
-	12, // 10: gateway.v1.Body.ext:type_name -> gateway.v1.Body.ExtEntry
-	11, // [11:11] is the sub-list for method output_type
-	11, // [11:11] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	5,  // 0: gateway.v1.RouteTarget.type:type_name -> gateway.v1.RouteTargetType
+	12, // 1: gateway.v1.RouteTarget.labels:type_name -> gateway.v1.RouteTarget.LabelsEntry
+	13, // 2: gateway.v1.TraceContext.baggage:type_name -> gateway.v1.TraceContext.BaggageEntry
+	2,  // 3: gateway.v1.Delivery.qos:type_name -> gateway.v1.QosClass
+	0,  // 4: gateway.v1.Message.type:type_name -> gateway.v1.FrameType
+	6,  // 5: gateway.v1.Message.from:type_name -> gateway.v1.RouteTarget
+	6,  // 6: gateway.v1.Message.to:type_name -> gateway.v1.RouteTarget
+	8,  // 7: gateway.v1.Message.delivery:type_name -> gateway.v1.Delivery
+	7,  // 8: gateway.v1.Message.trace_context:type_name -> gateway.v1.TraceContext
+	14, // 9: gateway.v1.Message.headers:type_name -> gateway.v1.Message.HeadersEntry
+	10, // 10: gateway.v1.Message.body:type_name -> gateway.v1.Body
+	3,  // 11: gateway.v1.Body.codec:type_name -> gateway.v1.Codec
+	4,  // 12: gateway.v1.Body.compress_algo:type_name -> gateway.v1.CompressAlgo
+	15, // 13: gateway.v1.BatchMessage.shared:type_name -> gateway.v1.BatchMessage.SharedMeta
+	16, // 14: gateway.v1.BatchMessage.items:type_name -> gateway.v1.BatchMessage.Item
+	6,  // 15: gateway.v1.BatchMessage.SharedMeta.from:type_name -> gateway.v1.RouteTarget
+	7,  // 16: gateway.v1.BatchMessage.SharedMeta.trace_context:type_name -> gateway.v1.TraceContext
+	8,  // 17: gateway.v1.BatchMessage.SharedMeta.delivery:type_name -> gateway.v1.Delivery
+	17, // 18: gateway.v1.BatchMessage.SharedMeta.headers:type_name -> gateway.v1.BatchMessage.SharedMeta.HeadersEntry
+	6,  // 19: gateway.v1.BatchMessage.Item.to:type_name -> gateway.v1.RouteTarget
+	10, // 20: gateway.v1.BatchMessage.Item.body:type_name -> gateway.v1.Body
+	21, // [21:21] is the sub-list for method output_type
+	21, // [21:21] is the sub-list for method input_type
+	21, // [21:21] is the sub-list for extension type_name
+	21, // [21:21] is the sub-list for extension extendee
+	0,  // [0:21] is the sub-list for field type_name
 }
 
 func init() { file_gateway_v1_common_proto_init() }
@@ -1061,8 +1649,8 @@ func file_gateway_v1_common_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gateway_v1_common_proto_rawDesc), len(file_gateway_v1_common_proto_rawDesc)),
-			NumEnums:      5,
-			NumMessages:   8,
+			NumEnums:      6,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

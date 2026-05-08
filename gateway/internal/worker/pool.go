@@ -199,15 +199,16 @@ func (p *WorkerPool) upstreamWorker() {
 					errMsg.Delivery.AckId = &job.Msg.MsgId // 让客户端能关联到哪条消息出错了
 				}
 
-				payload := &gateway.Error{
-					Code:    40010,
-					Message: "upstream send failed: " + err.Error(),
-				}
-				p, _ := proto.Marshal(payload)
-				errMsg.Body = &gateway.Body{
-					Type: job.Msg.BizCode,
-					Data: p,
-				}
+			payload := &gateway.ErrorPayload{
+				Code:    gateway.ERR_UPSTREAM_SEND_FAILED,
+				Message: "upstream send failed: " + err.Error(),
+			}
+			p, _ := proto.Marshal(payload)
+			errMsg.Body = &gateway.Body{
+				Codec:        gateway.Codec_PROTOBUF,
+				CompressAlgo: gateway.CompressAlgo_NONE,
+				Data:         p,
+			}
 
 				// 注意：这里调用的是 SessionRef 接口的 Submit，
 				// 不是 Session.SubmitUpstream。
