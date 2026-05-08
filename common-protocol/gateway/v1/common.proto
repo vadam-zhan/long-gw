@@ -148,43 +148,43 @@ message Delivery {
 message Message {
   // ── 帧身份 ──────────────────────────────────────────────────────────────
   // version: 协议版本，用于平滑升级。当前 = 1。
-  uint32  version   = 1;
-  FrameType type      = 2;
+  uint32  version   = 1 [(validate.rules).uint32 = {gte: 0}];
+  FrameType type      = 2 [(validate.rules).enum = {defined_only: true}];
 
   // msg_id: 发送方生成的全局唯一 ID（UUID v4 或雪花 ID）。
   //   用途：① ACK 关联  ② 幂等去重（QoS-2）  ③ 追踪日志关联
-  string  msg_id    = 3;
+  string  msg_id    = 3 [(validate.rules).string = {max_len: 128}];
 
   // seq_id: 发送方单向单调递增序号。
   //   用途：① 接收方检测丢包间隙  ② 断线重连时告知网关"从哪里补发"
   //   注意：与 msg_id 职责不同——msg_id 是全局唯一 ID，seq_id 是顺序标记。
-  uint64  seq_id    = 4;
+  uint64  seq_id    = 4 [(validate.rules).uint64 = {gte: 0}];
 
   // timestamp: 发送方时间戳，Unix 毫秒。
   //   用途：① 端到端延迟度量  ② 客户端时钟校准（与 HandshakeAck.server_time 对比）
-  int64   timestamp = 5;
+  int64   timestamp = 5 [(validate.rules).int64 = {gte: 0}];
 
   // ── 寻址 ────────────────────────────────────────────────────────────────
   // from: 发送方标识
-  RouteTarget from = 6;
+  RouteTarget from = 6 [(validate.rules).message = {required: true}];
 
   // to: 目标地址
-  RouteTarget to   = 7;
+  RouteTarget to   = 7 [(validate.rules).message = {required: true}];
 
   // ── 投递控制 ─────────────────────────────────────────────────────────────
-  Delivery    delivery      = 8;
+  Delivery    delivery      = 8 [(validate.rules).message = {required: true}];
 
   // expire_at: 绝对过期时间戳（Unix 毫秒）。为 0 表示永不过期。
   //   使用绝对时间而非 TTL：消息经多节点转发时各节点判断结果一致。
-  int64  expire_at = 9;
+  int64  expire_at = 9 [(validate.rules).int64 = {gte: 0}];
 
   // ── 路由提示（网关中间件读取，不透传给业务） ──────────────────────────────
   // biz_code: 业务域标识，用于网关侧 plugin 选择（限流策略、审核规则等）。
   //   约定："im" | "push" | "live" | "custom.{name}"
-  string biz_code = 10;
+  string biz_code = 10 [(validate.rules).string = {max_len: 128}];
 
   // TraceContext: 分布式追踪 ID，跨服务传播。格式建议 W3C TraceContext。
-  TraceContext trace_context = 11;
+  TraceContext trace_context = 11 [(validate.rules).message = {required: true}];
 
   // ── 扩展 ─────────────────────────────────────────────────────────────────
   // headers: 中间件 K-V 元数据。网关 plugin 可读写。
@@ -193,7 +193,7 @@ message Message {
   map<string, string> headers = 12;
 
   // body: 业务载荷容器。网关转发时不解析 body.payload。
-  Body body = 13;
+  Body body = 13 [(validate.rules).message = {required: true}];
 }
 
 // Body 是业务载荷的容器。

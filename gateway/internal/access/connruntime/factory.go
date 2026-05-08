@@ -2,6 +2,7 @@ package connruntime
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -226,17 +227,24 @@ type authInfo struct {
 
 // doHandshake reads the AuthRequest, validates the token, and sends AuthResponse.
 // Sets ConnID, UserID, DeviceID, DeviceType on the connection.
-func (f *Factory) doHandshake(ctx context.Context, tp transport.Transport) (*authInfo, *gatewayv1.Message, error) {
+func (f *Factory) doHandshake(ctx context.Context, tp transport.Transport) (auth *authInfo, msg *gatewayv1.Message, err error) {
+	defer func() {
+		if err != nil {
+			slog.Error("doHandshake failed", "error", err)
+		} else {
+			slog.Info("doHandshake succeeded", "auth", auth, "msg", msg)
+		}
+	}()
 	if err := tp.SetReadDeadline(time.Now().Add(f.deps.HandshakeTimeout)); err != nil {
 		return nil, nil, fmt.Errorf("set deadline: %w", err)
 	}
 	raw, err := tp.Read(ctx)
 	if err != nil {
-		return nil, nil, fmt.Errorf("read auth request: %w", err)
+		return nil, nil, fmt.Errorf("read request: %w", err)
 	}
-	msg, err := f.deps.Codec.Decode(raw)
+	msg, err = f.deps.Codec.Decode(raw)
 	if err != nil {
-		return nil, nil, fmt.Errorf("decode auth request: %w", err)
+		return nil, nil, fmt.Errorf("codec decode request: %w", err)
 	}
 	if msg.Type != gatewayv1.FrameType_HANDSHAKE {
 		return nil, nil, fmt.Errorf("expected Handshake, got %v", msg.Type)
@@ -247,7 +255,7 @@ func (f *Factory) doHandshake(ctx context.Context, tp transport.Transport) (*aut
 		return nil, nil, fmt.Errorf("unmarshal auth payload: %w", err)
 	}
 	if handshakeRequest.Token == "" {
-		return nil, nil, fmt.Errorf("empty token")
+		return nil, nil, errors.New("empty token")
 	}
 
 	// Delegate to the AuthVerifier (gRPC call to auth service or local JWT validation).

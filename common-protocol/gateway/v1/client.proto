@@ -5,6 +5,7 @@ package gateway.v1;
 option go_package = "github.com/vadam-zhan/long-gw/common-protocol/gen/gateway/v1;gatewayv1";
 
 import "gateway/v1/common.proto";
+import "validate/validate.proto";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Layer 2：SDK 层强类型 payload（网关不感知，SDK 负责编解码）
@@ -17,12 +18,12 @@ message WellKnownPayload {
     // ── 控制面 ──────────────────────────────────────────────────────────
     HandshakeRequest    handshake     = 1;
     HandshakeResponse   handshake_ack = 2;
-    KickRequest         kick          = 3;
+    KickRequest         kick_request  = 3;
     KickResponse        kick_response = 4;
     Error               error         = 5;
     Ack                 ack           = 6;
-    AuthRequest         auth_request  = 7;
-    AuthResponse        auth_response = 8;
+    AuthRefreshRequest  auth_refresh_request  = 7;
+    AuthRefreshResponse auth_refresh_response = 8;
 
     // ── IM 域 ────────────────────────────────────────────────────────────
     IMChat    im_chat    = 10;
@@ -47,68 +48,68 @@ message WellKnownPayload {
 // ─────────────────────────────────────────────────────────────────────────────
 
 message HandshakeRequest {
-  string app_id      = 1;  // 多租户网关：标识应用
-  string token       = 2;  // 业务 auth 服务签发的短期 JWT
-  string device_id   = 3;  // 设备指纹，跨 session 稳定
-  string device_type = 4;  // "ios" | "android" | "web" | "pc" | "iot"
-  string sdk_version = 5;  // 能力协商用
+  string app_id      = 1 [(validate.rules).string = {max_len: 128}];  // 多租户网关：标识应用
+  string token       = 2 [(validate.rules).string = {max_len: 4096}];  // 业务 auth 服务签发的短期 JWT
+  string device_id   = 3 [(validate.rules).string = {max_len: 128}];  // 设备指纹，跨 session 稳定
+  string device_type = 4 [(validate.rules).string = {max_len: 128}];  // "ios" | "android" | "web" | "pc" | "iot"
+  string sdk_version = 5 [(validate.rules).string = {max_len: 128}];  // 能力协商用
 
   // last_seq_id: 客户端上次 session 收到的最高 SeqID。
   // 网关据此从 last_seq_id+1 开始补发离线消息（replay）。
-  uint64 last_seq_id = 6;
+  uint64 last_seq_id = 6 [(validate.rules).uint64 = {gte: 0}];
 }
 
 message HandshakeResponse {
-  string conn_id            = 1;  // 网关分配的连接唯一 ID
-  string user_id            = 2;  // token 验证后解析出的用户 ID
-  int64  server_time        = 3;  // 服务器 Unix 毫秒，供客户端校准时钟偏差
-  int32  heartbeat_interval = 4;  // 建议心跳间隔（秒）
-  int64  max_body_size      = 5;  // 允许的最大 Body.payload 字节数
-  uint64 replay_from        = 6;  // 网关将从此 SeqID 开始补发（= last_seq_id + 1）
+  string conn_id            = 1 [(validate.rules).string = {max_len: 128}];  // 网关分配的连接唯一 ID
+  string user_id            = 2 [(validate.rules).string = {max_len: 128}];  // token 验证后解析出的用户 ID
+  int64  server_time        = 3 [(validate.rules).int64 = {gte: 0}];  // 服务器 Unix 毫秒，供客户端校准时钟偏差
+  int32  heartbeat_interval = 4 [(validate.rules).int32 = {gte: 0}];  // 建议心跳间隔（秒）
+  int64  max_body_size      = 5 [(validate.rules).int64 = {gte: 0}];  // 允许的最大 Body.payload 字节数
+  uint64 replay_from        = 6 [(validate.rules).uint64 = {gte: 0}];  // 网关将从此 SeqID 开始补发（= last_seq_id + 1）
 
   // extensions: 网关声明支持的能力列表。
   //   示例：["compress:zstd", "qos:2", "multi-device", "offline", "replay"]
-  repeated string extensions = 7;
+  repeated string extensions = 7 [(validate.rules).repeated = {min_items: 0, max_items: 100}];
 }
 
-message AuthRequest {
-  string token = 1;  // 客户端提供的认证令牌
-  string app_id = 2;  // 应用 ID
-  string device_id = 3;  // 设备 ID
-  string device_type = 4;  // 设备类型
-  string biz_code = 5;  // 业务代码
+message AuthRefreshRequest {
+  string token = 1 [(validate.rules).string = {max_len: 4096}];  // 客户端提供的认证令牌
+  string app_id = 2 [(validate.rules).string = {max_len: 128}];  // 应用 ID
+  string device_id = 3 [(validate.rules).string = {max_len: 128}];  // 设备 ID
+  string device_type = 4 [(validate.rules).string = {max_len: 128}];  // 设备类型
+  string biz_code = 5 [(validate.rules).string = {max_len: 128}];  // 业务代码
 }
 
-message AuthResponse {
-    uint32 code = 1; // 响应，0 = 鉴权成功，非0 失败
-    string msg = 2; // 状态描述
-    bool result = 3; // 鉴权结果，true = 鉴权成功，false = 鉴权失败
-    uint32 heartbeat_internal = 4; // 服务端强制的心跳间隔（单位秒，默认 30s）
-    string session_id = 5; // 会话ID
-    uint32 max_body_size = 6; // 最大 body
-    uint64 replay_from = 7;
+message AuthRefreshResponse {
+    uint32 code = 1 [(validate.rules).uint32 = {gte: 0}]; // 响应，0 = 鉴权成功，非0 失败
+    string msg = 2 [(validate.rules).string = {max_len: 1024}]; // 状态描述
+    bool result = 3 [(validate.rules).bool = {}]; // 鉴权结果，true = 鉴权成功，false = 鉴权失败
+    uint32 heartbeat_internal = 4 [(validate.rules).uint32 = {gte: 0}]; // 服务端强制的心跳间隔（单位秒，默认 30s）
+    string session_id = 5 [(validate.rules).string = {max_len: 128}]; // 会话ID
+    uint32 max_body_size = 6 [(validate.rules).uint32 = {gte: 0}]; // 最大 body
+    uint64 replay_from = 7 [(validate.rules).uint64 = {gte: 0}];
 }
 
 message KickRequest {
-  int32  code             = 1;  // 机器可读错误码
-  string reason           = 2;  // 人类可读原因（调试用）
-  int32  reconnect_after  = 3;  // >0 表示建议客户端等待 N 秒后重连（灰度发布用）
+  int32  code             = 1 [(validate.rules).int32 = {gte: 0}];  // 机器可读错误码
+  string reason           = 2 [(validate.rules).string = {max_len: 1024}];  // 人类可读原因（调试用）
+  int32  reconnect_after  = 3 [(validate.rules).int32 = {gte: 0}];  // >0 表示建议客户端等待 N 秒后重连（灰度发布用）
 }
 
 message KickResponse {
-    uint32 code = 1; // 响应，0 = 登出成功，非0 失败
-    string msg = 2; // 状态描述
+    uint32 code = 1 [(validate.rules).uint32 = {gte: 0}]; // 响应，0 = 登出成功，非0 失败
+    string msg = 2 [(validate.rules).string = {max_len: 1024}]; // 状态描述
 }
 
 message Error {
-  int32  code       = 1;
-  string message    = 2;
-  string ref_msg_id = 3;  // 触发此错误的原始 msg_id
+  int32  code       = 1 [(validate.rules).int32 = {gte: 0}];
+  string message    = 2 [(validate.rules).string = {max_len: 1024}];
+  string ref_msg_id = 3 [(validate.rules).string = {max_len: 128}];  // 触发此错误的原始 msg_id
 }
 
 message Ack {
-  string ref_msg_id = 1;  // 被确认的消息 msg_id
-  int64  recv_time  = 2;  // 网关收到时间（Unix 毫秒），供 RTT 度量
+  string ref_msg_id = 1 [(validate.rules).string = {max_len: 128}];  // 被确认的消息 msg_id
+  int64  recv_time  = 2 [(validate.rules).int64 = {gte: 0}];  // 网关收到时间（Unix 毫秒），供 RTT 度量
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

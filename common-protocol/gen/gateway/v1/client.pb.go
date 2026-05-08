@@ -7,6 +7,7 @@
 package gatewayv1
 
 import (
+	_ "github.com/envoyproxy/protoc-gen-validate/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -27,12 +28,12 @@ type WellKnownPayload struct {
 	//
 	//	*WellKnownPayload_Handshake
 	//	*WellKnownPayload_HandshakeAck
-	//	*WellKnownPayload_Kick
+	//	*WellKnownPayload_KickRequest
 	//	*WellKnownPayload_KickResponse
 	//	*WellKnownPayload_Error
 	//	*WellKnownPayload_Ack
-	//	*WellKnownPayload_AuthRequest
-	//	*WellKnownPayload_AuthResponse
+	//	*WellKnownPayload_AuthRefreshRequest
+	//	*WellKnownPayload_AuthRefreshResponse
 	//	*WellKnownPayload_ImChat
 	//	*WellKnownPayload_ImReceipt
 	//	*WellKnownPayload_ImRevoke
@@ -100,10 +101,10 @@ func (x *WellKnownPayload) GetHandshakeAck() *HandshakeResponse {
 	return nil
 }
 
-func (x *WellKnownPayload) GetKick() *KickRequest {
+func (x *WellKnownPayload) GetKickRequest() *KickRequest {
 	if x != nil {
-		if x, ok := x.Content.(*WellKnownPayload_Kick); ok {
-			return x.Kick
+		if x, ok := x.Content.(*WellKnownPayload_KickRequest); ok {
+			return x.KickRequest
 		}
 	}
 	return nil
@@ -136,19 +137,19 @@ func (x *WellKnownPayload) GetAck() *Ack {
 	return nil
 }
 
-func (x *WellKnownPayload) GetAuthRequest() *AuthRequest {
+func (x *WellKnownPayload) GetAuthRefreshRequest() *AuthRefreshRequest {
 	if x != nil {
-		if x, ok := x.Content.(*WellKnownPayload_AuthRequest); ok {
-			return x.AuthRequest
+		if x, ok := x.Content.(*WellKnownPayload_AuthRefreshRequest); ok {
+			return x.AuthRefreshRequest
 		}
 	}
 	return nil
 }
 
-func (x *WellKnownPayload) GetAuthResponse() *AuthResponse {
+func (x *WellKnownPayload) GetAuthRefreshResponse() *AuthRefreshResponse {
 	if x != nil {
-		if x, ok := x.Content.(*WellKnownPayload_AuthResponse); ok {
-			return x.AuthResponse
+		if x, ok := x.Content.(*WellKnownPayload_AuthRefreshResponse); ok {
+			return x.AuthRefreshResponse
 		}
 	}
 	return nil
@@ -230,8 +231,8 @@ type WellKnownPayload_HandshakeAck struct {
 	HandshakeAck *HandshakeResponse `protobuf:"bytes,2,opt,name=handshake_ack,json=handshakeAck,proto3,oneof"`
 }
 
-type WellKnownPayload_Kick struct {
-	Kick *KickRequest `protobuf:"bytes,3,opt,name=kick,proto3,oneof"`
+type WellKnownPayload_KickRequest struct {
+	KickRequest *KickRequest `protobuf:"bytes,3,opt,name=kick_request,json=kickRequest,proto3,oneof"`
 }
 
 type WellKnownPayload_KickResponse struct {
@@ -246,12 +247,12 @@ type WellKnownPayload_Ack struct {
 	Ack *Ack `protobuf:"bytes,6,opt,name=ack,proto3,oneof"`
 }
 
-type WellKnownPayload_AuthRequest struct {
-	AuthRequest *AuthRequest `protobuf:"bytes,7,opt,name=auth_request,json=authRequest,proto3,oneof"`
+type WellKnownPayload_AuthRefreshRequest struct {
+	AuthRefreshRequest *AuthRefreshRequest `protobuf:"bytes,7,opt,name=auth_refresh_request,json=authRefreshRequest,proto3,oneof"`
 }
 
-type WellKnownPayload_AuthResponse struct {
-	AuthResponse *AuthResponse `protobuf:"bytes,8,opt,name=auth_response,json=authResponse,proto3,oneof"`
+type WellKnownPayload_AuthRefreshResponse struct {
+	AuthRefreshResponse *AuthRefreshResponse `protobuf:"bytes,8,opt,name=auth_refresh_response,json=authRefreshResponse,proto3,oneof"`
 }
 
 type WellKnownPayload_ImChat struct {
@@ -291,7 +292,7 @@ func (*WellKnownPayload_Handshake) isWellKnownPayload_Content() {}
 
 func (*WellKnownPayload_HandshakeAck) isWellKnownPayload_Content() {}
 
-func (*WellKnownPayload_Kick) isWellKnownPayload_Content() {}
+func (*WellKnownPayload_KickRequest) isWellKnownPayload_Content() {}
 
 func (*WellKnownPayload_KickResponse) isWellKnownPayload_Content() {}
 
@@ -299,9 +300,9 @@ func (*WellKnownPayload_Error) isWellKnownPayload_Content() {}
 
 func (*WellKnownPayload_Ack) isWellKnownPayload_Content() {}
 
-func (*WellKnownPayload_AuthRequest) isWellKnownPayload_Content() {}
+func (*WellKnownPayload_AuthRefreshRequest) isWellKnownPayload_Content() {}
 
-func (*WellKnownPayload_AuthResponse) isWellKnownPayload_Content() {}
+func (*WellKnownPayload_AuthRefreshResponse) isWellKnownPayload_Content() {}
 
 func (*WellKnownPayload_ImChat) isWellKnownPayload_Content() {}
 
@@ -498,7 +499,7 @@ func (x *HandshakeResponse) GetExtensions() []string {
 	return nil
 }
 
-type AuthRequest struct {
+type AuthRefreshRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`                             // 客户端提供的认证令牌
 	AppId         string                 `protobuf:"bytes,2,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`                // 应用 ID
@@ -509,20 +510,20 @@ type AuthRequest struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *AuthRequest) Reset() {
-	*x = AuthRequest{}
+func (x *AuthRefreshRequest) Reset() {
+	*x = AuthRefreshRequest{}
 	mi := &file_gateway_v1_client_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AuthRequest) String() string {
+func (x *AuthRefreshRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AuthRequest) ProtoMessage() {}
+func (*AuthRefreshRequest) ProtoMessage() {}
 
-func (x *AuthRequest) ProtoReflect() protoreflect.Message {
+func (x *AuthRefreshRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_gateway_v1_client_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -534,47 +535,47 @@ func (x *AuthRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AuthRequest.ProtoReflect.Descriptor instead.
-func (*AuthRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use AuthRefreshRequest.ProtoReflect.Descriptor instead.
+func (*AuthRefreshRequest) Descriptor() ([]byte, []int) {
 	return file_gateway_v1_client_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *AuthRequest) GetToken() string {
+func (x *AuthRefreshRequest) GetToken() string {
 	if x != nil {
 		return x.Token
 	}
 	return ""
 }
 
-func (x *AuthRequest) GetAppId() string {
+func (x *AuthRefreshRequest) GetAppId() string {
 	if x != nil {
 		return x.AppId
 	}
 	return ""
 }
 
-func (x *AuthRequest) GetDeviceId() string {
+func (x *AuthRefreshRequest) GetDeviceId() string {
 	if x != nil {
 		return x.DeviceId
 	}
 	return ""
 }
 
-func (x *AuthRequest) GetDeviceType() string {
+func (x *AuthRefreshRequest) GetDeviceType() string {
 	if x != nil {
 		return x.DeviceType
 	}
 	return ""
 }
 
-func (x *AuthRequest) GetBizCode() string {
+func (x *AuthRefreshRequest) GetBizCode() string {
 	if x != nil {
 		return x.BizCode
 	}
 	return ""
 }
 
-type AuthResponse struct {
+type AuthRefreshResponse struct {
 	state             protoimpl.MessageState `protogen:"open.v1"`
 	Code              uint32                 `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`                                                    // 响应，0 = 鉴权成功，非0 失败
 	Msg               string                 `protobuf:"bytes,2,opt,name=msg,proto3" json:"msg,omitempty"`                                                       // 状态描述
@@ -587,20 +588,20 @@ type AuthResponse struct {
 	sizeCache         protoimpl.SizeCache
 }
 
-func (x *AuthResponse) Reset() {
-	*x = AuthResponse{}
+func (x *AuthRefreshResponse) Reset() {
+	*x = AuthRefreshResponse{}
 	mi := &file_gateway_v1_client_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AuthResponse) String() string {
+func (x *AuthRefreshResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AuthResponse) ProtoMessage() {}
+func (*AuthRefreshResponse) ProtoMessage() {}
 
-func (x *AuthResponse) ProtoReflect() protoreflect.Message {
+func (x *AuthRefreshResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_gateway_v1_client_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -612,54 +613,54 @@ func (x *AuthResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AuthResponse.ProtoReflect.Descriptor instead.
-func (*AuthResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use AuthRefreshResponse.ProtoReflect.Descriptor instead.
+func (*AuthRefreshResponse) Descriptor() ([]byte, []int) {
 	return file_gateway_v1_client_proto_rawDescGZIP(), []int{4}
 }
 
-func (x *AuthResponse) GetCode() uint32 {
+func (x *AuthRefreshResponse) GetCode() uint32 {
 	if x != nil {
 		return x.Code
 	}
 	return 0
 }
 
-func (x *AuthResponse) GetMsg() string {
+func (x *AuthRefreshResponse) GetMsg() string {
 	if x != nil {
 		return x.Msg
 	}
 	return ""
 }
 
-func (x *AuthResponse) GetResult() bool {
+func (x *AuthRefreshResponse) GetResult() bool {
 	if x != nil {
 		return x.Result
 	}
 	return false
 }
 
-func (x *AuthResponse) GetHeartbeatInternal() uint32 {
+func (x *AuthRefreshResponse) GetHeartbeatInternal() uint32 {
 	if x != nil {
 		return x.HeartbeatInternal
 	}
 	return 0
 }
 
-func (x *AuthResponse) GetSessionId() string {
+func (x *AuthRefreshResponse) GetSessionId() string {
 	if x != nil {
 		return x.SessionId
 	}
 	return ""
 }
 
-func (x *AuthResponse) GetMaxBodySize() uint32 {
+func (x *AuthRefreshResponse) GetMaxBodySize() uint32 {
 	if x != nil {
 		return x.MaxBodySize
 	}
 	return 0
 }
 
-func (x *AuthResponse) GetReplayFrom() uint64 {
+func (x *AuthRefreshResponse) GetReplayFrom() uint64 {
 	if x != nil {
 		return x.ReplayFrom
 	}
@@ -1330,16 +1331,16 @@ var File_gateway_v1_client_proto protoreflect.FileDescriptor
 const file_gateway_v1_client_proto_rawDesc = "" +
 	"\n" +
 	"\x17gateway/v1/client.proto\x12\n" +
-	"gateway.v1\x1a\x17gateway/v1/common.proto\"\xbe\x06\n" +
+	"gateway.v1\x1a\x17gateway/v1/common.proto\x1a\x17validate/validate.proto\"\xf9\x06\n" +
 	"\x10WellKnownPayload\x12<\n" +
 	"\thandshake\x18\x01 \x01(\v2\x1c.gateway.v1.HandshakeRequestH\x00R\thandshake\x12D\n" +
-	"\rhandshake_ack\x18\x02 \x01(\v2\x1d.gateway.v1.HandshakeResponseH\x00R\fhandshakeAck\x12-\n" +
-	"\x04kick\x18\x03 \x01(\v2\x17.gateway.v1.KickRequestH\x00R\x04kick\x12?\n" +
+	"\rhandshake_ack\x18\x02 \x01(\v2\x1d.gateway.v1.HandshakeResponseH\x00R\fhandshakeAck\x12<\n" +
+	"\fkick_request\x18\x03 \x01(\v2\x17.gateway.v1.KickRequestH\x00R\vkickRequest\x12?\n" +
 	"\rkick_response\x18\x04 \x01(\v2\x18.gateway.v1.KickResponseH\x00R\fkickResponse\x12)\n" +
 	"\x05error\x18\x05 \x01(\v2\x11.gateway.v1.ErrorH\x00R\x05error\x12#\n" +
-	"\x03ack\x18\x06 \x01(\v2\x0f.gateway.v1.AckH\x00R\x03ack\x12<\n" +
-	"\fauth_request\x18\a \x01(\v2\x17.gateway.v1.AuthRequestH\x00R\vauthRequest\x12?\n" +
-	"\rauth_response\x18\b \x01(\v2\x18.gateway.v1.AuthResponseH\x00R\fauthResponse\x12-\n" +
+	"\x03ack\x18\x06 \x01(\v2\x0f.gateway.v1.AckH\x00R\x03ack\x12R\n" +
+	"\x14auth_refresh_request\x18\a \x01(\v2\x1e.gateway.v1.AuthRefreshRequestH\x00R\x12authRefreshRequest\x12U\n" +
+	"\x15auth_refresh_response\x18\b \x01(\v2\x1f.gateway.v1.AuthRefreshResponseH\x00R\x13authRefreshResponse\x12-\n" +
 	"\aim_chat\x18\n" +
 	" \x01(\v2\x12.gateway.v1.IMChatH\x00R\x06imChat\x126\n" +
 	"\n" +
@@ -1350,61 +1351,62 @@ const file_gateway_v1_client_proto_rawDesc = "" +
 	"\flive_comment\x18\x1e \x01(\v2\x17.gateway.v1.LiveCommentH\x00R\vliveComment\x123\n" +
 	"\tlive_gift\x18\x1f \x01(\v2\x14.gateway.v1.LiveGiftH\x00R\bliveGift\x12\x12\n" +
 	"\x03raw\x18c \x01(\fH\x00R\x03rawB\t\n" +
-	"\acontent\"\xbe\x01\n" +
-	"\x10HandshakeRequest\x12\x15\n" +
-	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12\x14\n" +
-	"\x05token\x18\x02 \x01(\tR\x05token\x12\x1b\n" +
-	"\tdevice_id\x18\x03 \x01(\tR\bdeviceId\x12\x1f\n" +
-	"\vdevice_type\x18\x04 \x01(\tR\n" +
-	"deviceType\x12\x1f\n" +
-	"\vsdk_version\x18\x05 \x01(\tR\n" +
-	"sdkVersion\x12\x1e\n" +
-	"\vlast_seq_id\x18\x06 \x01(\x04R\tlastSeqId\"\xfa\x01\n" +
-	"\x11HandshakeResponse\x12\x17\n" +
-	"\aconn_id\x18\x01 \x01(\tR\x06connId\x12\x17\n" +
-	"\auser_id\x18\x02 \x01(\tR\x06userId\x12\x1f\n" +
-	"\vserver_time\x18\x03 \x01(\x03R\n" +
-	"serverTime\x12-\n" +
-	"\x12heartbeat_interval\x18\x04 \x01(\x05R\x11heartbeatInterval\x12\"\n" +
-	"\rmax_body_size\x18\x05 \x01(\x03R\vmaxBodySize\x12\x1f\n" +
-	"\vreplay_from\x18\x06 \x01(\x04R\n" +
-	"replayFrom\x12\x1e\n" +
+	"\acontent\"\xf9\x01\n" +
+	"\x10HandshakeRequest\x12\x1f\n" +
+	"\x06app_id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\x05appId\x12\x1e\n" +
+	"\x05token\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80 R\x05token\x12%\n" +
+	"\tdevice_id\x18\x03 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\bdeviceId\x12)\n" +
+	"\vdevice_type\x18\x04 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\n" +
+	"deviceType\x12)\n" +
+	"\vsdk_version\x18\x05 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\n" +
+	"sdkVersion\x12'\n" +
+	"\vlast_seq_id\x18\x06 \x01(\x04B\a\xfaB\x042\x02(\x00R\tlastSeqId\"\xbe\x02\n" +
+	"\x11HandshakeResponse\x12!\n" +
+	"\aconn_id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\x06connId\x12!\n" +
+	"\auser_id\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\x06userId\x12(\n" +
+	"\vserver_time\x18\x03 \x01(\x03B\a\xfaB\x04\"\x02(\x00R\n" +
+	"serverTime\x126\n" +
+	"\x12heartbeat_interval\x18\x04 \x01(\x05B\a\xfaB\x04\x1a\x02(\x00R\x11heartbeatInterval\x12+\n" +
+	"\rmax_body_size\x18\x05 \x01(\x03B\a\xfaB\x04\"\x02(\x00R\vmaxBodySize\x12(\n" +
+	"\vreplay_from\x18\x06 \x01(\x04B\a\xfaB\x042\x02(\x00R\n" +
+	"replayFrom\x12*\n" +
 	"\n" +
-	"extensions\x18\a \x03(\tR\n" +
-	"extensions\"\x93\x01\n" +
-	"\vAuthRequest\x12\x14\n" +
-	"\x05token\x18\x01 \x01(\tR\x05token\x12\x15\n" +
-	"\x06app_id\x18\x02 \x01(\tR\x05appId\x12\x1b\n" +
-	"\tdevice_id\x18\x03 \x01(\tR\bdeviceId\x12\x1f\n" +
-	"\vdevice_type\x18\x04 \x01(\tR\n" +
-	"deviceType\x12\x19\n" +
-	"\bbiz_code\x18\x05 \x01(\tR\abizCode\"\xdf\x01\n" +
-	"\fAuthResponse\x12\x12\n" +
-	"\x04code\x18\x01 \x01(\rR\x04code\x12\x10\n" +
-	"\x03msg\x18\x02 \x01(\tR\x03msg\x12\x16\n" +
-	"\x06result\x18\x03 \x01(\bR\x06result\x12-\n" +
-	"\x12heartbeat_internal\x18\x04 \x01(\rR\x11heartbeatInternal\x12\x1d\n" +
+	"extensions\x18\a \x03(\tB\n" +
+	"\xfaB\a\x92\x01\x04\b\x00\x10dR\n" +
+	"extensions\"\xcc\x01\n" +
+	"\x12AuthRefreshRequest\x12\x1e\n" +
+	"\x05token\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80 R\x05token\x12\x1f\n" +
+	"\x06app_id\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\x05appId\x12%\n" +
+	"\tdevice_id\x18\x03 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\bdeviceId\x12)\n" +
+	"\vdevice_type\x18\x04 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\n" +
+	"deviceType\x12#\n" +
+	"\bbiz_code\x18\x05 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\abizCode\"\xa5\x02\n" +
+	"\x13AuthRefreshResponse\x12\x1b\n" +
+	"\x04code\x18\x01 \x01(\rB\a\xfaB\x04*\x02(\x00R\x04code\x12\x1a\n" +
+	"\x03msg\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80\bR\x03msg\x12\x1d\n" +
+	"\x06result\x18\x03 \x01(\bB\x05\xfaB\x02j\x00R\x06result\x126\n" +
+	"\x12heartbeat_internal\x18\x04 \x01(\rB\a\xfaB\x04*\x02(\x00R\x11heartbeatInternal\x12'\n" +
 	"\n" +
-	"session_id\x18\x05 \x01(\tR\tsessionId\x12\"\n" +
-	"\rmax_body_size\x18\x06 \x01(\rR\vmaxBodySize\x12\x1f\n" +
-	"\vreplay_from\x18\a \x01(\x04R\n" +
-	"replayFrom\"b\n" +
-	"\vKickRequest\x12\x12\n" +
-	"\x04code\x18\x01 \x01(\x05R\x04code\x12\x16\n" +
-	"\x06reason\x18\x02 \x01(\tR\x06reason\x12'\n" +
-	"\x0freconnect_after\x18\x03 \x01(\x05R\x0ereconnectAfter\"4\n" +
-	"\fKickResponse\x12\x12\n" +
-	"\x04code\x18\x01 \x01(\rR\x04code\x12\x10\n" +
-	"\x03msg\x18\x02 \x01(\tR\x03msg\"S\n" +
-	"\x05Error\x12\x12\n" +
-	"\x04code\x18\x01 \x01(\x05R\x04code\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\x12\x1c\n" +
+	"session_id\x18\x05 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\tsessionId\x12+\n" +
+	"\rmax_body_size\x18\x06 \x01(\rB\a\xfaB\x04*\x02(\x00R\vmaxBodySize\x12(\n" +
+	"\vreplay_from\x18\a \x01(\x04B\a\xfaB\x042\x02(\x00R\n" +
+	"replayFrom\"~\n" +
+	"\vKickRequest\x12\x1b\n" +
+	"\x04code\x18\x01 \x01(\x05B\a\xfaB\x04\x1a\x02(\x00R\x04code\x12 \n" +
+	"\x06reason\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80\bR\x06reason\x120\n" +
+	"\x0freconnect_after\x18\x03 \x01(\x05B\a\xfaB\x04\x1a\x02(\x00R\x0ereconnectAfter\"G\n" +
+	"\fKickResponse\x12\x1b\n" +
+	"\x04code\x18\x01 \x01(\rB\a\xfaB\x04*\x02(\x00R\x04code\x12\x1a\n" +
+	"\x03msg\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80\bR\x03msg\"p\n" +
+	"\x05Error\x12\x1b\n" +
+	"\x04code\x18\x01 \x01(\x05B\a\xfaB\x04\x1a\x02(\x00R\x04code\x12\"\n" +
+	"\amessage\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80\bR\amessage\x12&\n" +
 	"\n" +
-	"ref_msg_id\x18\x03 \x01(\tR\brefMsgId\"@\n" +
-	"\x03Ack\x12\x1c\n" +
+	"ref_msg_id\x18\x03 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\brefMsgId\"S\n" +
+	"\x03Ack\x12&\n" +
 	"\n" +
-	"ref_msg_id\x18\x01 \x01(\tR\brefMsgId\x12\x1b\n" +
-	"\trecv_time\x18\x02 \x01(\x03R\brecvTime\"\x95\x01\n" +
+	"ref_msg_id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\brefMsgId\x12$\n" +
+	"\trecv_time\x18\x02 \x01(\x03B\a\xfaB\x04\"\x02(\x00R\brecvTime\"\x95\x01\n" +
 	"\x06IMChat\x12\x17\n" +
 	"\aconv_id\x18\x01 \x01(\tR\x06convId\x12!\n" +
 	"\fcontent_type\x18\x02 \x01(\tR\vcontentType\x12\x18\n" +
@@ -1457,32 +1459,32 @@ func file_gateway_v1_client_proto_rawDescGZIP() []byte {
 
 var file_gateway_v1_client_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_gateway_v1_client_proto_goTypes = []any{
-	(*WellKnownPayload)(nil),  // 0: gateway.v1.WellKnownPayload
-	(*HandshakeRequest)(nil),  // 1: gateway.v1.HandshakeRequest
-	(*HandshakeResponse)(nil), // 2: gateway.v1.HandshakeResponse
-	(*AuthRequest)(nil),       // 3: gateway.v1.AuthRequest
-	(*AuthResponse)(nil),      // 4: gateway.v1.AuthResponse
-	(*KickRequest)(nil),       // 5: gateway.v1.KickRequest
-	(*KickResponse)(nil),      // 6: gateway.v1.KickResponse
-	(*Error)(nil),             // 7: gateway.v1.Error
-	(*Ack)(nil),               // 8: gateway.v1.Ack
-	(*IMChat)(nil),            // 9: gateway.v1.IMChat
-	(*IMReceipt)(nil),         // 10: gateway.v1.IMReceipt
-	(*IMRevoke)(nil),          // 11: gateway.v1.IMRevoke
-	(*PushNotify)(nil),        // 12: gateway.v1.PushNotify
-	(*LiveComment)(nil),       // 13: gateway.v1.LiveComment
-	(*LiveGift)(nil),          // 14: gateway.v1.LiveGift
-	nil,                       // 15: gateway.v1.PushNotify.DataEntry
+	(*WellKnownPayload)(nil),    // 0: gateway.v1.WellKnownPayload
+	(*HandshakeRequest)(nil),    // 1: gateway.v1.HandshakeRequest
+	(*HandshakeResponse)(nil),   // 2: gateway.v1.HandshakeResponse
+	(*AuthRefreshRequest)(nil),  // 3: gateway.v1.AuthRefreshRequest
+	(*AuthRefreshResponse)(nil), // 4: gateway.v1.AuthRefreshResponse
+	(*KickRequest)(nil),         // 5: gateway.v1.KickRequest
+	(*KickResponse)(nil),        // 6: gateway.v1.KickResponse
+	(*Error)(nil),               // 7: gateway.v1.Error
+	(*Ack)(nil),                 // 8: gateway.v1.Ack
+	(*IMChat)(nil),              // 9: gateway.v1.IMChat
+	(*IMReceipt)(nil),           // 10: gateway.v1.IMReceipt
+	(*IMRevoke)(nil),            // 11: gateway.v1.IMRevoke
+	(*PushNotify)(nil),          // 12: gateway.v1.PushNotify
+	(*LiveComment)(nil),         // 13: gateway.v1.LiveComment
+	(*LiveGift)(nil),            // 14: gateway.v1.LiveGift
+	nil,                         // 15: gateway.v1.PushNotify.DataEntry
 }
 var file_gateway_v1_client_proto_depIdxs = []int32{
 	1,  // 0: gateway.v1.WellKnownPayload.handshake:type_name -> gateway.v1.HandshakeRequest
 	2,  // 1: gateway.v1.WellKnownPayload.handshake_ack:type_name -> gateway.v1.HandshakeResponse
-	5,  // 2: gateway.v1.WellKnownPayload.kick:type_name -> gateway.v1.KickRequest
+	5,  // 2: gateway.v1.WellKnownPayload.kick_request:type_name -> gateway.v1.KickRequest
 	6,  // 3: gateway.v1.WellKnownPayload.kick_response:type_name -> gateway.v1.KickResponse
 	7,  // 4: gateway.v1.WellKnownPayload.error:type_name -> gateway.v1.Error
 	8,  // 5: gateway.v1.WellKnownPayload.ack:type_name -> gateway.v1.Ack
-	3,  // 6: gateway.v1.WellKnownPayload.auth_request:type_name -> gateway.v1.AuthRequest
-	4,  // 7: gateway.v1.WellKnownPayload.auth_response:type_name -> gateway.v1.AuthResponse
+	3,  // 6: gateway.v1.WellKnownPayload.auth_refresh_request:type_name -> gateway.v1.AuthRefreshRequest
+	4,  // 7: gateway.v1.WellKnownPayload.auth_refresh_response:type_name -> gateway.v1.AuthRefreshResponse
 	9,  // 8: gateway.v1.WellKnownPayload.im_chat:type_name -> gateway.v1.IMChat
 	10, // 9: gateway.v1.WellKnownPayload.im_receipt:type_name -> gateway.v1.IMReceipt
 	11, // 10: gateway.v1.WellKnownPayload.im_revoke:type_name -> gateway.v1.IMRevoke
@@ -1506,12 +1508,12 @@ func file_gateway_v1_client_proto_init() {
 	file_gateway_v1_client_proto_msgTypes[0].OneofWrappers = []any{
 		(*WellKnownPayload_Handshake)(nil),
 		(*WellKnownPayload_HandshakeAck)(nil),
-		(*WellKnownPayload_Kick)(nil),
+		(*WellKnownPayload_KickRequest)(nil),
 		(*WellKnownPayload_KickResponse)(nil),
 		(*WellKnownPayload_Error)(nil),
 		(*WellKnownPayload_Ack)(nil),
-		(*WellKnownPayload_AuthRequest)(nil),
-		(*WellKnownPayload_AuthResponse)(nil),
+		(*WellKnownPayload_AuthRefreshRequest)(nil),
+		(*WellKnownPayload_AuthRefreshResponse)(nil),
 		(*WellKnownPayload_ImChat)(nil),
 		(*WellKnownPayload_ImReceipt)(nil),
 		(*WellKnownPayload_ImRevoke)(nil),

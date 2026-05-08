@@ -140,7 +140,7 @@ func (m *WellKnownPayload) validate(all bool) error {
 			}
 		}
 
-	case *WellKnownPayload_Kick:
+	case *WellKnownPayload_KickRequest:
 		if v == nil {
 			err := WellKnownPayloadValidationError{
 				field:  "Content",
@@ -153,11 +153,11 @@ func (m *WellKnownPayload) validate(all bool) error {
 		}
 
 		if all {
-			switch v := interface{}(m.GetKick()).(type) {
+			switch v := interface{}(m.GetKickRequest()).(type) {
 			case interface{ ValidateAll() error }:
 				if err := v.ValidateAll(); err != nil {
 					errors = append(errors, WellKnownPayloadValidationError{
-						field:  "Kick",
+						field:  "KickRequest",
 						reason: "embedded message failed validation",
 						cause:  err,
 					})
@@ -165,16 +165,16 @@ func (m *WellKnownPayload) validate(all bool) error {
 			case interface{ Validate() error }:
 				if err := v.Validate(); err != nil {
 					errors = append(errors, WellKnownPayloadValidationError{
-						field:  "Kick",
+						field:  "KickRequest",
 						reason: "embedded message failed validation",
 						cause:  err,
 					})
 				}
 			}
-		} else if v, ok := interface{}(m.GetKick()).(interface{ Validate() error }); ok {
+		} else if v, ok := interface{}(m.GetKickRequest()).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
 				return WellKnownPayloadValidationError{
-					field:  "Kick",
+					field:  "KickRequest",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
@@ -304,7 +304,7 @@ func (m *WellKnownPayload) validate(all bool) error {
 			}
 		}
 
-	case *WellKnownPayload_AuthRequest:
+	case *WellKnownPayload_AuthRefreshRequest:
 		if v == nil {
 			err := WellKnownPayloadValidationError{
 				field:  "Content",
@@ -317,11 +317,11 @@ func (m *WellKnownPayload) validate(all bool) error {
 		}
 
 		if all {
-			switch v := interface{}(m.GetAuthRequest()).(type) {
+			switch v := interface{}(m.GetAuthRefreshRequest()).(type) {
 			case interface{ ValidateAll() error }:
 				if err := v.ValidateAll(); err != nil {
 					errors = append(errors, WellKnownPayloadValidationError{
-						field:  "AuthRequest",
+						field:  "AuthRefreshRequest",
 						reason: "embedded message failed validation",
 						cause:  err,
 					})
@@ -329,23 +329,23 @@ func (m *WellKnownPayload) validate(all bool) error {
 			case interface{ Validate() error }:
 				if err := v.Validate(); err != nil {
 					errors = append(errors, WellKnownPayloadValidationError{
-						field:  "AuthRequest",
+						field:  "AuthRefreshRequest",
 						reason: "embedded message failed validation",
 						cause:  err,
 					})
 				}
 			}
-		} else if v, ok := interface{}(m.GetAuthRequest()).(interface{ Validate() error }); ok {
+		} else if v, ok := interface{}(m.GetAuthRefreshRequest()).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
 				return WellKnownPayloadValidationError{
-					field:  "AuthRequest",
+					field:  "AuthRefreshRequest",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
 			}
 		}
 
-	case *WellKnownPayload_AuthResponse:
+	case *WellKnownPayload_AuthRefreshResponse:
 		if v == nil {
 			err := WellKnownPayloadValidationError{
 				field:  "Content",
@@ -358,11 +358,11 @@ func (m *WellKnownPayload) validate(all bool) error {
 		}
 
 		if all {
-			switch v := interface{}(m.GetAuthResponse()).(type) {
+			switch v := interface{}(m.GetAuthRefreshResponse()).(type) {
 			case interface{ ValidateAll() error }:
 				if err := v.ValidateAll(); err != nil {
 					errors = append(errors, WellKnownPayloadValidationError{
-						field:  "AuthResponse",
+						field:  "AuthRefreshResponse",
 						reason: "embedded message failed validation",
 						cause:  err,
 					})
@@ -370,16 +370,16 @@ func (m *WellKnownPayload) validate(all bool) error {
 			case interface{ Validate() error }:
 				if err := v.Validate(); err != nil {
 					errors = append(errors, WellKnownPayloadValidationError{
-						field:  "AuthResponse",
+						field:  "AuthRefreshResponse",
 						reason: "embedded message failed validation",
 						cause:  err,
 					})
 				}
 			}
-		} else if v, ok := interface{}(m.GetAuthResponse()).(interface{ Validate() error }); ok {
+		} else if v, ok := interface{}(m.GetAuthRefreshResponse()).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
 				return WellKnownPayloadValidationError{
-					field:  "AuthResponse",
+					field:  "AuthRefreshResponse",
 					reason: "embedded message failed validation",
 					cause:  err,
 				}
@@ -748,17 +748,71 @@ func (m *HandshakeRequest) validate(all bool) error {
 
 	var errors []error
 
-	// no validation rules for AppId
+	if utf8.RuneCountInString(m.GetAppId()) > 128 {
+		err := HandshakeRequestValidationError{
+			field:  "AppId",
+			reason: "value length must be at most 128 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for Token
+	if utf8.RuneCountInString(m.GetToken()) > 4096 {
+		err := HandshakeRequestValidationError{
+			field:  "Token",
+			reason: "value length must be at most 4096 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for DeviceId
+	if utf8.RuneCountInString(m.GetDeviceId()) > 128 {
+		err := HandshakeRequestValidationError{
+			field:  "DeviceId",
+			reason: "value length must be at most 128 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for DeviceType
+	if utf8.RuneCountInString(m.GetDeviceType()) > 128 {
+		err := HandshakeRequestValidationError{
+			field:  "DeviceType",
+			reason: "value length must be at most 128 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for SdkVersion
+	if utf8.RuneCountInString(m.GetSdkVersion()) > 128 {
+		err := HandshakeRequestValidationError{
+			field:  "SdkVersion",
+			reason: "value length must be at most 128 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for LastSeqId
+	if m.GetLastSeqId() < 0 {
+		err := HandshakeRequestValidationError{
+			field:  "LastSeqId",
+			reason: "value must be greater than or equal to 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	if len(errors) > 0 {
 		return HandshakeRequestMultiError(errors)
@@ -860,17 +914,82 @@ func (m *HandshakeResponse) validate(all bool) error {
 
 	var errors []error
 
-	// no validation rules for ConnId
+	if utf8.RuneCountInString(m.GetConnId()) > 128 {
+		err := HandshakeResponseValidationError{
+			field:  "ConnId",
+			reason: "value length must be at most 128 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for UserId
+	if utf8.RuneCountInString(m.GetUserId()) > 128 {
+		err := HandshakeResponseValidationError{
+			field:  "UserId",
+			reason: "value length must be at most 128 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for ServerTime
+	if m.GetServerTime() < 0 {
+		err := HandshakeResponseValidationError{
+			field:  "ServerTime",
+			reason: "value must be greater than or equal to 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for HeartbeatInterval
+	if m.GetHeartbeatInterval() < 0 {
+		err := HandshakeResponseValidationError{
+			field:  "HeartbeatInterval",
+			reason: "value must be greater than or equal to 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for MaxBodySize
+	if m.GetMaxBodySize() < 0 {
+		err := HandshakeResponseValidationError{
+			field:  "MaxBodySize",
+			reason: "value must be greater than or equal to 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for ReplayFrom
+	if m.GetReplayFrom() < 0 {
+		err := HandshakeResponseValidationError{
+			field:  "ReplayFrom",
+			reason: "value must be greater than or equal to 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(m.GetExtensions()) > 100 {
+		err := HandshakeResponseValidationError{
+			field:  "Extensions",
+			reason: "value must contain no more than 100 item(s)",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	if len(errors) > 0 {
 		return HandshakeResponseMultiError(errors)
@@ -952,51 +1071,97 @@ var _ interface {
 	ErrorName() string
 } = HandshakeResponseValidationError{}
 
-// Validate checks the field values on AuthRequest with the rules defined in
-// the proto definition for this message. If any rules are violated, the first
-// error encountered is returned, or nil if there are no violations.
-func (m *AuthRequest) Validate() error {
+// Validate checks the field values on AuthRefreshRequest with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *AuthRefreshRequest) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on AuthRequest with the rules defined in
-// the proto definition for this message. If any rules are violated, the
-// result is a list of violation errors wrapped in AuthRequestMultiError, or
-// nil if none found.
-func (m *AuthRequest) ValidateAll() error {
+// ValidateAll checks the field values on AuthRefreshRequest with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// AuthRefreshRequestMultiError, or nil if none found.
+func (m *AuthRefreshRequest) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *AuthRequest) validate(all bool) error {
+func (m *AuthRefreshRequest) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
 	var errors []error
 
-	// no validation rules for Token
+	if utf8.RuneCountInString(m.GetToken()) > 4096 {
+		err := AuthRefreshRequestValidationError{
+			field:  "Token",
+			reason: "value length must be at most 4096 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for AppId
+	if utf8.RuneCountInString(m.GetAppId()) > 128 {
+		err := AuthRefreshRequestValidationError{
+			field:  "AppId",
+			reason: "value length must be at most 128 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for DeviceId
+	if utf8.RuneCountInString(m.GetDeviceId()) > 128 {
+		err := AuthRefreshRequestValidationError{
+			field:  "DeviceId",
+			reason: "value length must be at most 128 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for DeviceType
+	if utf8.RuneCountInString(m.GetDeviceType()) > 128 {
+		err := AuthRefreshRequestValidationError{
+			field:  "DeviceType",
+			reason: "value length must be at most 128 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for BizCode
+	if utf8.RuneCountInString(m.GetBizCode()) > 128 {
+		err := AuthRefreshRequestValidationError{
+			field:  "BizCode",
+			reason: "value length must be at most 128 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	if len(errors) > 0 {
-		return AuthRequestMultiError(errors)
+		return AuthRefreshRequestMultiError(errors)
 	}
 
 	return nil
 }
 
-// AuthRequestMultiError is an error wrapping multiple validation errors
-// returned by AuthRequest.ValidateAll() if the designated constraints aren't met.
-type AuthRequestMultiError []error
+// AuthRefreshRequestMultiError is an error wrapping multiple validation errors
+// returned by AuthRefreshRequest.ValidateAll() if the designated constraints
+// aren't met.
+type AuthRefreshRequestMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m AuthRequestMultiError) Error() string {
+func (m AuthRefreshRequestMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -1005,11 +1170,11 @@ func (m AuthRequestMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m AuthRequestMultiError) AllErrors() []error { return m }
+func (m AuthRefreshRequestMultiError) AllErrors() []error { return m }
 
-// AuthRequestValidationError is the validation error returned by
-// AuthRequest.Validate if the designated constraints aren't met.
-type AuthRequestValidationError struct {
+// AuthRefreshRequestValidationError is the validation error returned by
+// AuthRefreshRequest.Validate if the designated constraints aren't met.
+type AuthRefreshRequestValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -1017,22 +1182,24 @@ type AuthRequestValidationError struct {
 }
 
 // Field function returns field value.
-func (e AuthRequestValidationError) Field() string { return e.field }
+func (e AuthRefreshRequestValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e AuthRequestValidationError) Reason() string { return e.reason }
+func (e AuthRefreshRequestValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e AuthRequestValidationError) Cause() error { return e.cause }
+func (e AuthRefreshRequestValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e AuthRequestValidationError) Key() bool { return e.key }
+func (e AuthRefreshRequestValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e AuthRequestValidationError) ErrorName() string { return "AuthRequestValidationError" }
+func (e AuthRefreshRequestValidationError) ErrorName() string {
+	return "AuthRefreshRequestValidationError"
+}
 
 // Error satisfies the builtin error interface
-func (e AuthRequestValidationError) Error() string {
+func (e AuthRefreshRequestValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -1044,14 +1211,14 @@ func (e AuthRequestValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sAuthRequest.%s: %s%s",
+		"invalid %sAuthRefreshRequest.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = AuthRequestValidationError{}
+var _ error = AuthRefreshRequestValidationError{}
 
 var _ interface {
 	Field() string
@@ -1059,57 +1226,110 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = AuthRequestValidationError{}
+} = AuthRefreshRequestValidationError{}
 
-// Validate checks the field values on AuthResponse with the rules defined in
-// the proto definition for this message. If any rules are violated, the first
-// error encountered is returned, or nil if there are no violations.
-func (m *AuthResponse) Validate() error {
+// Validate checks the field values on AuthRefreshResponse with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the first error encountered is returned, or nil if there are no violations.
+func (m *AuthRefreshResponse) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on AuthResponse with the rules defined
-// in the proto definition for this message. If any rules are violated, the
-// result is a list of violation errors wrapped in AuthResponseMultiError, or
-// nil if none found.
-func (m *AuthResponse) ValidateAll() error {
+// ValidateAll checks the field values on AuthRefreshResponse with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// AuthRefreshResponseMultiError, or nil if none found.
+func (m *AuthRefreshResponse) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *AuthResponse) validate(all bool) error {
+func (m *AuthRefreshResponse) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
 
 	var errors []error
 
-	// no validation rules for Code
+	if m.GetCode() < 0 {
+		err := AuthRefreshResponseValidationError{
+			field:  "Code",
+			reason: "value must be greater than or equal to 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for Msg
+	if utf8.RuneCountInString(m.GetMsg()) > 1024 {
+		err := AuthRefreshResponseValidationError{
+			field:  "Msg",
+			reason: "value length must be at most 1024 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for Result
+	if m.GetHeartbeatInternal() < 0 {
+		err := AuthRefreshResponseValidationError{
+			field:  "HeartbeatInternal",
+			reason: "value must be greater than or equal to 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for HeartbeatInternal
+	if utf8.RuneCountInString(m.GetSessionId()) > 128 {
+		err := AuthRefreshResponseValidationError{
+			field:  "SessionId",
+			reason: "value length must be at most 128 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for SessionId
+	if m.GetMaxBodySize() < 0 {
+		err := AuthRefreshResponseValidationError{
+			field:  "MaxBodySize",
+			reason: "value must be greater than or equal to 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for MaxBodySize
-
-	// no validation rules for ReplayFrom
+	if m.GetReplayFrom() < 0 {
+		err := AuthRefreshResponseValidationError{
+			field:  "ReplayFrom",
+			reason: "value must be greater than or equal to 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	if len(errors) > 0 {
-		return AuthResponseMultiError(errors)
+		return AuthRefreshResponseMultiError(errors)
 	}
 
 	return nil
 }
 
-// AuthResponseMultiError is an error wrapping multiple validation errors
-// returned by AuthResponse.ValidateAll() if the designated constraints aren't met.
-type AuthResponseMultiError []error
+// AuthRefreshResponseMultiError is an error wrapping multiple validation
+// errors returned by AuthRefreshResponse.ValidateAll() if the designated
+// constraints aren't met.
+type AuthRefreshResponseMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m AuthResponseMultiError) Error() string {
+func (m AuthRefreshResponseMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -1118,11 +1338,11 @@ func (m AuthResponseMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m AuthResponseMultiError) AllErrors() []error { return m }
+func (m AuthRefreshResponseMultiError) AllErrors() []error { return m }
 
-// AuthResponseValidationError is the validation error returned by
-// AuthResponse.Validate if the designated constraints aren't met.
-type AuthResponseValidationError struct {
+// AuthRefreshResponseValidationError is the validation error returned by
+// AuthRefreshResponse.Validate if the designated constraints aren't met.
+type AuthRefreshResponseValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -1130,22 +1350,24 @@ type AuthResponseValidationError struct {
 }
 
 // Field function returns field value.
-func (e AuthResponseValidationError) Field() string { return e.field }
+func (e AuthRefreshResponseValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e AuthResponseValidationError) Reason() string { return e.reason }
+func (e AuthRefreshResponseValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e AuthResponseValidationError) Cause() error { return e.cause }
+func (e AuthRefreshResponseValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e AuthResponseValidationError) Key() bool { return e.key }
+func (e AuthRefreshResponseValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e AuthResponseValidationError) ErrorName() string { return "AuthResponseValidationError" }
+func (e AuthRefreshResponseValidationError) ErrorName() string {
+	return "AuthRefreshResponseValidationError"
+}
 
 // Error satisfies the builtin error interface
-func (e AuthResponseValidationError) Error() string {
+func (e AuthRefreshResponseValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -1157,14 +1379,14 @@ func (e AuthResponseValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sAuthResponse.%s: %s%s",
+		"invalid %sAuthRefreshResponse.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = AuthResponseValidationError{}
+var _ error = AuthRefreshResponseValidationError{}
 
 var _ interface {
 	Field() string
@@ -1172,7 +1394,7 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = AuthResponseValidationError{}
+} = AuthRefreshResponseValidationError{}
 
 // Validate checks the field values on KickRequest with the rules defined in
 // the proto definition for this message. If any rules are violated, the first
@@ -1196,11 +1418,38 @@ func (m *KickRequest) validate(all bool) error {
 
 	var errors []error
 
-	// no validation rules for Code
+	if m.GetCode() < 0 {
+		err := KickRequestValidationError{
+			field:  "Code",
+			reason: "value must be greater than or equal to 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for Reason
+	if utf8.RuneCountInString(m.GetReason()) > 1024 {
+		err := KickRequestValidationError{
+			field:  "Reason",
+			reason: "value length must be at most 1024 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for ReconnectAfter
+	if m.GetReconnectAfter() < 0 {
+		err := KickRequestValidationError{
+			field:  "ReconnectAfter",
+			reason: "value must be greater than or equal to 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	if len(errors) > 0 {
 		return KickRequestMultiError(errors)
@@ -1301,9 +1550,27 @@ func (m *KickResponse) validate(all bool) error {
 
 	var errors []error
 
-	// no validation rules for Code
+	if m.GetCode() < 0 {
+		err := KickResponseValidationError{
+			field:  "Code",
+			reason: "value must be greater than or equal to 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for Msg
+	if utf8.RuneCountInString(m.GetMsg()) > 1024 {
+		err := KickResponseValidationError{
+			field:  "Msg",
+			reason: "value length must be at most 1024 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	if len(errors) > 0 {
 		return KickResponseMultiError(errors)
@@ -1403,11 +1670,38 @@ func (m *Error) validate(all bool) error {
 
 	var errors []error
 
-	// no validation rules for Code
+	if m.GetCode() < 0 {
+		err := ErrorValidationError{
+			field:  "Code",
+			reason: "value must be greater than or equal to 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for Message
+	if utf8.RuneCountInString(m.GetMessage()) > 1024 {
+		err := ErrorValidationError{
+			field:  "Message",
+			reason: "value length must be at most 1024 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for RefMsgId
+	if utf8.RuneCountInString(m.GetRefMsgId()) > 128 {
+		err := ErrorValidationError{
+			field:  "RefMsgId",
+			reason: "value length must be at most 128 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	if len(errors) > 0 {
 		return ErrorMultiError(errors)
@@ -1507,9 +1801,27 @@ func (m *Ack) validate(all bool) error {
 
 	var errors []error
 
-	// no validation rules for RefMsgId
+	if utf8.RuneCountInString(m.GetRefMsgId()) > 128 {
+		err := AckValidationError{
+			field:  "RefMsgId",
+			reason: "value length must be at most 128 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for RecvTime
+	if m.GetRecvTime() < 0 {
+		err := AckValidationError{
+			field:  "RecvTime",
+			reason: "value must be greater than or equal to 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	if len(errors) > 0 {
 		return AckMultiError(errors)

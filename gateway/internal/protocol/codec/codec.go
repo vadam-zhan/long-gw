@@ -8,7 +8,7 @@ import (
 	"io"
 	"sync"
 
-	gateway "github.com/vadam-zhan/long-gw/common-protocol/gen/gateway/v1"
+	gatewayv1 "github.com/vadam-zhan/long-gw/common-protocol/gen/gateway/v1"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -56,10 +56,10 @@ func (f frameCodecByte) CompressAlgo() CompressAlgo {
 type Codec interface {
 	// Decode auto-detects codec and compression from the first byte, then
 	// decompresses and deserializes the remaining bytes into a Message.
-	Decode(data []byte) (*gateway.Message, error)
+	Decode(data []byte) (*gatewayv1.Message, error)
 
 	// Encode serializes msg and prepends the frameCodecByte.
-	Encode(msg *gateway.Message) ([]byte, error)
+	Encode(msg *gatewayv1.Message) ([]byte, error)
 }
 
 type FrameCodec struct {
@@ -109,7 +109,7 @@ func NewCodec(cfg Config) *FrameCodec {
 // Output layout:
 //
 //	[frameCodecByte (1B)] [compressed serialized payload (N bytes)]
-func (fc *FrameCodec) Encode(msg *gateway.Message) ([]byte, error) {
+func (fc *FrameCodec) Encode(msg *gatewayv1.Message) ([]byte, error) {
 	payload, err := fc.marshal(msg)
 	if err != nil {
 		return nil, fmt.Errorf("codec: marshal (%v): %w", fc.codecType, err)
@@ -126,7 +126,7 @@ func (fc *FrameCodec) Encode(msg *gateway.Message) ([]byte, error) {
 	return out, nil
 }
 
-func (fc *FrameCodec) Decode(data []byte) (*gateway.Message, error) {
+func (fc *FrameCodec) Decode(data []byte) (*gatewayv1.Message, error) {
 	if len(data) < 1 {
 		return nil, fmt.Errorf("codec: frame too short (%d bytes)", len(data))
 	}
@@ -148,7 +148,7 @@ var marshalOpts = proto.MarshalOptions{
 	UseCachedSize: true,
 }
 
-func (fc *FrameCodec) marshal(msg *gateway.Message) ([]byte, error) {
+func (fc *FrameCodec) marshal(msg *gatewayv1.Message) ([]byte, error) {
 	switch fc.codecType {
 	case CodecJSON:
 		return json.Marshal(msg)
@@ -159,8 +159,8 @@ func (fc *FrameCodec) marshal(msg *gateway.Message) ([]byte, error) {
 	}
 }
 
-func (fc *FrameCodec) unmarshal(ct CodecType, data []byte) (*gateway.Message, error) {
-	msg := new(gateway.Message)
+func (fc *FrameCodec) unmarshal(ct CodecType, data []byte) (*gatewayv1.Message, error) {
+	msg := new(gatewayv1.Message)
 	switch ct {
 	case CodecJSON:
 		if err := json.Unmarshal(data, msg); err != nil {

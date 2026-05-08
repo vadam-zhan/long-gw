@@ -441,15 +441,71 @@ func (m *Message) validate(all bool) error {
 
 	var errors []error
 
-	// no validation rules for Version
+	if m.GetVersion() < 0 {
+		err := MessageValidationError{
+			field:  "Version",
+			reason: "value must be greater than or equal to 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for Type
+	if _, ok := FrameType_name[int32(m.GetType())]; !ok {
+		err := MessageValidationError{
+			field:  "Type",
+			reason: "value must be one of the defined enum values",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for MsgId
+	if utf8.RuneCountInString(m.GetMsgId()) > 128 {
+		err := MessageValidationError{
+			field:  "MsgId",
+			reason: "value length must be at most 128 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for SeqId
+	if m.GetSeqId() < 0 {
+		err := MessageValidationError{
+			field:  "SeqId",
+			reason: "value must be greater than or equal to 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for Timestamp
+	if m.GetTimestamp() < 0 {
+		err := MessageValidationError{
+			field:  "Timestamp",
+			reason: "value must be greater than or equal to 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if m.GetFrom() == nil {
+		err := MessageValidationError{
+			field:  "From",
+			reason: "value is required",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	if all {
 		switch v := interface{}(m.GetFrom()).(type) {
@@ -478,6 +534,17 @@ func (m *Message) validate(all bool) error {
 				cause:  err,
 			}
 		}
+	}
+
+	if m.GetTo() == nil {
+		err := MessageValidationError{
+			field:  "To",
+			reason: "value is required",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
 	}
 
 	if all {
@@ -509,6 +576,17 @@ func (m *Message) validate(all bool) error {
 		}
 	}
 
+	if m.GetDelivery() == nil {
+		err := MessageValidationError{
+			field:  "Delivery",
+			reason: "value is required",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
 	if all {
 		switch v := interface{}(m.GetDelivery()).(type) {
 		case interface{ ValidateAll() error }:
@@ -538,9 +616,38 @@ func (m *Message) validate(all bool) error {
 		}
 	}
 
-	// no validation rules for ExpireAt
+	if m.GetExpireAt() < 0 {
+		err := MessageValidationError{
+			field:  "ExpireAt",
+			reason: "value must be greater than or equal to 0",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
-	// no validation rules for BizCode
+	if utf8.RuneCountInString(m.GetBizCode()) > 128 {
+		err := MessageValidationError{
+			field:  "BizCode",
+			reason: "value length must be at most 128 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if m.GetTraceContext() == nil {
+		err := MessageValidationError{
+			field:  "TraceContext",
+			reason: "value is required",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	if all {
 		switch v := interface{}(m.GetTraceContext()).(type) {
@@ -572,6 +679,17 @@ func (m *Message) validate(all bool) error {
 	}
 
 	// no validation rules for Headers
+
+	if m.GetBody() == nil {
+		err := MessageValidationError{
+			field:  "Body",
+			reason: "value is required",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
 
 	if all {
 		switch v := interface{}(m.GetBody()).(type) {

@@ -161,6 +161,8 @@ github.com/vadam-zhan/long-gw/common-protocol v0.0.0-20260420133828-0653039a2d00
 github.com/vadam-zhan/long-gw/common-protocol v0.0.0-20260420133828-0653039a2d00/go.mod h1:vA8bayYvjO5SLvteQBHsc9FQn+O6CCDpxFISbax3twE=
 github.com/vadam-zhan/long-gw/common-protocol v0.0.0-20260430100530-443ec6dbdf01 h1:JnnQS8aOusGPstK1Up0AJ47SOXeht/SohIEtILw2j38=
 github.com/vadam-zhan/long-gw/common-protocol v0.0.0-20260430100530-443ec6dbdf01/go.mod h1:+ulkW4qVY9Ql+UdC/t0i2llMt0hFTdz7NkeJizcFPqk=
+github.com/vadam-zhan/long-gw/common-protocol v0.0.0-20260507110930-42effabbcc6e h1:Bxkwc9wyZmIHS6rxLxMpqr5aS6LhhOABCM8uvbvmUjQ=
+github.com/vadam-zhan/long-gw/common-protocol v0.0.0-20260507110930-42effabbcc6e/go.mod h1:+ulkW4qVY9Ql+UdC/t0i2llMt0hFTdz7NkeJizcFPqk=
 github.com/xdg-go/pbkdf2 v1.0.0 h1:Su7DPu48wXMwC3bs7MCNG+z4FhcyEuz5dlvchbq0B0c=
 github.com/xdg-go/pbkdf2 v1.0.0/go.mod h1:jrpuAogTd400dnrH08LKmI/xc1MbPOebTwRqcT5RDeI=
 github.com/xdg-go/scram v1.2.0 h1:bYKF2AEwG5rqd1BumT4gAnvwU/M9nBp2pTSxeZw7Wvs=
