@@ -35,6 +35,169 @@ var (
 	_ = sort.Sort
 )
 
+// Validate checks the field values on Payload with the rules defined in the
+// proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *Payload) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on Payload with the rules defined in the
+// proto definition for this message. If any rules are violated, the result is
+// a list of violation errors wrapped in PayloadMultiError, or nil if none found.
+func (m *Payload) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *Payload) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if utf8.RuneCountInString(m.GetEventType()) > 128 {
+		err := PayloadValidationError{
+			field:  "EventType",
+			reason: "value length must be at most 128 runes",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	// no validation rules for Data
+
+	if _, ok := _Payload_Codec_NotInLookup[m.GetCodec()]; ok {
+		err := PayloadValidationError{
+			field:  "Codec",
+			reason: "value must not be in list [0]",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if _, ok := Codec_name[int32(m.GetCodec())]; !ok {
+		err := PayloadValidationError{
+			field:  "Codec",
+			reason: "value must be one of the defined enum values",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if _, ok := _Payload_Compress_NotInLookup[m.GetCompress()]; ok {
+		err := PayloadValidationError{
+			field:  "Compress",
+			reason: "value must not be in list [0]",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if _, ok := CompressAlgo_name[int32(m.GetCompress())]; !ok {
+		err := PayloadValidationError{
+			field:  "Compress",
+			reason: "value must be one of the defined enum values",
+		}
+		if !all {
+			return err
+		}
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return PayloadMultiError(errors)
+	}
+
+	return nil
+}
+
+// PayloadMultiError is an error wrapping multiple validation errors returned
+// by Payload.ValidateAll() if the designated constraints aren't met.
+type PayloadMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m PayloadMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m PayloadMultiError) AllErrors() []error { return m }
+
+// PayloadValidationError is the validation error returned by Payload.Validate
+// if the designated constraints aren't met.
+type PayloadValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e PayloadValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e PayloadValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e PayloadValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e PayloadValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e PayloadValidationError) ErrorName() string { return "PayloadValidationError" }
+
+// Error satisfies the builtin error interface
+func (e PayloadValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sPayload.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = PayloadValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = PayloadValidationError{}
+
+var _Payload_Codec_NotInLookup = map[Codec]struct{}{
+	0: {},
+}
+
+var _Payload_Compress_NotInLookup = map[CompressAlgo]struct{}{
+	0: {},
+}
+
 // Validate checks the field values on PushMessageReq with the rules defined in
 // the proto definition for this message. If any rules are violated, the first
 // error encountered is returned, or nil if there are no violations.
@@ -137,9 +300,9 @@ func (m *PushMessageReq) validate(all bool) error {
 		}
 	}
 
-	if m.GetBody() == nil {
+	if m.GetPayload() == nil {
 		err := PushMessageReqValidationError{
-			field:  "Body",
+			field:  "Payload",
 			reason: "value is required",
 		}
 		if !all {
@@ -149,11 +312,11 @@ func (m *PushMessageReq) validate(all bool) error {
 	}
 
 	if all {
-		switch v := interface{}(m.GetBody()).(type) {
+		switch v := interface{}(m.GetPayload()).(type) {
 		case interface{ ValidateAll() error }:
 			if err := v.ValidateAll(); err != nil {
 				errors = append(errors, PushMessageReqValidationError{
-					field:  "Body",
+					field:  "Payload",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
@@ -161,16 +324,16 @@ func (m *PushMessageReq) validate(all bool) error {
 		case interface{ Validate() error }:
 			if err := v.Validate(); err != nil {
 				errors = append(errors, PushMessageReqValidationError{
-					field:  "Body",
+					field:  "Payload",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
 			}
 		}
-	} else if v, ok := interface{}(m.GetBody()).(interface{ Validate() error }); ok {
+	} else if v, ok := interface{}(m.GetPayload()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return PushMessageReqValidationError{
-				field:  "Body",
+				field:  "Payload",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
@@ -478,9 +641,9 @@ func (m *BatchPushMessageReq) validate(all bool) error {
 		}
 	}
 
-	if m.GetBody() == nil {
+	if m.GetPayload() == nil {
 		err := BatchPushMessageReqValidationError{
-			field:  "Body",
+			field:  "Payload",
 			reason: "value is required",
 		}
 		if !all {
@@ -490,11 +653,11 @@ func (m *BatchPushMessageReq) validate(all bool) error {
 	}
 
 	if all {
-		switch v := interface{}(m.GetBody()).(type) {
+		switch v := interface{}(m.GetPayload()).(type) {
 		case interface{ ValidateAll() error }:
 			if err := v.ValidateAll(); err != nil {
 				errors = append(errors, BatchPushMessageReqValidationError{
-					field:  "Body",
+					field:  "Payload",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
@@ -502,16 +665,16 @@ func (m *BatchPushMessageReq) validate(all bool) error {
 		case interface{ Validate() error }:
 			if err := v.Validate(); err != nil {
 				errors = append(errors, BatchPushMessageReqValidationError{
-					field:  "Body",
+					field:  "Payload",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
 			}
 		}
-	} else if v, ok := interface{}(m.GetBody()).(interface{ Validate() error }); ok {
+	} else if v, ok := interface{}(m.GetPayload()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return BatchPushMessageReqValidationError{
-				field:  "Body",
+				field:  "Payload",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
@@ -627,6 +790,40 @@ func (m *BatchPushMessageResp) validate(all bool) error {
 	// no validation rules for SuccessCount
 
 	// no validation rules for FailCount
+
+	for idx, item := range m.GetSuccessItems() {
+		_, _ = idx, item
+
+		if all {
+			switch v := interface{}(item).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, BatchPushMessageRespValidationError{
+						field:  fmt.Sprintf("SuccessItems[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, BatchPushMessageRespValidationError{
+						field:  fmt.Sprintf("SuccessItems[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return BatchPushMessageRespValidationError{
+					field:  fmt.Sprintf("SuccessItems[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
 
 	for idx, item := range m.GetFailedItems() {
 		_, _ = idx, item
@@ -815,9 +1012,9 @@ func (m *BroadcastToRoomReq) validate(all bool) error {
 		}
 	}
 
-	if m.GetBody() == nil {
+	if m.GetPayload() == nil {
 		err := BroadcastToRoomReqValidationError{
-			field:  "Body",
+			field:  "Payload",
 			reason: "value is required",
 		}
 		if !all {
@@ -827,11 +1024,11 @@ func (m *BroadcastToRoomReq) validate(all bool) error {
 	}
 
 	if all {
-		switch v := interface{}(m.GetBody()).(type) {
+		switch v := interface{}(m.GetPayload()).(type) {
 		case interface{ ValidateAll() error }:
 			if err := v.ValidateAll(); err != nil {
 				errors = append(errors, BroadcastToRoomReqValidationError{
-					field:  "Body",
+					field:  "Payload",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
@@ -839,16 +1036,16 @@ func (m *BroadcastToRoomReq) validate(all bool) error {
 		case interface{ Validate() error }:
 			if err := v.Validate(); err != nil {
 				errors = append(errors, BroadcastToRoomReqValidationError{
-					field:  "Body",
+					field:  "Payload",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
 			}
 		}
-	} else if v, ok := interface{}(m.GetBody()).(interface{ Validate() error }); ok {
+	} else if v, ok := interface{}(m.GetPayload()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return BroadcastToRoomReqValidationError{
-				field:  "Body",
+				field:  "Payload",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
@@ -1128,9 +1325,9 @@ func (m *BroadcastToTopicReq) validate(all bool) error {
 		}
 	}
 
-	if m.GetBody() == nil {
+	if m.GetPayload() == nil {
 		err := BroadcastToTopicReqValidationError{
-			field:  "Body",
+			field:  "Payload",
 			reason: "value is required",
 		}
 		if !all {
@@ -1140,11 +1337,11 @@ func (m *BroadcastToTopicReq) validate(all bool) error {
 	}
 
 	if all {
-		switch v := interface{}(m.GetBody()).(type) {
+		switch v := interface{}(m.GetPayload()).(type) {
 		case interface{ ValidateAll() error }:
 			if err := v.ValidateAll(); err != nil {
 				errors = append(errors, BroadcastToTopicReqValidationError{
-					field:  "Body",
+					field:  "Payload",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
@@ -1152,16 +1349,16 @@ func (m *BroadcastToTopicReq) validate(all bool) error {
 		case interface{ Validate() error }:
 			if err := v.Validate(); err != nil {
 				errors = append(errors, BroadcastToTopicReqValidationError{
-					field:  "Body",
+					field:  "Payload",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
 			}
 		}
-	} else if v, ok := interface{}(m.GetBody()).(interface{ Validate() error }); ok {
+	} else if v, ok := interface{}(m.GetPayload()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return BroadcastToTopicReqValidationError{
-				field:  "Body",
+				field:  "Payload",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
@@ -1426,9 +1623,9 @@ func (m *BroadcastToAllReq) validate(all bool) error {
 		}
 	}
 
-	if m.GetBody() == nil {
+	if m.GetPayload() == nil {
 		err := BroadcastToAllReqValidationError{
-			field:  "Body",
+			field:  "Payload",
 			reason: "value is required",
 		}
 		if !all {
@@ -1438,11 +1635,11 @@ func (m *BroadcastToAllReq) validate(all bool) error {
 	}
 
 	if all {
-		switch v := interface{}(m.GetBody()).(type) {
+		switch v := interface{}(m.GetPayload()).(type) {
 		case interface{ ValidateAll() error }:
 			if err := v.ValidateAll(); err != nil {
 				errors = append(errors, BroadcastToAllReqValidationError{
-					field:  "Body",
+					field:  "Payload",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
@@ -1450,16 +1647,16 @@ func (m *BroadcastToAllReq) validate(all bool) error {
 		case interface{ Validate() error }:
 			if err := v.Validate(); err != nil {
 				errors = append(errors, BroadcastToAllReqValidationError{
-					field:  "Body",
+					field:  "Payload",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
 			}
 		}
-	} else if v, ok := interface{}(m.GetBody()).(interface{ Validate() error }); ok {
+	} else if v, ok := interface{}(m.GetPayload()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return BroadcastToAllReqValidationError{
-				field:  "Body",
+				field:  "Payload",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
@@ -1723,6 +1920,8 @@ func (m *ForwardToSessionReq) validate(all bool) error {
 
 	// no validation rules for BizCode
 
+	// no validation rules for EventType
+
 	if all {
 		switch v := interface{}(m.GetDelivery()).(type) {
 		case interface{ ValidateAll() error }:
@@ -1753,11 +1952,11 @@ func (m *ForwardToSessionReq) validate(all bool) error {
 	}
 
 	if all {
-		switch v := interface{}(m.GetBody()).(type) {
+		switch v := interface{}(m.GetPayload()).(type) {
 		case interface{ ValidateAll() error }:
 			if err := v.ValidateAll(); err != nil {
 				errors = append(errors, ForwardToSessionReqValidationError{
-					field:  "Body",
+					field:  "Payload",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
@@ -1765,16 +1964,16 @@ func (m *ForwardToSessionReq) validate(all bool) error {
 		case interface{ Validate() error }:
 			if err := v.Validate(); err != nil {
 				errors = append(errors, ForwardToSessionReqValidationError{
-					field:  "Body",
+					field:  "Payload",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
 			}
 		}
-	} else if v, ok := interface{}(m.GetBody()).(interface{ Validate() error }); ok {
+	} else if v, ok := interface{}(m.GetPayload()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return ForwardToSessionReqValidationError{
-				field:  "Body",
+				field:  "Payload",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
@@ -1786,6 +1985,10 @@ func (m *ForwardToSessionReq) validate(all bool) error {
 	// no validation rules for FromNodeId
 
 	// no validation rules for HopCount
+
+	// no validation rules for Reliability
+
+	// no validation rules for DeliveryTag
 
 	if len(errors) > 0 {
 		return ForwardToSessionReqMultiError(errors)
@@ -1889,11 +2092,13 @@ func (m *ForwardToSessionResp) validate(all bool) error {
 
 	var errors []error
 
-	// no validation rules for Delivered
+	// no validation rules for Status
 
 	// no validation rules for ErrorCode
 
 	// no validation rules for ErrorMessage
+
+	// no validation rules for QueryToken
 
 	if len(errors) > 0 {
 		return ForwardToSessionRespMultiError(errors)
@@ -2048,9 +2253,9 @@ func (m *ForwardToRoomReq) validate(all bool) error {
 		}
 	}
 
-	if m.GetBody() == nil {
+	if m.GetPayload() == nil {
 		err := ForwardToRoomReqValidationError{
-			field:  "Body",
+			field:  "Payload",
 			reason: "value is required",
 		}
 		if !all {
@@ -2060,11 +2265,11 @@ func (m *ForwardToRoomReq) validate(all bool) error {
 	}
 
 	if all {
-		switch v := interface{}(m.GetBody()).(type) {
+		switch v := interface{}(m.GetPayload()).(type) {
 		case interface{ ValidateAll() error }:
 			if err := v.ValidateAll(); err != nil {
 				errors = append(errors, ForwardToRoomReqValidationError{
-					field:  "Body",
+					field:  "Payload",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
@@ -2072,16 +2277,16 @@ func (m *ForwardToRoomReq) validate(all bool) error {
 		case interface{ Validate() error }:
 			if err := v.Validate(); err != nil {
 				errors = append(errors, ForwardToRoomReqValidationError{
-					field:  "Body",
+					field:  "Payload",
 					reason: "embedded message failed validation",
 					cause:  err,
 				})
 			}
 		}
-	} else if v, ok := interface{}(m.GetBody()).(interface{ Validate() error }); ok {
+	} else if v, ok := interface{}(m.GetPayload()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return ForwardToRoomReqValidationError{
-				field:  "Body",
+				field:  "Payload",
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
@@ -5067,6 +5272,119 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = ListSessionsRespValidationError{}
+
+// Validate checks the field values on BatchPushMessageResp_SuccessItem with
+// the rules defined in the proto definition for this message. If any rules
+// are violated, the first error encountered is returned, or nil if there are
+// no violations.
+func (m *BatchPushMessageResp_SuccessItem) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on BatchPushMessageResp_SuccessItem with
+// the rules defined in the proto definition for this message. If any rules
+// are violated, the result is a list of violation errors wrapped in
+// BatchPushMessageResp_SuccessItemMultiError, or nil if none found.
+func (m *BatchPushMessageResp_SuccessItem) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *BatchPushMessageResp_SuccessItem) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for TargetKey
+
+	// no validation rules for SessionId
+
+	// no validation rules for SeqId
+
+	// no validation rules for DeliverType
+
+	if len(errors) > 0 {
+		return BatchPushMessageResp_SuccessItemMultiError(errors)
+	}
+
+	return nil
+}
+
+// BatchPushMessageResp_SuccessItemMultiError is an error wrapping multiple
+// validation errors returned by
+// BatchPushMessageResp_SuccessItem.ValidateAll() if the designated
+// constraints aren't met.
+type BatchPushMessageResp_SuccessItemMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m BatchPushMessageResp_SuccessItemMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m BatchPushMessageResp_SuccessItemMultiError) AllErrors() []error { return m }
+
+// BatchPushMessageResp_SuccessItemValidationError is the validation error
+// returned by BatchPushMessageResp_SuccessItem.Validate if the designated
+// constraints aren't met.
+type BatchPushMessageResp_SuccessItemValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e BatchPushMessageResp_SuccessItemValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e BatchPushMessageResp_SuccessItemValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e BatchPushMessageResp_SuccessItemValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e BatchPushMessageResp_SuccessItemValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e BatchPushMessageResp_SuccessItemValidationError) ErrorName() string {
+	return "BatchPushMessageResp_SuccessItemValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e BatchPushMessageResp_SuccessItemValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sBatchPushMessageResp_SuccessItem.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = BatchPushMessageResp_SuccessItemValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = BatchPushMessageResp_SuccessItemValidationError{}
 
 // Validate checks the field values on BatchPushMessageResp_FailedItem with the
 // rules defined in the proto definition for this message. If any rules are

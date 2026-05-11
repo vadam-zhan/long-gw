@@ -1,0 +1,133 @@
+syntax = "proto3";
+
+package gateway.v1;
+
+option go_package = "github.com/vadam-zhan/long-gw/common-protocol/gen/gateway/v1;gatewayv1";
+
+import "gateway/v1/common.proto";
+import "validate/validate.proto";
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 社交域业务错误码（范围：17001-17099）
+//
+// 注意：SubscribeAck / UnsubscribeAck 中 error_code 字段类型为 gateway.v1.ErrorCode，
+// 用于传递网关层错误。当需要传递社交业务层错误时，通过 details["biz_code"] 传递
+// 本枚举的字符串值（如 "17005"）。
+// ═════════════════════════════════════════════════════════════════════════════
+enum SocialErrorCode {
+    SOCIAL_ERROR_CODE_UNSPECIFIED = 0;
+
+    // ── 用户/实体不存在（17001-17015）──
+    SOCIAL_USER_NOT_FOUND       = 17001; // 用户不存在
+    SOCIAL_ROOM_NOT_FOUND       = 17002; // 房间不存在
+    SOCIAL_TOPIC_NOT_FOUND      = 17003; // Topic 不存在
+    SOCIAL_GROUP_NOT_FOUND      = 17004; // 群组不存在
+
+    // ── 订阅状态（17016-17030）──
+    SOCIAL_ALREADY_SUBSCRIBED   = 17016; // 已订阅
+    SOCIAL_NOT_SUBSCRIBED       = 17017; // 未订阅
+    SOCIAL_SUBSCRIPTION_LIMIT_EXCEEDED = 17018; // 订阅数量超限
+
+    // ── 房间/群组准入（17031-17045）──
+    SOCIAL_ROOM_FULL            = 17031; // 房间已满
+    SOCIAL_ROOM_PASSWORD_WRONG  = 17032; // 房间密码错误
+    SOCIAL_GROUP_MEMBER_LIMIT   = 17033; // 群组成员数超限
+    SOCIAL_JOIN_DENIED          = 17034; // 加入被拒绝（黑名单/白名单）
+    SOCIAL_PERMISSION_DENIED    = 17035; // 操作权限不足
+
+    // ── Presence 相关（17046-17060）──
+    SOCIAL_PRESENCE_UPDATE_TOO_FAST = 17046; // 状态更新过于频繁
+    SOCIAL_INVALID_PRESENCE_STATE   = 17047; // 无效的状态值
+
+    // ── 系统层（17061-17099）──
+    SOCIAL_RATE_LIMITED         = 17061; // 社交操作频率受限
+    SOCIAL_SERVICE_UNAVAILABLE  = 17062; // 社交服务不可用
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 通用社交事件（业务面）
+//
+// 这些事件跨业务域通用（IM、Live、Call 都需要），通过 DISPATCH 传输。
+// 传输方式：序列化为 bytes 后写入 DispatchContext.payload
+// 路由标识：DispatchContext.event_type = "social.{action}"
+//
+// 事件类型映射：
+//   "social.presence"           → PresenceUpdate
+//   "social.presence.batch"     → PresenceBatch
+//   "social.subscribe"          → Subscribe
+//   "social.subscribe.result"   → SubscribeAck
+//   "social.unsubscribe.result" → UnsubscribeAck
+// ═════════════════════════════════════════════════════════════════════════════
+
+// ── event_type=social.presence（C→S / S→C）─────────────────────────────────
+//   在线状态更新（增量：只填变更字段）
+message PresenceUpdate {
+    enum PresenceState {
+        PRESENCE_STATE_UNSPECIFIED = 0;
+        ONLINE    = 1;
+        AWAY      = 2;
+        BUSY      = 3;
+        OFFLINE   = 4;               // 由网关推断，客户端不应主动发送
+        INVISIBLE = 5;
+    }
+
+    PresenceState state = 1;
+    string status_text = 2;
+    int64 last_active_at = 3;
+    string change_reason = 4;         // "manual" | "timeout" | "system" | "login" | "logout"
+    map<string, string> ext = 5;
+}
+
+// ── event_type=social.presence.batch（S→C）─────────────────────────────────
+//   批量状态更新，服务端聚合后发送
+message PresenceBatch {
+    int64 batch_time = 1;            // 聚合窗口结束时间（Unix 毫秒）
+    int32 batch_window_ms = 2;       // 聚合窗口大小（毫秒）
+
+    repeated Item items = 3;
+    message Item {
+        string user_id = 1;
+        PresenceUpdate.PresenceState state = 2;
+        string status_text = 3;
+        int64 last_active_at = 4;
+        string change_reason = 5;
+    }
+}
+
+// ── event_type=social.subscribe（C→S）──────────────────────────────────────
+//   订阅/取消订阅房间、Topic、群组
+message Subscribe {
+    oneof target {
+        RoomTarget room = 1;
+        TopicTarget topic = 2;
+        GroupTarget group = 3;
+    }
+
+    bool subscribe = 4;              // true = 订阅，false = 取消
+
+    message RoomTarget {
+        string room_id = 1;
+        string password = 2;
+    }
+    message TopicTarget {
+        string topic = 1;
+        int64 last_seq = 2;
+    }
+    message GroupTarget {
+        string group_id = 1;
+    }
+}
+
+// ── event_type=social.subscribe.result（S→C）───────────────────────────────
+message SubscribeAck {
+    ErrorCode error_code = 1;
+    string error_message = 2;
+    int64 member_count = 3;
+    int64 last_seq = 4;
+}
+
+// ── event_type=social.unsubscribe.result（S→C）─────────────────────────────
+message UnsubscribeAck {
+    ErrorCode error_code = 1;
+    string error_message = 2;
+}

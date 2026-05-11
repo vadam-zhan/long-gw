@@ -22,16 +22,15 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// 投递结果详情
 type PushMessageResp_Status int32
 
 const (
 	PushMessageResp_STATUS_UNSPECIFIED PushMessageResp_Status = 0
-	PushMessageResp_DELIVERED          PushMessageResp_Status = 1 // 已投递到客户端连接
-	PushMessageResp_QUEUED             PushMessageResp_Status = 2 // 客户端离线，已入队列/离线存储
-	PushMessageResp_TARGET_OFFLINE     PushMessageResp_Status = 3 // 目标离线且未配置离线存储
-	PushMessageResp_TARGET_NOT_FOUND   PushMessageResp_Status = 4 // 目标不存在（用户未登录或 Session 已关闭）
-	PushMessageResp_RATE_LIMITED       PushMessageResp_Status = 5 // 触发限流，消息被拒绝
+	PushMessageResp_DELIVERED          PushMessageResp_Status = 1
+	PushMessageResp_QUEUED             PushMessageResp_Status = 2
+	PushMessageResp_TARGET_OFFLINE     PushMessageResp_Status = 3
+	PushMessageResp_TARGET_NOT_FOUND   PushMessageResp_Status = 4
+	PushMessageResp_RATE_LIMITED       PushMessageResp_Status = 5
 )
 
 // Enum value maps for PushMessageResp_Status.
@@ -78,17 +77,169 @@ func (x PushMessageResp_Status) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use PushMessageResp_Status.Descriptor instead.
 func (PushMessageResp_Status) EnumDescriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{1, 0}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{2, 0}
 }
 
-// 当前节点状态
+type BatchPushMessageResp_SuccessItem_DeliverType int32
+
+const (
+	BatchPushMessageResp_SuccessItem_DELIVER_TYPE_UNSPECIFIED BatchPushMessageResp_SuccessItem_DeliverType = 0
+	BatchPushMessageResp_SuccessItem_ONLINE                   BatchPushMessageResp_SuccessItem_DeliverType = 1
+	BatchPushMessageResp_SuccessItem_OFFLINE_QUEUED           BatchPushMessageResp_SuccessItem_DeliverType = 2
+)
+
+// Enum value maps for BatchPushMessageResp_SuccessItem_DeliverType.
+var (
+	BatchPushMessageResp_SuccessItem_DeliverType_name = map[int32]string{
+		0: "DELIVER_TYPE_UNSPECIFIED",
+		1: "ONLINE",
+		2: "OFFLINE_QUEUED",
+	}
+	BatchPushMessageResp_SuccessItem_DeliverType_value = map[string]int32{
+		"DELIVER_TYPE_UNSPECIFIED": 0,
+		"ONLINE":                   1,
+		"OFFLINE_QUEUED":           2,
+	}
+)
+
+func (x BatchPushMessageResp_SuccessItem_DeliverType) Enum() *BatchPushMessageResp_SuccessItem_DeliverType {
+	p := new(BatchPushMessageResp_SuccessItem_DeliverType)
+	*p = x
+	return p
+}
+
+func (x BatchPushMessageResp_SuccessItem_DeliverType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (BatchPushMessageResp_SuccessItem_DeliverType) Descriptor() protoreflect.EnumDescriptor {
+	return file_gateway_v1_gateway_service_proto_enumTypes[1].Descriptor()
+}
+
+func (BatchPushMessageResp_SuccessItem_DeliverType) Type() protoreflect.EnumType {
+	return &file_gateway_v1_gateway_service_proto_enumTypes[1]
+}
+
+func (x BatchPushMessageResp_SuccessItem_DeliverType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use BatchPushMessageResp_SuccessItem_DeliverType.Descriptor instead.
+func (BatchPushMessageResp_SuccessItem_DeliverType) EnumDescriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{4, 0, 0}
+}
+
+type ForwardToSessionReq_Reliability int32
+
+const (
+	ForwardToSessionReq_RELIABILITY_UNSPECIFIED ForwardToSessionReq_Reliability = 0
+	ForwardToSessionReq_BEST_EFFORT             ForwardToSessionReq_Reliability = 1
+	ForwardToSessionReq_AT_LEAST_ONCE           ForwardToSessionReq_Reliability = 2
+)
+
+// Enum value maps for ForwardToSessionReq_Reliability.
+var (
+	ForwardToSessionReq_Reliability_name = map[int32]string{
+		0: "RELIABILITY_UNSPECIFIED",
+		1: "BEST_EFFORT",
+		2: "AT_LEAST_ONCE",
+	}
+	ForwardToSessionReq_Reliability_value = map[string]int32{
+		"RELIABILITY_UNSPECIFIED": 0,
+		"BEST_EFFORT":             1,
+		"AT_LEAST_ONCE":           2,
+	}
+)
+
+func (x ForwardToSessionReq_Reliability) Enum() *ForwardToSessionReq_Reliability {
+	p := new(ForwardToSessionReq_Reliability)
+	*p = x
+	return p
+}
+
+func (x ForwardToSessionReq_Reliability) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ForwardToSessionReq_Reliability) Descriptor() protoreflect.EnumDescriptor {
+	return file_gateway_v1_gateway_service_proto_enumTypes[2].Descriptor()
+}
+
+func (ForwardToSessionReq_Reliability) Type() protoreflect.EnumType {
+	return &file_gateway_v1_gateway_service_proto_enumTypes[2]
+}
+
+func (x ForwardToSessionReq_Reliability) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ForwardToSessionReq_Reliability.Descriptor instead.
+func (ForwardToSessionReq_Reliability) EnumDescriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{11, 0}
+}
+
+type ForwardToSessionResp_DeliveryStatus int32
+
+const (
+	ForwardToSessionResp_DELIVERY_STATUS_UNSPECIFIED ForwardToSessionResp_DeliveryStatus = 0
+	ForwardToSessionResp_ACCEPTED                    ForwardToSessionResp_DeliveryStatus = 1
+	ForwardToSessionResp_DELIVERED                   ForwardToSessionResp_DeliveryStatus = 2
+	ForwardToSessionResp_ACKED                       ForwardToSessionResp_DeliveryStatus = 3
+	ForwardToSessionResp_FAILED                      ForwardToSessionResp_DeliveryStatus = 4
+)
+
+// Enum value maps for ForwardToSessionResp_DeliveryStatus.
+var (
+	ForwardToSessionResp_DeliveryStatus_name = map[int32]string{
+		0: "DELIVERY_STATUS_UNSPECIFIED",
+		1: "ACCEPTED",
+		2: "DELIVERED",
+		3: "ACKED",
+		4: "FAILED",
+	}
+	ForwardToSessionResp_DeliveryStatus_value = map[string]int32{
+		"DELIVERY_STATUS_UNSPECIFIED": 0,
+		"ACCEPTED":                    1,
+		"DELIVERED":                   2,
+		"ACKED":                       3,
+		"FAILED":                      4,
+	}
+)
+
+func (x ForwardToSessionResp_DeliveryStatus) Enum() *ForwardToSessionResp_DeliveryStatus {
+	p := new(ForwardToSessionResp_DeliveryStatus)
+	*p = x
+	return p
+}
+
+func (x ForwardToSessionResp_DeliveryStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ForwardToSessionResp_DeliveryStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_gateway_v1_gateway_service_proto_enumTypes[3].Descriptor()
+}
+
+func (ForwardToSessionResp_DeliveryStatus) Type() protoreflect.EnumType {
+	return &file_gateway_v1_gateway_service_proto_enumTypes[3]
+}
+
+func (x ForwardToSessionResp_DeliveryStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ForwardToSessionResp_DeliveryStatus.Descriptor instead.
+func (ForwardToSessionResp_DeliveryStatus) EnumDescriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{12, 0}
+}
+
 type DrainNodeResp_DrainState int32
 
 const (
 	DrainNodeResp_DRAIN_STATE_UNSPECIFIED DrainNodeResp_DrainState = 0
-	DrainNodeResp_SERVING                 DrainNodeResp_DrainState = 1 // 正常服务
-	DrainNodeResp_DRAINING                DrainNodeResp_DrainState = 2 // 摘流中（拒绝新连接，等待旧连接关闭）
-	DrainNodeResp_DRAINED                 DrainNodeResp_DrainState = 3 // 已摘流（可以安全下线）
+	DrainNodeResp_SERVING                 DrainNodeResp_DrainState = 1
+	DrainNodeResp_DRAINING                DrainNodeResp_DrainState = 2
+	DrainNodeResp_DRAINED                 DrainNodeResp_DrainState = 3
 )
 
 // Enum value maps for DrainNodeResp_DrainState.
@@ -118,11 +269,11 @@ func (x DrainNodeResp_DrainState) String() string {
 }
 
 func (DrainNodeResp_DrainState) Descriptor() protoreflect.EnumDescriptor {
-	return file_gateway_v1_gateway_service_proto_enumTypes[1].Descriptor()
+	return file_gateway_v1_gateway_service_proto_enumTypes[4].Descriptor()
 }
 
 func (DrainNodeResp_DrainState) Type() protoreflect.EnumType {
-	return &file_gateway_v1_gateway_service_proto_enumTypes[1]
+	return &file_gateway_v1_gateway_service_proto_enumTypes[4]
 }
 
 func (x DrainNodeResp_DrainState) Number() protoreflect.EnumNumber {
@@ -131,30 +282,99 @@ func (x DrainNodeResp_DrainState) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use DrainNodeResp_DrainState.Descriptor instead.
 func (DrainNodeResp_DrainState) EnumDescriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{21, 0}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{22, 0}
+}
+
+// Payload：内部服务使用的业务载荷描述
+//
+//	对应 DispatchContext.payload + DispatchContext.event_type
+type Payload struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 业务事件类型（对应 GatewayPayload.t）
+	EventType string `protobuf:"bytes,1,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
+	// 编码后的业务 payload（对应 GatewayPayload.d）
+	Data []byte `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	// 编码格式
+	Codec Codec `protobuf:"varint,3,opt,name=codec,proto3,enum=gateway.v1.Codec" json:"codec,omitempty"`
+	// 压缩算法
+	Compress      CompressAlgo `protobuf:"varint,4,opt,name=compress,proto3,enum=gateway.v1.CompressAlgo" json:"compress,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Payload) Reset() {
+	*x = Payload{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Payload) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Payload) ProtoMessage() {}
+
+func (x *Payload) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Payload.ProtoReflect.Descriptor instead.
+func (*Payload) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *Payload) GetEventType() string {
+	if x != nil {
+		return x.EventType
+	}
+	return ""
+}
+
+func (x *Payload) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+func (x *Payload) GetCodec() Codec {
+	if x != nil {
+		return x.Codec
+	}
+	return Codec_CODEC_UNSPECIFIED
+}
+
+func (x *Payload) GetCompress() CompressAlgo {
+	if x != nil {
+		return x.Compress
+	}
+	return CompressAlgo_COMPRESS_ALGO_UNSPECIFIED
 }
 
 type PushMessageReq struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// 目标：单用户、单设备、单 Session 或单连接
-	To *RouteTarget `protobuf:"bytes,1,opt,name=to,proto3" json:"to,omitempty"`
-	// 业务域标识（用于 WorkerPool 路由和限流）
-	BizCode string `protobuf:"bytes,2,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
-	// 投递控制（QoS、优先级、是否离线存储）
-	Delivery *Delivery `protobuf:"bytes,3,opt,name=delivery,proto3" json:"delivery,omitempty"`
-	// 业务载荷
-	Body *Body `protobuf:"bytes,4,opt,name=body,proto3" json:"body,omitempty"`
-	// 可选：指定消息来源（用于审计和调试）
-	Origin string `protobuf:"bytes,5,opt,name=origin,proto3" json:"origin,omitempty"` // "pushapi" | "business" | "system"
-	// 可选：透传 headers（网关会清理非白名单 headers 后发给客户端）
-	Headers       map[string]string `protobuf:"bytes,6,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	To            *RouteTarget           `protobuf:"bytes,1,opt,name=to,proto3" json:"to,omitempty"`
+	BizCode       string                 `protobuf:"bytes,2,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
+	Delivery      *Delivery              `protobuf:"bytes,3,opt,name=delivery,proto3" json:"delivery,omitempty"`
+	Payload       *Payload               `protobuf:"bytes,4,opt,name=payload,proto3" json:"payload,omitempty"`
+	Origin        string                 `protobuf:"bytes,5,opt,name=origin,proto3" json:"origin,omitempty"`
+	Headers       map[string]string      `protobuf:"bytes,6,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PushMessageReq) Reset() {
 	*x = PushMessageReq{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[0]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -166,7 +386,7 @@ func (x *PushMessageReq) String() string {
 func (*PushMessageReq) ProtoMessage() {}
 
 func (x *PushMessageReq) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[0]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -179,7 +399,7 @@ func (x *PushMessageReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PushMessageReq.ProtoReflect.Descriptor instead.
 func (*PushMessageReq) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{0}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *PushMessageReq) GetTo() *RouteTarget {
@@ -203,9 +423,9 @@ func (x *PushMessageReq) GetDelivery() *Delivery {
 	return nil
 }
 
-func (x *PushMessageReq) GetBody() *Body {
+func (x *PushMessageReq) GetPayload() *Payload {
 	if x != nil {
-		return x.Body
+		return x.Payload
 	}
 	return nil
 }
@@ -225,22 +445,20 @@ func (x *PushMessageReq) GetHeaders() map[string]string {
 }
 
 type PushMessageResp struct {
-	state    protoimpl.MessageState `protogen:"open.v1"`
-	Accepted bool                   `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"` // true = 已接受投递（不保证客户端已收到）
-	Status   PushMessageResp_Status `protobuf:"varint,2,opt,name=status,proto3,enum=gateway.v1.PushMessageResp_Status" json:"status,omitempty"`
-	// 如果成功投递，返回实际送达的 session_id 和 seq_id
-	SessionId string `protobuf:"bytes,3,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	SeqId     uint64 `protobuf:"varint,4,opt,name=seq_id,json=seqId,proto3" json:"seq_id,omitempty"`
-	// 失败时的结构化错误
-	ErrorCode     ErrorCode `protobuf:"varint,5,opt,name=error_code,json=errorCode,proto3,enum=gateway.v1.ErrorCode" json:"error_code,omitempty"`
-	ErrorMessage  string    `protobuf:"bytes,6,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Accepted      bool                   `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
+	Status        PushMessageResp_Status `protobuf:"varint,2,opt,name=status,proto3,enum=gateway.v1.PushMessageResp_Status" json:"status,omitempty"`
+	SessionId     string                 `protobuf:"bytes,3,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	SeqId         uint64                 `protobuf:"varint,4,opt,name=seq_id,json=seqId,proto3" json:"seq_id,omitempty"`
+	ErrorCode     ErrorCode              `protobuf:"varint,5,opt,name=error_code,json=errorCode,proto3,enum=gateway.v1.ErrorCode" json:"error_code,omitempty"`
+	ErrorMessage  string                 `protobuf:"bytes,6,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PushMessageResp) Reset() {
 	*x = PushMessageResp{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[1]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -252,7 +470,7 @@ func (x *PushMessageResp) String() string {
 func (*PushMessageResp) ProtoMessage() {}
 
 func (x *PushMessageResp) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[1]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -265,7 +483,7 @@ func (x *PushMessageResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PushMessageResp.ProtoReflect.Descriptor instead.
 func (*PushMessageResp) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{1}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *PushMessageResp) GetAccepted() bool {
@@ -311,20 +529,19 @@ func (x *PushMessageResp) GetErrorMessage() string {
 }
 
 type BatchPushMessageReq struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// 批量目标（每个目标独立投递，共享 body 和 delivery）
-	ToList        []*RouteTarget `protobuf:"bytes,1,rep,name=to_list,json=toList,proto3" json:"to_list,omitempty"`
-	BizCode       string         `protobuf:"bytes,2,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
-	Delivery      *Delivery      `protobuf:"bytes,3,opt,name=delivery,proto3" json:"delivery,omitempty"`
-	Body          *Body          `protobuf:"bytes,4,opt,name=body,proto3" json:"body,omitempty"`
-	Origin        string         `protobuf:"bytes,5,opt,name=origin,proto3" json:"origin,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ToList        []*RouteTarget         `protobuf:"bytes,1,rep,name=to_list,json=toList,proto3" json:"to_list,omitempty"`
+	BizCode       string                 `protobuf:"bytes,2,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
+	Delivery      *Delivery              `protobuf:"bytes,3,opt,name=delivery,proto3" json:"delivery,omitempty"`
+	Payload       *Payload               `protobuf:"bytes,4,opt,name=payload,proto3" json:"payload,omitempty"`
+	Origin        string                 `protobuf:"bytes,5,opt,name=origin,proto3" json:"origin,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *BatchPushMessageReq) Reset() {
 	*x = BatchPushMessageReq{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[2]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -336,7 +553,7 @@ func (x *BatchPushMessageReq) String() string {
 func (*BatchPushMessageReq) ProtoMessage() {}
 
 func (x *BatchPushMessageReq) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[2]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -349,7 +566,7 @@ func (x *BatchPushMessageReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BatchPushMessageReq.ProtoReflect.Descriptor instead.
 func (*BatchPushMessageReq) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{2}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *BatchPushMessageReq) GetToList() []*RouteTarget {
@@ -373,9 +590,9 @@ func (x *BatchPushMessageReq) GetDelivery() *Delivery {
 	return nil
 }
 
-func (x *BatchPushMessageReq) GetBody() *Body {
+func (x *BatchPushMessageReq) GetPayload() *Payload {
 	if x != nil {
-		return x.Body
+		return x.Payload
 	}
 	return nil
 }
@@ -388,19 +605,20 @@ func (x *BatchPushMessageReq) GetOrigin() string {
 }
 
 type BatchPushMessageResp struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// 总体统计
-	TotalCount    int32                              `protobuf:"varint,1,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
-	SuccessCount  int32                              `protobuf:"varint,2,opt,name=success_count,json=successCount,proto3" json:"success_count,omitempty"`
-	FailCount     int32                              `protobuf:"varint,3,opt,name=fail_count,json=failCount,proto3" json:"fail_count,omitempty"`
-	FailedItems   []*BatchPushMessageResp_FailedItem `protobuf:"bytes,4,rep,name=failed_items,json=failedItems,proto3" json:"failed_items,omitempty"`
+	state         protoimpl.MessageState              `protogen:"open.v1"`
+	TotalCount    int32                               `protobuf:"varint,1,opt,name=total_count,json=totalCount,proto3" json:"total_count,omitempty"`
+	SuccessCount  int32                               `protobuf:"varint,2,opt,name=success_count,json=successCount,proto3" json:"success_count,omitempty"`
+	FailCount     int32                               `protobuf:"varint,3,opt,name=fail_count,json=failCount,proto3" json:"fail_count,omitempty"`
+	SuccessItems  []*BatchPushMessageResp_SuccessItem `protobuf:"bytes,4,rep,name=success_items,json=successItems,proto3" json:"success_items,omitempty"`
+	FailedItems   []*BatchPushMessageResp_FailedItem  `protobuf:"bytes,5,rep,name=failed_items,json=failedItems,proto3" json:"failed_items,omitempty"`
+	PendingItems  []string                            `protobuf:"bytes,6,rep,name=pending_items,json=pendingItems,proto3" json:"pending_items,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *BatchPushMessageResp) Reset() {
 	*x = BatchPushMessageResp{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[3]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -412,7 +630,7 @@ func (x *BatchPushMessageResp) String() string {
 func (*BatchPushMessageResp) ProtoMessage() {}
 
 func (x *BatchPushMessageResp) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[3]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -425,7 +643,7 @@ func (x *BatchPushMessageResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BatchPushMessageResp.ProtoReflect.Descriptor instead.
 func (*BatchPushMessageResp) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{3}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *BatchPushMessageResp) GetTotalCount() int32 {
@@ -449,6 +667,13 @@ func (x *BatchPushMessageResp) GetFailCount() int32 {
 	return 0
 }
 
+func (x *BatchPushMessageResp) GetSuccessItems() []*BatchPushMessageResp_SuccessItem {
+	if x != nil {
+		return x.SuccessItems
+	}
+	return nil
+}
+
 func (x *BatchPushMessageResp) GetFailedItems() []*BatchPushMessageResp_FailedItem {
 	if x != nil {
 		return x.FailedItems
@@ -456,26 +681,29 @@ func (x *BatchPushMessageResp) GetFailedItems() []*BatchPushMessageResp_FailedIt
 	return nil
 }
 
+func (x *BatchPushMessageResp) GetPendingItems() []string {
+	if x != nil {
+		return x.PendingItems
+	}
+	return nil
+}
+
 type BroadcastToRoomReq struct {
-	state    protoimpl.MessageState `protogen:"open.v1"`
-	RoomId   string                 `protobuf:"bytes,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
-	BizCode  string                 `protobuf:"bytes,2,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
-	Delivery *Delivery              `protobuf:"bytes,3,opt,name=delivery,proto3" json:"delivery,omitempty"`
-	Body     *Body                  `protobuf:"bytes,4,opt,name=body,proto3" json:"body,omitempty"`
-	// 可选：排除发送者本人（用于 IM 群聊时发送者不收到自己的消息）
-	ExcludeSender bool   `protobuf:"varint,5,opt,name=exclude_sender,json=excludeSender,proto3" json:"exclude_sender,omitempty"`
-	SenderUserId  string `protobuf:"bytes,6,opt,name=sender_user_id,json=senderUserId,proto3" json:"sender_user_id,omitempty"` // exclude_sender=true 时必填
-	// 可选：按条件过滤接收者
-	//
-	//	例如：只发给 device_type="mobile" 的用户
-	FilterLabels  map[string]string `protobuf:"bytes,7,rep,name=filter_labels,json=filterLabels,proto3" json:"filter_labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RoomId        string                 `protobuf:"bytes,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
+	BizCode       string                 `protobuf:"bytes,2,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
+	Delivery      *Delivery              `protobuf:"bytes,3,opt,name=delivery,proto3" json:"delivery,omitempty"`
+	Payload       *Payload               `protobuf:"bytes,4,opt,name=payload,proto3" json:"payload,omitempty"`
+	ExcludeSender bool                   `protobuf:"varint,5,opt,name=exclude_sender,json=excludeSender,proto3" json:"exclude_sender,omitempty"`
+	SenderUserId  string                 `protobuf:"bytes,6,opt,name=sender_user_id,json=senderUserId,proto3" json:"sender_user_id,omitempty"`
+	FilterLabels  map[string]string      `protobuf:"bytes,7,rep,name=filter_labels,json=filterLabels,proto3" json:"filter_labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *BroadcastToRoomReq) Reset() {
 	*x = BroadcastToRoomReq{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[4]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -487,7 +715,7 @@ func (x *BroadcastToRoomReq) String() string {
 func (*BroadcastToRoomReq) ProtoMessage() {}
 
 func (x *BroadcastToRoomReq) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[4]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -500,7 +728,7 @@ func (x *BroadcastToRoomReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BroadcastToRoomReq.ProtoReflect.Descriptor instead.
 func (*BroadcastToRoomReq) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{4}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *BroadcastToRoomReq) GetRoomId() string {
@@ -524,9 +752,9 @@ func (x *BroadcastToRoomReq) GetDelivery() *Delivery {
 	return nil
 }
 
-func (x *BroadcastToRoomReq) GetBody() *Body {
+func (x *BroadcastToRoomReq) GetPayload() *Payload {
 	if x != nil {
-		return x.Body
+		return x.Payload
 	}
 	return nil
 }
@@ -553,21 +781,20 @@ func (x *BroadcastToRoomReq) GetFilterLabels() map[string]string {
 }
 
 type BroadcastToRoomResp struct {
-	state    protoimpl.MessageState `protogen:"open.v1"`
-	Accepted bool                   `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
-	// 广播统计（异步返回预估值，实际投递通过 metrics 确认）
-	TargetCount   int64     `protobuf:"varint,2,opt,name=target_count,json=targetCount,proto3" json:"target_count,omitempty"` // 房间总人数
-	OnlineCount   int64     `protobuf:"varint,3,opt,name=online_count,json=onlineCount,proto3" json:"online_count,omitempty"` // 在线人数（实际会收到广播）
-	NodeCount     int64     `protobuf:"varint,4,opt,name=node_count,json=nodeCount,proto3" json:"node_count,omitempty"`       // 涉及多少个网关节点（跨节点广播时）
-	ErrorCode     ErrorCode `protobuf:"varint,5,opt,name=error_code,json=errorCode,proto3,enum=gateway.v1.ErrorCode" json:"error_code,omitempty"`
-	ErrorMessage  string    `protobuf:"bytes,6,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Accepted      bool                   `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
+	TargetCount   int64                  `protobuf:"varint,2,opt,name=target_count,json=targetCount,proto3" json:"target_count,omitempty"`
+	OnlineCount   int64                  `protobuf:"varint,3,opt,name=online_count,json=onlineCount,proto3" json:"online_count,omitempty"`
+	NodeCount     int64                  `protobuf:"varint,4,opt,name=node_count,json=nodeCount,proto3" json:"node_count,omitempty"`
+	ErrorCode     ErrorCode              `protobuf:"varint,5,opt,name=error_code,json=errorCode,proto3,enum=gateway.v1.ErrorCode" json:"error_code,omitempty"`
+	ErrorMessage  string                 `protobuf:"bytes,6,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *BroadcastToRoomResp) Reset() {
 	*x = BroadcastToRoomResp{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[5]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -579,7 +806,7 @@ func (x *BroadcastToRoomResp) String() string {
 func (*BroadcastToRoomResp) ProtoMessage() {}
 
 func (x *BroadcastToRoomResp) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[5]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -592,7 +819,7 @@ func (x *BroadcastToRoomResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BroadcastToRoomResp.ProtoReflect.Descriptor instead.
 func (*BroadcastToRoomResp) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{5}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *BroadcastToRoomResp) GetAccepted() bool {
@@ -642,7 +869,7 @@ type BroadcastToTopicReq struct {
 	Topic         string                 `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
 	BizCode       string                 `protobuf:"bytes,2,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
 	Delivery      *Delivery              `protobuf:"bytes,3,opt,name=delivery,proto3" json:"delivery,omitempty"`
-	Body          *Body                  `protobuf:"bytes,4,opt,name=body,proto3" json:"body,omitempty"`
+	Payload       *Payload               `protobuf:"bytes,4,opt,name=payload,proto3" json:"payload,omitempty"`
 	ExcludeSender bool                   `protobuf:"varint,5,opt,name=exclude_sender,json=excludeSender,proto3" json:"exclude_sender,omitempty"`
 	SenderUserId  string                 `protobuf:"bytes,6,opt,name=sender_user_id,json=senderUserId,proto3" json:"sender_user_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -651,7 +878,7 @@ type BroadcastToTopicReq struct {
 
 func (x *BroadcastToTopicReq) Reset() {
 	*x = BroadcastToTopicReq{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[6]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -663,7 +890,7 @@ func (x *BroadcastToTopicReq) String() string {
 func (*BroadcastToTopicReq) ProtoMessage() {}
 
 func (x *BroadcastToTopicReq) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[6]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -676,7 +903,7 @@ func (x *BroadcastToTopicReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BroadcastToTopicReq.ProtoReflect.Descriptor instead.
 func (*BroadcastToTopicReq) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{6}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *BroadcastToTopicReq) GetTopic() string {
@@ -700,9 +927,9 @@ func (x *BroadcastToTopicReq) GetDelivery() *Delivery {
 	return nil
 }
 
-func (x *BroadcastToTopicReq) GetBody() *Body {
+func (x *BroadcastToTopicReq) GetPayload() *Payload {
 	if x != nil {
-		return x.Body
+		return x.Payload
 	}
 	return nil
 }
@@ -734,7 +961,7 @@ type BroadcastToTopicResp struct {
 
 func (x *BroadcastToTopicResp) Reset() {
 	*x = BroadcastToTopicResp{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[7]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -746,7 +973,7 @@ func (x *BroadcastToTopicResp) String() string {
 func (*BroadcastToTopicResp) ProtoMessage() {}
 
 func (x *BroadcastToTopicResp) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[7]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -759,7 +986,7 @@ func (x *BroadcastToTopicResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BroadcastToTopicResp.ProtoReflect.Descriptor instead.
 func (*BroadcastToTopicResp) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{7}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *BroadcastToTopicResp) GetAccepted() bool {
@@ -798,24 +1025,20 @@ func (x *BroadcastToTopicResp) GetErrorMessage() string {
 }
 
 type BroadcastToAllReq struct {
-	state    protoimpl.MessageState `protogen:"open.v1"`
-	BizCode  string                 `protobuf:"bytes,1,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
-	Delivery *Delivery              `protobuf:"bytes,2,opt,name=delivery,proto3" json:"delivery,omitempty"`
-	Body     *Body                  `protobuf:"bytes,3,opt,name=body,proto3" json:"body,omitempty"`
-	// 可选：按业务域过滤（如只发给 biz_code="im" 的在线用户）
-	FilterBizCodes []string `protobuf:"bytes,4,rep,name=filter_biz_codes,json=filterBizCodes,proto3" json:"filter_biz_codes,omitempty"`
-	// 可选：渐进式广播（分批投递，防止瞬间洪峰）
-	//
-	//	batch_size: 每批投递多少用户，batch_interval_ms: 批次间隔
-	BatchSize       int32 `protobuf:"varint,5,opt,name=batch_size,json=batchSize,proto3" json:"batch_size,omitempty"`
-	BatchIntervalMs int32 `protobuf:"varint,6,opt,name=batch_interval_ms,json=batchIntervalMs,proto3" json:"batch_interval_ms,omitempty"`
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	BizCode         string                 `protobuf:"bytes,1,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
+	Delivery        *Delivery              `protobuf:"bytes,2,opt,name=delivery,proto3" json:"delivery,omitempty"`
+	Payload         *Payload               `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload,omitempty"`
+	FilterBizCodes  []string               `protobuf:"bytes,4,rep,name=filter_biz_codes,json=filterBizCodes,proto3" json:"filter_biz_codes,omitempty"`
+	BatchSize       int32                  `protobuf:"varint,5,opt,name=batch_size,json=batchSize,proto3" json:"batch_size,omitempty"`
+	BatchIntervalMs int32                  `protobuf:"varint,6,opt,name=batch_interval_ms,json=batchIntervalMs,proto3" json:"batch_interval_ms,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
 
 func (x *BroadcastToAllReq) Reset() {
 	*x = BroadcastToAllReq{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[8]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -827,7 +1050,7 @@ func (x *BroadcastToAllReq) String() string {
 func (*BroadcastToAllReq) ProtoMessage() {}
 
 func (x *BroadcastToAllReq) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[8]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -840,7 +1063,7 @@ func (x *BroadcastToAllReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BroadcastToAllReq.ProtoReflect.Descriptor instead.
 func (*BroadcastToAllReq) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{8}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *BroadcastToAllReq) GetBizCode() string {
@@ -857,9 +1080,9 @@ func (x *BroadcastToAllReq) GetDelivery() *Delivery {
 	return nil
 }
 
-func (x *BroadcastToAllReq) GetBody() *Body {
+func (x *BroadcastToAllReq) GetPayload() *Payload {
 	if x != nil {
-		return x.Body
+		return x.Payload
 	}
 	return nil
 }
@@ -888,8 +1111,8 @@ func (x *BroadcastToAllReq) GetBatchIntervalMs() int32 {
 type BroadcastToAllResp struct {
 	state               protoimpl.MessageState `protogen:"open.v1"`
 	Accepted            bool                   `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
-	TotalOnlineUsers    int64                  `protobuf:"varint,2,opt,name=total_online_users,json=totalOnlineUsers,proto3" json:"total_online_users,omitempty"`          // 当前全集群在线用户总数
-	EstimatedDurationMs int64                  `protobuf:"varint,3,opt,name=estimated_duration_ms,json=estimatedDurationMs,proto3" json:"estimated_duration_ms,omitempty"` // 预估完成时间（基于 batch 配置）
+	TotalOnlineUsers    int64                  `protobuf:"varint,2,opt,name=total_online_users,json=totalOnlineUsers,proto3" json:"total_online_users,omitempty"`
+	EstimatedDurationMs int64                  `protobuf:"varint,3,opt,name=estimated_duration_ms,json=estimatedDurationMs,proto3" json:"estimated_duration_ms,omitempty"`
 	ErrorCode           ErrorCode              `protobuf:"varint,4,opt,name=error_code,json=errorCode,proto3,enum=gateway.v1.ErrorCode" json:"error_code,omitempty"`
 	ErrorMessage        string                 `protobuf:"bytes,5,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
 	unknownFields       protoimpl.UnknownFields
@@ -898,7 +1121,7 @@ type BroadcastToAllResp struct {
 
 func (x *BroadcastToAllResp) Reset() {
 	*x = BroadcastToAllResp{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[9]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -910,7 +1133,7 @@ func (x *BroadcastToAllResp) String() string {
 func (*BroadcastToAllResp) ProtoMessage() {}
 
 func (x *BroadcastToAllResp) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[9]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -923,7 +1146,7 @@ func (x *BroadcastToAllResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BroadcastToAllResp.ProtoReflect.Descriptor instead.
 func (*BroadcastToAllResp) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{9}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *BroadcastToAllResp) GetAccepted() bool {
@@ -962,28 +1185,28 @@ func (x *BroadcastToAllResp) GetErrorMessage() string {
 }
 
 type ForwardToSessionReq struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// 目标 Session 信息（用于目标节点定位 Session）
-	SessionId string `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	UserId    string `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	DeviceId  string `protobuf:"bytes,3,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
-	// 原始消息上下文（从 Kafka 消费的消息）
-	MsgId    string            `protobuf:"bytes,4,opt,name=msg_id,json=msgId,proto3" json:"msg_id,omitempty"`
-	SeqId    uint64            `protobuf:"varint,5,opt,name=seq_id,json=seqId,proto3" json:"seq_id,omitempty"`
-	BizCode  string            `protobuf:"bytes,6,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
-	Delivery *Delivery         `protobuf:"bytes,7,opt,name=delivery,proto3" json:"delivery,omitempty"`
-	Body     *Body             `protobuf:"bytes,8,opt,name=body,proto3" json:"body,omitempty"`
-	Headers  map[string]string `protobuf:"bytes,9,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// 来源节点信息（用于追踪和避免循环）
-	FromNodeId    string `protobuf:"bytes,10,opt,name=from_node_id,json=fromNodeId,proto3" json:"from_node_id,omitempty"`
-	HopCount      int32  `protobuf:"varint,11,opt,name=hop_count,json=hopCount,proto3" json:"hop_count,omitempty"` // 转发跳数，超过阈值拒绝（防循环）
+	state         protoimpl.MessageState          `protogen:"open.v1"`
+	SessionId     string                          `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	UserId        string                          `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	DeviceId      string                          `protobuf:"bytes,3,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
+	MsgId         string                          `protobuf:"bytes,4,opt,name=msg_id,json=msgId,proto3" json:"msg_id,omitempty"`
+	SeqId         uint64                          `protobuf:"varint,5,opt,name=seq_id,json=seqId,proto3" json:"seq_id,omitempty"`
+	BizCode       string                          `protobuf:"bytes,6,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
+	EventType     string                          `protobuf:"bytes,7,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
+	Delivery      *Delivery                       `protobuf:"bytes,8,opt,name=delivery,proto3" json:"delivery,omitempty"`
+	Payload       *Payload                        `protobuf:"bytes,9,opt,name=payload,proto3" json:"payload,omitempty"`
+	Headers       map[string]string               `protobuf:"bytes,10,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	FromNodeId    string                          `protobuf:"bytes,11,opt,name=from_node_id,json=fromNodeId,proto3" json:"from_node_id,omitempty"`
+	HopCount      int32                           `protobuf:"varint,12,opt,name=hop_count,json=hopCount,proto3" json:"hop_count,omitempty"`
+	Reliability   ForwardToSessionReq_Reliability `protobuf:"varint,13,opt,name=reliability,proto3,enum=gateway.v1.ForwardToSessionReq_Reliability" json:"reliability,omitempty"`
+	DeliveryTag   string                          `protobuf:"bytes,14,opt,name=delivery_tag,json=deliveryTag,proto3" json:"delivery_tag,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ForwardToSessionReq) Reset() {
 	*x = ForwardToSessionReq{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[10]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -995,7 +1218,7 @@ func (x *ForwardToSessionReq) String() string {
 func (*ForwardToSessionReq) ProtoMessage() {}
 
 func (x *ForwardToSessionReq) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[10]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1008,7 +1231,7 @@ func (x *ForwardToSessionReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ForwardToSessionReq.ProtoReflect.Descriptor instead.
 func (*ForwardToSessionReq) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{10}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ForwardToSessionReq) GetSessionId() string {
@@ -1053,6 +1276,13 @@ func (x *ForwardToSessionReq) GetBizCode() string {
 	return ""
 }
 
+func (x *ForwardToSessionReq) GetEventType() string {
+	if x != nil {
+		return x.EventType
+	}
+	return ""
+}
+
 func (x *ForwardToSessionReq) GetDelivery() *Delivery {
 	if x != nil {
 		return x.Delivery
@@ -1060,9 +1290,9 @@ func (x *ForwardToSessionReq) GetDelivery() *Delivery {
 	return nil
 }
 
-func (x *ForwardToSessionReq) GetBody() *Body {
+func (x *ForwardToSessionReq) GetPayload() *Payload {
 	if x != nil {
-		return x.Body
+		return x.Payload
 	}
 	return nil
 }
@@ -1088,18 +1318,33 @@ func (x *ForwardToSessionReq) GetHopCount() int32 {
 	return 0
 }
 
+func (x *ForwardToSessionReq) GetReliability() ForwardToSessionReq_Reliability {
+	if x != nil {
+		return x.Reliability
+	}
+	return ForwardToSessionReq_RELIABILITY_UNSPECIFIED
+}
+
+func (x *ForwardToSessionReq) GetDeliveryTag() string {
+	if x != nil {
+		return x.DeliveryTag
+	}
+	return ""
+}
+
 type ForwardToSessionResp struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Delivered     bool                   `protobuf:"varint,1,opt,name=delivered,proto3" json:"delivered,omitempty"`
-	ErrorCode     ErrorCode              `protobuf:"varint,2,opt,name=error_code,json=errorCode,proto3,enum=gateway.v1.ErrorCode" json:"error_code,omitempty"`
-	ErrorMessage  string                 `protobuf:"bytes,3,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	state         protoimpl.MessageState              `protogen:"open.v1"`
+	Status        ForwardToSessionResp_DeliveryStatus `protobuf:"varint,1,opt,name=status,proto3,enum=gateway.v1.ForwardToSessionResp_DeliveryStatus" json:"status,omitempty"`
+	ErrorCode     ErrorCode                           `protobuf:"varint,2,opt,name=error_code,json=errorCode,proto3,enum=gateway.v1.ErrorCode" json:"error_code,omitempty"`
+	ErrorMessage  string                              `protobuf:"bytes,3,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	QueryToken    string                              `protobuf:"bytes,4,opt,name=query_token,json=queryToken,proto3" json:"query_token,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ForwardToSessionResp) Reset() {
 	*x = ForwardToSessionResp{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[11]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1111,7 +1356,7 @@ func (x *ForwardToSessionResp) String() string {
 func (*ForwardToSessionResp) ProtoMessage() {}
 
 func (x *ForwardToSessionResp) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[11]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1124,14 +1369,14 @@ func (x *ForwardToSessionResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ForwardToSessionResp.ProtoReflect.Descriptor instead.
 func (*ForwardToSessionResp) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{11}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{12}
 }
 
-func (x *ForwardToSessionResp) GetDelivered() bool {
+func (x *ForwardToSessionResp) GetStatus() ForwardToSessionResp_DeliveryStatus {
 	if x != nil {
-		return x.Delivered
+		return x.Status
 	}
-	return false
+	return ForwardToSessionResp_DELIVERY_STATUS_UNSPECIFIED
 }
 
 func (x *ForwardToSessionResp) GetErrorCode() ErrorCode {
@@ -1148,23 +1393,29 @@ func (x *ForwardToSessionResp) GetErrorMessage() string {
 	return ""
 }
 
+func (x *ForwardToSessionResp) GetQueryToken() string {
+	if x != nil {
+		return x.QueryToken
+	}
+	return ""
+}
+
 type ForwardToRoomReq struct {
-	state    protoimpl.MessageState `protogen:"open.v1"`
-	RoomId   string                 `protobuf:"bytes,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
-	BizCode  string                 `protobuf:"bytes,2,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
-	Delivery *Delivery              `protobuf:"bytes,3,opt,name=delivery,proto3" json:"delivery,omitempty"`
-	Body     *Body                  `protobuf:"bytes,4,opt,name=body,proto3" json:"body,omitempty"`
-	// 目标节点列表（由 Broadcast Coordinator 计算）
-	TargetNodeIds []string `protobuf:"bytes,5,rep,name=target_node_ids,json=targetNodeIds,proto3" json:"target_node_ids,omitempty"`
-	FromNodeId    string   `protobuf:"bytes,6,opt,name=from_node_id,json=fromNodeId,proto3" json:"from_node_id,omitempty"`
-	HopCount      int32    `protobuf:"varint,7,opt,name=hop_count,json=hopCount,proto3" json:"hop_count,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RoomId        string                 `protobuf:"bytes,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
+	BizCode       string                 `protobuf:"bytes,2,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
+	Delivery      *Delivery              `protobuf:"bytes,3,opt,name=delivery,proto3" json:"delivery,omitempty"`
+	Payload       *Payload               `protobuf:"bytes,4,opt,name=payload,proto3" json:"payload,omitempty"`
+	TargetNodeIds []string               `protobuf:"bytes,5,rep,name=target_node_ids,json=targetNodeIds,proto3" json:"target_node_ids,omitempty"`
+	FromNodeId    string                 `protobuf:"bytes,6,opt,name=from_node_id,json=fromNodeId,proto3" json:"from_node_id,omitempty"`
+	HopCount      int32                  `protobuf:"varint,7,opt,name=hop_count,json=hopCount,proto3" json:"hop_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ForwardToRoomReq) Reset() {
 	*x = ForwardToRoomReq{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[12]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1176,7 +1427,7 @@ func (x *ForwardToRoomReq) String() string {
 func (*ForwardToRoomReq) ProtoMessage() {}
 
 func (x *ForwardToRoomReq) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[12]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1189,7 +1440,7 @@ func (x *ForwardToRoomReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ForwardToRoomReq.ProtoReflect.Descriptor instead.
 func (*ForwardToRoomReq) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{12}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ForwardToRoomReq) GetRoomId() string {
@@ -1213,9 +1464,9 @@ func (x *ForwardToRoomReq) GetDelivery() *Delivery {
 	return nil
 }
 
-func (x *ForwardToRoomReq) GetBody() *Body {
+func (x *ForwardToRoomReq) GetPayload() *Payload {
 	if x != nil {
-		return x.Body
+		return x.Payload
 	}
 	return nil
 }
@@ -1244,7 +1495,7 @@ func (x *ForwardToRoomReq) GetHopCount() int32 {
 type ForwardToRoomResp struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Accepted       bool                   `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
-	ForwardedNodes int32                  `protobuf:"varint,2,opt,name=forwarded_nodes,json=forwardedNodes,proto3" json:"forwarded_nodes,omitempty"` // 成功转发了多少个节点
+	ForwardedNodes int32                  `protobuf:"varint,2,opt,name=forwarded_nodes,json=forwardedNodes,proto3" json:"forwarded_nodes,omitempty"`
 	ErrorCode      ErrorCode              `protobuf:"varint,3,opt,name=error_code,json=errorCode,proto3,enum=gateway.v1.ErrorCode" json:"error_code,omitempty"`
 	ErrorMessage   string                 `protobuf:"bytes,4,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
 	unknownFields  protoimpl.UnknownFields
@@ -1253,7 +1504,7 @@ type ForwardToRoomResp struct {
 
 func (x *ForwardToRoomResp) Reset() {
 	*x = ForwardToRoomResp{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[13]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1265,7 +1516,7 @@ func (x *ForwardToRoomResp) String() string {
 func (*ForwardToRoomResp) ProtoMessage() {}
 
 func (x *ForwardToRoomResp) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[13]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1278,7 +1529,7 @@ func (x *ForwardToRoomResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ForwardToRoomResp.ProtoReflect.Descriptor instead.
 func (*ForwardToRoomResp) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{13}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ForwardToRoomResp) GetAccepted() bool {
@@ -1310,21 +1561,20 @@ func (x *ForwardToRoomResp) GetErrorMessage() string {
 }
 
 type KickUserReq struct {
-	state  protoimpl.MessageState `protogen:"open.v1"`
-	UserId string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	// 可选：只踢特定设备，空字符串表示踢全部设备
-	DeviceId       string    `protobuf:"bytes,2,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
-	Code           ErrorCode `protobuf:"varint,3,opt,name=code,proto3,enum=gateway.v1.ErrorCode" json:"code,omitempty"` // 踢人原因码
-	Reason         string    `protobuf:"bytes,4,opt,name=reason,proto3" json:"reason,omitempty"`
-	ReconnectAfter int32     `protobuf:"varint,5,opt,name=reconnect_after,json=reconnectAfter,proto3" json:"reconnect_after,omitempty"` // 建议重连等待时间（秒）
-	Permanent      bool      `protobuf:"varint,6,opt,name=permanent,proto3" json:"permanent,omitempty"`                                 // true = 加入黑名单，禁止自动重连
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	UserId         string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	DeviceId       string                 `protobuf:"bytes,2,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
+	Code           ErrorCode              `protobuf:"varint,3,opt,name=code,proto3,enum=gateway.v1.ErrorCode" json:"code,omitempty"`
+	Reason         string                 `protobuf:"bytes,4,opt,name=reason,proto3" json:"reason,omitempty"`
+	ReconnectAfter int32                  `protobuf:"varint,5,opt,name=reconnect_after,json=reconnectAfter,proto3" json:"reconnect_after,omitempty"`
+	Permanent      bool                   `protobuf:"varint,6,opt,name=permanent,proto3" json:"permanent,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
 
 func (x *KickUserReq) Reset() {
 	*x = KickUserReq{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[14]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1336,7 +1586,7 @@ func (x *KickUserReq) String() string {
 func (*KickUserReq) ProtoMessage() {}
 
 func (x *KickUserReq) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[14]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1349,7 +1599,7 @@ func (x *KickUserReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KickUserReq.ProtoReflect.Descriptor instead.
 func (*KickUserReq) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{14}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *KickUserReq) GetUserId() string {
@@ -1396,15 +1646,15 @@ func (x *KickUserReq) GetPermanent() bool {
 
 type KickUserResp struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
-	KickedSessions int32                  `protobuf:"varint,1,opt,name=kicked_sessions,json=kickedSessions,proto3" json:"kicked_sessions,omitempty"` // 实际踢掉了多少个 Session
-	KickedDevices  int32                  `protobuf:"varint,2,opt,name=kicked_devices,json=kickedDevices,proto3" json:"kicked_devices,omitempty"`    // 涉及多少个设备
+	KickedSessions int32                  `protobuf:"varint,1,opt,name=kicked_sessions,json=kickedSessions,proto3" json:"kicked_sessions,omitempty"`
+	KickedDevices  int32                  `protobuf:"varint,2,opt,name=kicked_devices,json=kickedDevices,proto3" json:"kicked_devices,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
 
 func (x *KickUserResp) Reset() {
 	*x = KickUserResp{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[15]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1416,7 +1666,7 @@ func (x *KickUserResp) String() string {
 func (*KickUserResp) ProtoMessage() {}
 
 func (x *KickUserResp) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[15]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1429,7 +1679,7 @@ func (x *KickUserResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KickUserResp.ProtoReflect.Descriptor instead.
 func (*KickUserResp) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{15}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *KickUserResp) GetKickedSessions() int32 {
@@ -1457,7 +1707,7 @@ type KickSessionReq struct {
 
 func (x *KickSessionReq) Reset() {
 	*x = KickSessionReq{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[16]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1469,7 +1719,7 @@ func (x *KickSessionReq) String() string {
 func (*KickSessionReq) ProtoMessage() {}
 
 func (x *KickSessionReq) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[16]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1482,7 +1732,7 @@ func (x *KickSessionReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KickSessionReq.ProtoReflect.Descriptor instead.
 func (*KickSessionReq) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{16}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *KickSessionReq) GetSessionId() string {
@@ -1518,7 +1768,7 @@ type KickSessionResp struct {
 
 func (x *KickSessionResp) Reset() {
 	*x = KickSessionResp{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[17]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1530,7 +1780,7 @@ func (x *KickSessionResp) String() string {
 func (*KickSessionResp) ProtoMessage() {}
 
 func (x *KickSessionResp) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[17]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1543,7 +1793,7 @@ func (x *KickSessionResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KickSessionResp.ProtoReflect.Descriptor instead.
 func (*KickSessionResp) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{17}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *KickSessionResp) GetFound() bool {
@@ -1585,7 +1835,7 @@ type KickDeviceReq struct {
 
 func (x *KickDeviceReq) Reset() {
 	*x = KickDeviceReq{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[18]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1597,7 +1847,7 @@ func (x *KickDeviceReq) String() string {
 func (*KickDeviceReq) ProtoMessage() {}
 
 func (x *KickDeviceReq) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[18]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1610,7 +1860,7 @@ func (x *KickDeviceReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KickDeviceReq.ProtoReflect.Descriptor instead.
 func (*KickDeviceReq) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{18}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *KickDeviceReq) GetDeviceId() string {
@@ -1643,7 +1893,7 @@ type KickDeviceResp struct {
 
 func (x *KickDeviceResp) Reset() {
 	*x = KickDeviceResp{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[19]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1655,7 +1905,7 @@ func (x *KickDeviceResp) String() string {
 func (*KickDeviceResp) ProtoMessage() {}
 
 func (x *KickDeviceResp) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[19]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1668,7 +1918,7 @@ func (x *KickDeviceResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KickDeviceResp.ProtoReflect.Descriptor instead.
 func (*KickDeviceResp) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{19}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *KickDeviceResp) GetKickedSessions() int32 {
@@ -1679,20 +1929,17 @@ func (x *KickDeviceResp) GetKickedSessions() int32 {
 }
 
 type DrainNodeReq struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// 可选：指定摘流超时时间，超过后强制关闭剩余连接
-	TimeoutSec int32 `protobuf:"varint,1,opt,name=timeout_sec,json=timeoutSec,proto3" json:"timeout_sec,omitempty"`
-	// 可选：只拒绝新连接，已存在的连接等待自然关闭
-	Graceful bool `protobuf:"varint,2,opt,name=graceful,proto3" json:"graceful,omitempty"`
-	// 可选：摘流原因（用于日志和审计）
-	Reason        string `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TimeoutSec    int32                  `protobuf:"varint,1,opt,name=timeout_sec,json=timeoutSec,proto3" json:"timeout_sec,omitempty"`
+	Graceful      bool                   `protobuf:"varint,2,opt,name=graceful,proto3" json:"graceful,omitempty"`
+	Reason        string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DrainNodeReq) Reset() {
 	*x = DrainNodeReq{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[20]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1704,7 +1951,7 @@ func (x *DrainNodeReq) String() string {
 func (*DrainNodeReq) ProtoMessage() {}
 
 func (x *DrainNodeReq) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[20]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1717,7 +1964,7 @@ func (x *DrainNodeReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DrainNodeReq.ProtoReflect.Descriptor instead.
 func (*DrainNodeReq) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{20}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *DrainNodeReq) GetTimeoutSec() int32 {
@@ -1745,15 +1992,15 @@ type DrainNodeResp struct {
 	state                protoimpl.MessageState   `protogen:"open.v1"`
 	Accepted             bool                     `protobuf:"varint,1,opt,name=accepted,proto3" json:"accepted,omitempty"`
 	State                DrainNodeResp_DrainState `protobuf:"varint,2,opt,name=state,proto3,enum=gateway.v1.DrainNodeResp_DrainState" json:"state,omitempty"`
-	RemainingConnections int32                    `protobuf:"varint,3,opt,name=remaining_connections,json=remainingConnections,proto3" json:"remaining_connections,omitempty"` // 剩余连接数
-	RemainingSessions    int32                    `protobuf:"varint,4,opt,name=remaining_sessions,json=remainingSessions,proto3" json:"remaining_sessions,omitempty"`          // 剩余 Session 数
+	RemainingConnections int32                    `protobuf:"varint,3,opt,name=remaining_connections,json=remainingConnections,proto3" json:"remaining_connections,omitempty"`
+	RemainingSessions    int32                    `protobuf:"varint,4,opt,name=remaining_sessions,json=remainingSessions,proto3" json:"remaining_sessions,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
 
 func (x *DrainNodeResp) Reset() {
 	*x = DrainNodeResp{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[21]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1765,7 +2012,7 @@ func (x *DrainNodeResp) String() string {
 func (*DrainNodeResp) ProtoMessage() {}
 
 func (x *DrainNodeResp) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[21]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1778,7 +2025,7 @@ func (x *DrainNodeResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DrainNodeResp.ProtoReflect.Descriptor instead.
 func (*DrainNodeResp) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{21}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *DrainNodeResp) GetAccepted() bool {
@@ -1817,7 +2064,7 @@ type UndrainNodeReq struct {
 
 func (x *UndrainNodeReq) Reset() {
 	*x = UndrainNodeReq{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[22]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1829,7 +2076,7 @@ func (x *UndrainNodeReq) String() string {
 func (*UndrainNodeReq) ProtoMessage() {}
 
 func (x *UndrainNodeReq) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[22]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1842,7 +2089,7 @@ func (x *UndrainNodeReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UndrainNodeReq.ProtoReflect.Descriptor instead.
 func (*UndrainNodeReq) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{22}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{23}
 }
 
 type UndrainNodeResp struct {
@@ -1855,7 +2102,7 @@ type UndrainNodeResp struct {
 
 func (x *UndrainNodeResp) Reset() {
 	*x = UndrainNodeResp{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[23]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1867,7 +2114,7 @@ func (x *UndrainNodeResp) String() string {
 func (*UndrainNodeResp) ProtoMessage() {}
 
 func (x *UndrainNodeResp) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[23]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1880,7 +2127,7 @@ func (x *UndrainNodeResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UndrainNodeResp.ProtoReflect.Descriptor instead.
 func (*UndrainNodeResp) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{23}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *UndrainNodeResp) GetSuccess() bool {
@@ -1905,7 +2152,7 @@ type GetNodeStatusReq struct {
 
 func (x *GetNodeStatusReq) Reset() {
 	*x = GetNodeStatusReq{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[24]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1917,7 +2164,7 @@ func (x *GetNodeStatusReq) String() string {
 func (*GetNodeStatusReq) ProtoMessage() {}
 
 func (x *GetNodeStatusReq) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[24]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1930,35 +2177,31 @@ func (x *GetNodeStatusReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNodeStatusReq.ProtoReflect.Descriptor instead.
 func (*GetNodeStatusReq) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{24}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{25}
 }
 
 type GetNodeStatusResp struct {
-	state      protoimpl.MessageState   `protogen:"open.v1"`
-	NodeId     string                   `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
-	NodeAddr   string                   `protobuf:"bytes,2,opt,name=node_addr,json=nodeAddr,proto3" json:"node_addr,omitempty"`
-	DrainState DrainNodeResp_DrainState `protobuf:"varint,3,opt,name=drain_state,json=drainState,proto3,enum=gateway.v1.DrainNodeResp_DrainState" json:"drain_state,omitempty"`
-	// 连接统计
-	ConnectionCount int64 `protobuf:"varint,4,opt,name=connection_count,json=connectionCount,proto3" json:"connection_count,omitempty"`
-	SessionCount    int64 `protobuf:"varint,5,opt,name=session_count,json=sessionCount,proto3" json:"session_count,omitempty"`
-	UserCount       int64 `protobuf:"varint,6,opt,name=user_count,json=userCount,proto3" json:"user_count,omitempty"`
-	// 资源使用
-	CpuPercent     float32 `protobuf:"fixed32,7,opt,name=cpu_percent,json=cpuPercent,proto3" json:"cpu_percent,omitempty"`
-	MemoryPercent  float32 `protobuf:"fixed32,8,opt,name=memory_percent,json=memoryPercent,proto3" json:"memory_percent,omitempty"`
-	GoroutineCount int64   `protobuf:"varint,9,opt,name=goroutine_count,json=goroutineCount,proto3" json:"goroutine_count,omitempty"`
-	// 消息统计（最近 1 分钟）
-	UpstreamQps   int64 `protobuf:"varint,10,opt,name=upstream_qps,json=upstreamQps,proto3" json:"upstream_qps,omitempty"`
-	DownstreamQps int64 `protobuf:"varint,11,opt,name=downstream_qps,json=downstreamQps,proto3" json:"downstream_qps,omitempty"`
-	BroadcastQps  int64 `protobuf:"varint,12,opt,name=broadcast_qps,json=broadcastQps,proto3" json:"broadcast_qps,omitempty"`
-	// 启动时间
-	StartTime     int64 `protobuf:"varint,13,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState   `protogen:"open.v1"`
+	NodeId          string                   `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	NodeAddr        string                   `protobuf:"bytes,2,opt,name=node_addr,json=nodeAddr,proto3" json:"node_addr,omitempty"`
+	DrainState      DrainNodeResp_DrainState `protobuf:"varint,3,opt,name=drain_state,json=drainState,proto3,enum=gateway.v1.DrainNodeResp_DrainState" json:"drain_state,omitempty"`
+	ConnectionCount int64                    `protobuf:"varint,4,opt,name=connection_count,json=connectionCount,proto3" json:"connection_count,omitempty"`
+	SessionCount    int64                    `protobuf:"varint,5,opt,name=session_count,json=sessionCount,proto3" json:"session_count,omitempty"`
+	UserCount       int64                    `protobuf:"varint,6,opt,name=user_count,json=userCount,proto3" json:"user_count,omitempty"`
+	CpuPercent      float32                  `protobuf:"fixed32,7,opt,name=cpu_percent,json=cpuPercent,proto3" json:"cpu_percent,omitempty"`
+	MemoryPercent   float32                  `protobuf:"fixed32,8,opt,name=memory_percent,json=memoryPercent,proto3" json:"memory_percent,omitempty"`
+	GoroutineCount  int64                    `protobuf:"varint,9,opt,name=goroutine_count,json=goroutineCount,proto3" json:"goroutine_count,omitempty"`
+	UpstreamQps     int64                    `protobuf:"varint,10,opt,name=upstream_qps,json=upstreamQps,proto3" json:"upstream_qps,omitempty"`
+	DownstreamQps   int64                    `protobuf:"varint,11,opt,name=downstream_qps,json=downstreamQps,proto3" json:"downstream_qps,omitempty"`
+	BroadcastQps    int64                    `protobuf:"varint,12,opt,name=broadcast_qps,json=broadcastQps,proto3" json:"broadcast_qps,omitempty"`
+	StartTime       int64                    `protobuf:"varint,13,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *GetNodeStatusResp) Reset() {
 	*x = GetNodeStatusResp{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[25]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1970,7 +2213,7 @@ func (x *GetNodeStatusResp) String() string {
 func (*GetNodeStatusResp) ProtoMessage() {}
 
 func (x *GetNodeStatusResp) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[25]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1983,7 +2226,7 @@ func (x *GetNodeStatusResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNodeStatusResp.ProtoReflect.Descriptor instead.
 func (*GetNodeStatusResp) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{25}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *GetNodeStatusResp) GetNodeId() string {
@@ -2078,20 +2321,17 @@ func (x *GetNodeStatusResp) GetStartTime() int64 {
 }
 
 type GetStatsReq struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// 可选：聚合时间窗口（秒），默认 60
-	WindowSec int32 `protobuf:"varint,1,opt,name=window_sec,json=windowSec,proto3" json:"window_sec,omitempty"`
-	// 可选：是否包含各业务域详细统计
-	IncludeBizBreakdown bool `protobuf:"varint,2,opt,name=include_biz_breakdown,json=includeBizBreakdown,proto3" json:"include_biz_breakdown,omitempty"`
-	// 可选：是否包含房间统计（Top N 房间）
-	TopRooms      int32 `protobuf:"varint,3,opt,name=top_rooms,json=topRooms,proto3" json:"top_rooms,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	WindowSec           int32                  `protobuf:"varint,1,opt,name=window_sec,json=windowSec,proto3" json:"window_sec,omitempty"`
+	IncludeBizBreakdown bool                   `protobuf:"varint,2,opt,name=include_biz_breakdown,json=includeBizBreakdown,proto3" json:"include_biz_breakdown,omitempty"`
+	TopRooms            int32                  `protobuf:"varint,3,opt,name=top_rooms,json=topRooms,proto3" json:"top_rooms,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *GetStatsReq) Reset() {
 	*x = GetStatsReq{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[26]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2103,7 +2343,7 @@ func (x *GetStatsReq) String() string {
 func (*GetStatsReq) ProtoMessage() {}
 
 func (x *GetStatsReq) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[26]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2116,7 +2356,7 @@ func (x *GetStatsReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStatsReq.ProtoReflect.Descriptor instead.
 func (*GetStatsReq) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{26}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *GetStatsReq) GetWindowSec() int32 {
@@ -2141,25 +2381,23 @@ func (x *GetStatsReq) GetTopRooms() int32 {
 }
 
 type GetStatsResp struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// 集群总体
-	TotalNodes       int64 `protobuf:"varint,1,opt,name=total_nodes,json=totalNodes,proto3" json:"total_nodes,omitempty"`
-	TotalConnections int64 `protobuf:"varint,2,opt,name=total_connections,json=totalConnections,proto3" json:"total_connections,omitempty"`
-	TotalSessions    int64 `protobuf:"varint,3,opt,name=total_sessions,json=totalSessions,proto3" json:"total_sessions,omitempty"`
-	TotalUsers       int64 `protobuf:"varint,4,opt,name=total_users,json=totalUsers,proto3" json:"total_users,omitempty"`
-	// 消息吞吐量（最近 window_sec 秒的平均值）
-	UpstreamQps   int64                    `protobuf:"varint,5,opt,name=upstream_qps,json=upstreamQps,proto3" json:"upstream_qps,omitempty"`
-	DownstreamQps int64                    `protobuf:"varint,6,opt,name=downstream_qps,json=downstreamQps,proto3" json:"downstream_qps,omitempty"`
-	BroadcastQps  int64                    `protobuf:"varint,7,opt,name=broadcast_qps,json=broadcastQps,proto3" json:"broadcast_qps,omitempty"`
-	BizStats      []*GetStatsResp_BizStat  `protobuf:"bytes,8,rep,name=biz_stats,json=bizStats,proto3" json:"biz_stats,omitempty"`
-	RoomStats     []*GetStatsResp_RoomStat `protobuf:"bytes,9,rep,name=room_stats,json=roomStats,proto3" json:"room_stats,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState   `protogen:"open.v1"`
+	TotalNodes       int64                    `protobuf:"varint,1,opt,name=total_nodes,json=totalNodes,proto3" json:"total_nodes,omitempty"`
+	TotalConnections int64                    `protobuf:"varint,2,opt,name=total_connections,json=totalConnections,proto3" json:"total_connections,omitempty"`
+	TotalSessions    int64                    `protobuf:"varint,3,opt,name=total_sessions,json=totalSessions,proto3" json:"total_sessions,omitempty"`
+	TotalUsers       int64                    `protobuf:"varint,4,opt,name=total_users,json=totalUsers,proto3" json:"total_users,omitempty"`
+	UpstreamQps      int64                    `protobuf:"varint,5,opt,name=upstream_qps,json=upstreamQps,proto3" json:"upstream_qps,omitempty"`
+	DownstreamQps    int64                    `protobuf:"varint,6,opt,name=downstream_qps,json=downstreamQps,proto3" json:"downstream_qps,omitempty"`
+	BroadcastQps     int64                    `protobuf:"varint,7,opt,name=broadcast_qps,json=broadcastQps,proto3" json:"broadcast_qps,omitempty"`
+	BizStats         []*GetStatsResp_BizStat  `protobuf:"bytes,8,rep,name=biz_stats,json=bizStats,proto3" json:"biz_stats,omitempty"`
+	RoomStats        []*GetStatsResp_RoomStat `protobuf:"bytes,9,rep,name=room_stats,json=roomStats,proto3" json:"room_stats,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *GetStatsResp) Reset() {
 	*x = GetStatsResp{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[27]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2171,7 +2409,7 @@ func (x *GetStatsResp) String() string {
 func (*GetStatsResp) ProtoMessage() {}
 
 func (x *GetStatsResp) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[27]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2184,7 +2422,7 @@ func (x *GetStatsResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStatsResp.ProtoReflect.Descriptor instead.
 func (*GetStatsResp) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{27}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *GetStatsResp) GetTotalNodes() int64 {
@@ -2259,7 +2497,7 @@ type GetBizStatsReq struct {
 
 func (x *GetBizStatsReq) Reset() {
 	*x = GetBizStatsReq{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[28]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2271,7 +2509,7 @@ func (x *GetBizStatsReq) String() string {
 func (*GetBizStatsReq) ProtoMessage() {}
 
 func (x *GetBizStatsReq) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[28]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2284,7 +2522,7 @@ func (x *GetBizStatsReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBizStatsReq.ProtoReflect.Descriptor instead.
 func (*GetBizStatsReq) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{28}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *GetBizStatsReq) GetBizCode() string {
@@ -2302,14 +2540,14 @@ type GetBizStatsResp struct {
 	UserCount        int64                  `protobuf:"varint,4,opt,name=user_count,json=userCount,proto3" json:"user_count,omitempty"`
 	UpstreamQps      int64                  `protobuf:"varint,5,opt,name=upstream_qps,json=upstreamQps,proto3" json:"upstream_qps,omitempty"`
 	DownstreamQps    int64                  `protobuf:"varint,6,opt,name=downstream_qps,json=downstreamQps,proto3" json:"downstream_qps,omitempty"`
-	OfflineQueueSize int64                  `protobuf:"varint,7,opt,name=offline_queue_size,json=offlineQueueSize,proto3" json:"offline_queue_size,omitempty"` // 离线消息队列积压数
+	OfflineQueueSize int64                  `protobuf:"varint,7,opt,name=offline_queue_size,json=offlineQueueSize,proto3" json:"offline_queue_size,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
 
 func (x *GetBizStatsResp) Reset() {
 	*x = GetBizStatsResp{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[29]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2321,7 +2559,7 @@ func (x *GetBizStatsResp) String() string {
 func (*GetBizStatsResp) ProtoMessage() {}
 
 func (x *GetBizStatsResp) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[29]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2334,7 +2572,7 @@ func (x *GetBizStatsResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBizStatsResp.ProtoReflect.Descriptor instead.
 func (*GetBizStatsResp) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{29}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *GetBizStatsResp) GetBizCode() string {
@@ -2395,7 +2633,7 @@ type GetRoomStatsReq struct {
 
 func (x *GetRoomStatsReq) Reset() {
 	*x = GetRoomStatsReq{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[30]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2407,7 +2645,7 @@ func (x *GetRoomStatsReq) String() string {
 func (*GetRoomStatsReq) ProtoMessage() {}
 
 func (x *GetRoomStatsReq) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[30]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2420,7 +2658,7 @@ func (x *GetRoomStatsReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRoomStatsReq.ProtoReflect.Descriptor instead.
 func (*GetRoomStatsReq) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{30}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *GetRoomStatsReq) GetRoomId() string {
@@ -2433,17 +2671,17 @@ func (x *GetRoomStatsReq) GetRoomId() string {
 type GetRoomStatsResp struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RoomId        string                 `protobuf:"bytes,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
-	TotalMembers  int64                  `protobuf:"varint,2,opt,name=total_members,json=totalMembers,proto3" json:"total_members,omitempty"`    // 房间总人数（跨所有节点）
-	OnlineMembers int64                  `protobuf:"varint,3,opt,name=online_members,json=onlineMembers,proto3" json:"online_members,omitempty"` // 在线人数
-	NodeIds       []string               `protobuf:"bytes,4,rep,name=node_ids,json=nodeIds,proto3" json:"node_ids,omitempty"`                    // 房间成员分布在哪些节点
-	MsgQps        int64                  `protobuf:"varint,5,opt,name=msg_qps,json=msgQps,proto3" json:"msg_qps,omitempty"`                      // 最近 1 分钟消息 QPS
+	TotalMembers  int64                  `protobuf:"varint,2,opt,name=total_members,json=totalMembers,proto3" json:"total_members,omitempty"`
+	OnlineMembers int64                  `protobuf:"varint,3,opt,name=online_members,json=onlineMembers,proto3" json:"online_members,omitempty"`
+	NodeIds       []string               `protobuf:"bytes,4,rep,name=node_ids,json=nodeIds,proto3" json:"node_ids,omitempty"`
+	MsgQps        int64                  `protobuf:"varint,5,opt,name=msg_qps,json=msgQps,proto3" json:"msg_qps,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetRoomStatsResp) Reset() {
 	*x = GetRoomStatsResp{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[31]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2455,7 +2693,7 @@ func (x *GetRoomStatsResp) String() string {
 func (*GetRoomStatsResp) ProtoMessage() {}
 
 func (x *GetRoomStatsResp) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[31]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2468,7 +2706,7 @@ func (x *GetRoomStatsResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRoomStatsResp.ProtoReflect.Descriptor instead.
 func (*GetRoomStatsResp) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{31}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *GetRoomStatsResp) GetRoomId() string {
@@ -2509,14 +2747,14 @@ func (x *GetRoomStatsResp) GetMsgQps() int64 {
 type QueryRouteReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	DeviceId      string                 `protobuf:"bytes,2,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"` // 可选，空表示查询用户所有设备
+	DeviceId      string                 `protobuf:"bytes,2,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *QueryRouteReq) Reset() {
 	*x = QueryRouteReq{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[32]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2528,7 +2766,7 @@ func (x *QueryRouteReq) String() string {
 func (*QueryRouteReq) ProtoMessage() {}
 
 func (x *QueryRouteReq) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[32]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2541,7 +2779,7 @@ func (x *QueryRouteReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueryRouteReq.ProtoReflect.Descriptor instead.
 func (*QueryRouteReq) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{32}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *QueryRouteReq) GetUserId() string {
@@ -2568,7 +2806,7 @@ type QueryRouteResp struct {
 
 func (x *QueryRouteResp) Reset() {
 	*x = QueryRouteResp{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[33]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2580,7 +2818,7 @@ func (x *QueryRouteResp) String() string {
 func (*QueryRouteResp) ProtoMessage() {}
 
 func (x *QueryRouteResp) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[33]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2593,7 +2831,7 @@ func (x *QueryRouteResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueryRouteResp.ProtoReflect.Descriptor instead.
 func (*QueryRouteResp) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{33}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *QueryRouteResp) GetFound() bool {
@@ -2619,7 +2857,7 @@ type QuerySessionReq struct {
 
 func (x *QuerySessionReq) Reset() {
 	*x = QuerySessionReq{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[34]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2631,7 +2869,7 @@ func (x *QuerySessionReq) String() string {
 func (*QuerySessionReq) ProtoMessage() {}
 
 func (x *QuerySessionReq) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[34]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2644,7 +2882,7 @@ func (x *QuerySessionReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QuerySessionReq.ProtoReflect.Descriptor instead.
 func (*QuerySessionReq) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{34}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *QuerySessionReq) GetSessionId() string {
@@ -2655,27 +2893,26 @@ func (x *QuerySessionReq) GetSessionId() string {
 }
 
 type QuerySessionResp struct {
-	state        protoimpl.MessageState `protogen:"open.v1"`
-	Found        bool                   `protobuf:"varint,1,opt,name=found,proto3" json:"found,omitempty"`
-	UserId       string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	DeviceId     string                 `protobuf:"bytes,3,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
-	State        string                 `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"` // "authenticating" | "active" | "suspended" | "closed"
-	LastActiveAt int64                  `protobuf:"varint,5,opt,name=last_active_at,json=lastActiveAt,proto3" json:"last_active_at,omitempty"`
-	CreateTime   int64                  `protobuf:"varint,6,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
-	BizCode      string                 `protobuf:"bytes,7,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
-	Rooms        []string               `protobuf:"bytes,8,rep,name=rooms,proto3" json:"rooms,omitempty"`
-	Topics       []string               `protobuf:"bytes,9,rep,name=topics,proto3" json:"topics,omitempty"`
-	// 连接信息
-	ConnId        string `protobuf:"bytes,10,opt,name=conn_id,json=connId,proto3" json:"conn_id,omitempty"`
-	RemoteAddr    string `protobuf:"bytes,11,opt,name=remote_addr,json=remoteAddr,proto3" json:"remote_addr,omitempty"`
-	DeviceType    string `protobuf:"bytes,12,opt,name=device_type,json=deviceType,proto3" json:"device_type,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Found         bool                   `protobuf:"varint,1,opt,name=found,proto3" json:"found,omitempty"`
+	UserId        string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	DeviceId      string                 `protobuf:"bytes,3,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
+	State         string                 `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
+	LastActiveAt  int64                  `protobuf:"varint,5,opt,name=last_active_at,json=lastActiveAt,proto3" json:"last_active_at,omitempty"`
+	CreateTime    int64                  `protobuf:"varint,6,opt,name=create_time,json=createTime,proto3" json:"create_time,omitempty"`
+	BizCode       string                 `protobuf:"bytes,7,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
+	Rooms         []string               `protobuf:"bytes,8,rep,name=rooms,proto3" json:"rooms,omitempty"`
+	Topics        []string               `protobuf:"bytes,9,rep,name=topics,proto3" json:"topics,omitempty"`
+	ConnId        string                 `protobuf:"bytes,10,opt,name=conn_id,json=connId,proto3" json:"conn_id,omitempty"`
+	RemoteAddr    string                 `protobuf:"bytes,11,opt,name=remote_addr,json=remoteAddr,proto3" json:"remote_addr,omitempty"`
+	DeviceType    string                 `protobuf:"bytes,12,opt,name=device_type,json=deviceType,proto3" json:"device_type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *QuerySessionResp) Reset() {
 	*x = QuerySessionResp{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[35]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2687,7 +2924,7 @@ func (x *QuerySessionResp) String() string {
 func (*QuerySessionResp) ProtoMessage() {}
 
 func (x *QuerySessionResp) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[35]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2700,7 +2937,7 @@ func (x *QuerySessionResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QuerySessionResp.ProtoReflect.Descriptor instead.
 func (*QuerySessionResp) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{35}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *QuerySessionResp) GetFound() bool {
@@ -2788,22 +3025,20 @@ func (x *QuerySessionResp) GetDeviceType() string {
 }
 
 type ListSessionsReq struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// 过滤条件（至少填一个）
-	UserId  string `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	RoomId  string `protobuf:"bytes,2,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
-	Topic   string `protobuf:"bytes,3,opt,name=topic,proto3" json:"topic,omitempty"`
-	BizCode string `protobuf:"bytes,4,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
-	// 分页
-	Page          int32 `protobuf:"varint,5,opt,name=page,proto3" json:"page,omitempty"`
-	PageSize      int32 `protobuf:"varint,6,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	UserId        string                 `protobuf:"bytes,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	RoomId        string                 `protobuf:"bytes,2,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
+	Topic         string                 `protobuf:"bytes,3,opt,name=topic,proto3" json:"topic,omitempty"`
+	BizCode       string                 `protobuf:"bytes,4,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
+	Page          int32                  `protobuf:"varint,5,opt,name=page,proto3" json:"page,omitempty"`
+	PageSize      int32                  `protobuf:"varint,6,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ListSessionsReq) Reset() {
 	*x = ListSessionsReq{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[36]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2815,7 +3050,7 @@ func (x *ListSessionsReq) String() string {
 func (*ListSessionsReq) ProtoMessage() {}
 
 func (x *ListSessionsReq) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[36]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2828,7 +3063,7 @@ func (x *ListSessionsReq) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSessionsReq.ProtoReflect.Descriptor instead.
 func (*ListSessionsReq) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{36}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *ListSessionsReq) GetUserId() string {
@@ -2885,7 +3120,7 @@ type ListSessionsResp struct {
 
 func (x *ListSessionsResp) Reset() {
 	*x = ListSessionsResp{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[37]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2897,7 +3132,7 @@ func (x *ListSessionsResp) String() string {
 func (*ListSessionsResp) ProtoMessage() {}
 
 func (x *ListSessionsResp) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[37]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2910,7 +3145,7 @@ func (x *ListSessionsResp) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSessionsResp.ProtoReflect.Descriptor instead.
 func (*ListSessionsResp) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{37}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *ListSessionsResp) GetTotal() int32 {
@@ -2941,7 +3176,74 @@ func (x *ListSessionsResp) GetItems() []*ListSessionsResp_SessionItem {
 	return nil
 }
 
-// 失败详情（key = target_key，value = 错误信息）
+type BatchPushMessageResp_SuccessItem struct {
+	state         protoimpl.MessageState                       `protogen:"open.v1"`
+	TargetKey     string                                       `protobuf:"bytes,1,opt,name=target_key,json=targetKey,proto3" json:"target_key,omitempty"`
+	SessionId     string                                       `protobuf:"bytes,2,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	SeqId         uint64                                       `protobuf:"varint,3,opt,name=seq_id,json=seqId,proto3" json:"seq_id,omitempty"`
+	DeliverType   BatchPushMessageResp_SuccessItem_DeliverType `protobuf:"varint,4,opt,name=deliver_type,json=deliverType,proto3,enum=gateway.v1.BatchPushMessageResp_SuccessItem_DeliverType" json:"deliver_type,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BatchPushMessageResp_SuccessItem) Reset() {
+	*x = BatchPushMessageResp_SuccessItem{}
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BatchPushMessageResp_SuccessItem) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchPushMessageResp_SuccessItem) ProtoMessage() {}
+
+func (x *BatchPushMessageResp_SuccessItem) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchPushMessageResp_SuccessItem.ProtoReflect.Descriptor instead.
+func (*BatchPushMessageResp_SuccessItem) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{4, 0}
+}
+
+func (x *BatchPushMessageResp_SuccessItem) GetTargetKey() string {
+	if x != nil {
+		return x.TargetKey
+	}
+	return ""
+}
+
+func (x *BatchPushMessageResp_SuccessItem) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *BatchPushMessageResp_SuccessItem) GetSeqId() uint64 {
+	if x != nil {
+		return x.SeqId
+	}
+	return 0
+}
+
+func (x *BatchPushMessageResp_SuccessItem) GetDeliverType() BatchPushMessageResp_SuccessItem_DeliverType {
+	if x != nil {
+		return x.DeliverType
+	}
+	return BatchPushMessageResp_SuccessItem_DELIVER_TYPE_UNSPECIFIED
+}
+
 type BatchPushMessageResp_FailedItem struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TargetKey     string                 `protobuf:"bytes,1,opt,name=target_key,json=targetKey,proto3" json:"target_key,omitempty"`
@@ -2953,7 +3255,7 @@ type BatchPushMessageResp_FailedItem struct {
 
 func (x *BatchPushMessageResp_FailedItem) Reset() {
 	*x = BatchPushMessageResp_FailedItem{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[39]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2965,7 +3267,7 @@ func (x *BatchPushMessageResp_FailedItem) String() string {
 func (*BatchPushMessageResp_FailedItem) ProtoMessage() {}
 
 func (x *BatchPushMessageResp_FailedItem) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[39]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2978,7 +3280,7 @@ func (x *BatchPushMessageResp_FailedItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BatchPushMessageResp_FailedItem.ProtoReflect.Descriptor instead.
 func (*BatchPushMessageResp_FailedItem) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{3, 0}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{4, 1}
 }
 
 func (x *BatchPushMessageResp_FailedItem) GetTargetKey() string {
@@ -3002,7 +3304,6 @@ func (x *BatchPushMessageResp_FailedItem) GetErrorMessage() string {
 	return ""
 }
 
-// 各业务域统计
 type GetStatsResp_BizStat struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	BizCode         string                 `protobuf:"bytes,1,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
@@ -3016,7 +3317,7 @@ type GetStatsResp_BizStat struct {
 
 func (x *GetStatsResp_BizStat) Reset() {
 	*x = GetStatsResp_BizStat{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[42]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3028,7 +3329,7 @@ func (x *GetStatsResp_BizStat) String() string {
 func (*GetStatsResp_BizStat) ProtoMessage() {}
 
 func (x *GetStatsResp_BizStat) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[42]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3041,7 +3342,7 @@ func (x *GetStatsResp_BizStat) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStatsResp_BizStat.ProtoReflect.Descriptor instead.
 func (*GetStatsResp_BizStat) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{27, 0}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{28, 0}
 }
 
 func (x *GetStatsResp_BizStat) GetBizCode() string {
@@ -3079,7 +3380,6 @@ func (x *GetStatsResp_BizStat) GetDownstreamQps() int64 {
 	return 0
 }
 
-// Top 房间统计
 type GetStatsResp_RoomStat struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RoomId        string                 `protobuf:"bytes,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
@@ -3092,7 +3392,7 @@ type GetStatsResp_RoomStat struct {
 
 func (x *GetStatsResp_RoomStat) Reset() {
 	*x = GetStatsResp_RoomStat{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[43]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3104,7 +3404,7 @@ func (x *GetStatsResp_RoomStat) String() string {
 func (*GetStatsResp_RoomStat) ProtoMessage() {}
 
 func (x *GetStatsResp_RoomStat) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[43]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3117,7 +3417,7 @@ func (x *GetStatsResp_RoomStat) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStatsResp_RoomStat.ProtoReflect.Descriptor instead.
 func (*GetStatsResp_RoomStat) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{27, 1}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{28, 1}
 }
 
 func (x *GetStatsResp_RoomStat) GetRoomId() string {
@@ -3155,7 +3455,7 @@ type QueryRouteResp_RouteInfo struct {
 	NodeAddr      string                 `protobuf:"bytes,3,opt,name=node_addr,json=nodeAddr,proto3" json:"node_addr,omitempty"`
 	SessionId     string                 `protobuf:"bytes,4,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
 	ConnId        string                 `protobuf:"bytes,5,opt,name=conn_id,json=connId,proto3" json:"conn_id,omitempty"`
-	State         string                 `protobuf:"bytes,6,opt,name=state,proto3" json:"state,omitempty"` // "active" | "suspended" | "closed"
+	State         string                 `protobuf:"bytes,6,opt,name=state,proto3" json:"state,omitempty"`
 	LastActiveAt  int64                  `protobuf:"varint,7,opt,name=last_active_at,json=lastActiveAt,proto3" json:"last_active_at,omitempty"`
 	ConnectTime   int64                  `protobuf:"varint,8,opt,name=connect_time,json=connectTime,proto3" json:"connect_time,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -3164,7 +3464,7 @@ type QueryRouteResp_RouteInfo struct {
 
 func (x *QueryRouteResp_RouteInfo) Reset() {
 	*x = QueryRouteResp_RouteInfo{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[44]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3176,7 +3476,7 @@ func (x *QueryRouteResp_RouteInfo) String() string {
 func (*QueryRouteResp_RouteInfo) ProtoMessage() {}
 
 func (x *QueryRouteResp_RouteInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[44]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3189,7 +3489,7 @@ func (x *QueryRouteResp_RouteInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use QueryRouteResp_RouteInfo.ProtoReflect.Descriptor instead.
 func (*QueryRouteResp_RouteInfo) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{33, 0}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{34, 0}
 }
 
 func (x *QueryRouteResp_RouteInfo) GetDeviceId() string {
@@ -3262,7 +3562,7 @@ type ListSessionsResp_SessionItem struct {
 
 func (x *ListSessionsResp_SessionItem) Reset() {
 	*x = ListSessionsResp_SessionItem{}
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[45]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3274,7 +3574,7 @@ func (x *ListSessionsResp_SessionItem) String() string {
 func (*ListSessionsResp_SessionItem) ProtoMessage() {}
 
 func (x *ListSessionsResp_SessionItem) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_gateway_service_proto_msgTypes[45]
+	mi := &file_gateway_v1_gateway_service_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3287,7 +3587,7 @@ func (x *ListSessionsResp_SessionItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSessionsResp_SessionItem.ProtoReflect.Descriptor instead.
 func (*ListSessionsResp_SessionItem) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{37, 0}
+	return file_gateway_v1_gateway_service_proto_rawDescGZIP(), []int{38, 0}
 }
 
 func (x *ListSessionsResp_SessionItem) GetSessionId() string {
@@ -3337,12 +3637,20 @@ var File_gateway_v1_gateway_service_proto protoreflect.FileDescriptor
 const file_gateway_v1_gateway_service_proto_rawDesc = "" +
 	"\n" +
 	" gateway/v1/gateway_service.proto\x12\n" +
-	"gateway.v1\x1a\x17gateway/v1/common.proto\x1a\x17validate/validate.proto\"\xe1\x02\n" +
+	"gateway.v1\x1a\x17gateway/v1/common.proto\x1a\x17validate/validate.proto\"\xbd\x01\n" +
+	"\aPayload\x12'\n" +
+	"\n" +
+	"event_type\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\teventType\x12\x12\n" +
+	"\x04data\x18\x02 \x01(\fR\x04data\x123\n" +
+	"\x05codec\x18\x03 \x01(\x0e2\x11.gateway.v1.CodecB\n" +
+	"\xfaB\a\x82\x01\x04\x10\x01 \x00R\x05codec\x12@\n" +
+	"\bcompress\x18\x04 \x01(\x0e2\x18.gateway.v1.CompressAlgoB\n" +
+	"\xfaB\a\x82\x01\x04\x10\x01 \x00R\bcompress\"\xea\x02\n" +
 	"\x0ePushMessageReq\x121\n" +
 	"\x02to\x18\x01 \x01(\v2\x17.gateway.v1.RouteTargetB\b\xfaB\x05\x8a\x01\x02\x10\x01R\x02to\x12#\n" +
 	"\bbiz_code\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\abizCode\x120\n" +
-	"\bdelivery\x18\x03 \x01(\v2\x14.gateway.v1.DeliveryR\bdelivery\x12.\n" +
-	"\x04body\x18\x04 \x01(\v2\x10.gateway.v1.BodyB\b\xfaB\x05\x8a\x01\x02\x10\x01R\x04body\x12\x16\n" +
+	"\bdelivery\x18\x03 \x01(\v2\x14.gateway.v1.DeliveryR\bdelivery\x127\n" +
+	"\apayload\x18\x04 \x01(\v2\x13.gateway.v1.PayloadB\b\xfaB\x05\x8a\x01\x02\x10\x01R\apayload\x12\x16\n" +
 	"\x06origin\x18\x05 \x01(\tR\x06origin\x12A\n" +
 	"\aheaders\x18\x06 \x03(\v2'.gateway.v1.PushMessageReq.HeadersEntryR\aheaders\x1a:\n" +
 	"\fHeadersEntry\x12\x10\n" +
@@ -3364,33 +3672,47 @@ const file_gateway_v1_gateway_service_proto_rawDesc = "" +
 	"\x06QUEUED\x10\x02\x12\x12\n" +
 	"\x0eTARGET_OFFLINE\x10\x03\x12\x14\n" +
 	"\x10TARGET_NOT_FOUND\x10\x04\x12\x10\n" +
-	"\fRATE_LIMITED\x10\x05\"\xf3\x01\n" +
+	"\fRATE_LIMITED\x10\x05\"\xfc\x01\n" +
 	"\x13BatchPushMessageReq\x12=\n" +
 	"\ato_list\x18\x01 \x03(\v2\x17.gateway.v1.RouteTargetB\v\xfaB\b\x92\x01\x05\b\x01\x10\xe8\aR\x06toList\x12#\n" +
 	"\bbiz_code\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\abizCode\x120\n" +
-	"\bdelivery\x18\x03 \x01(\v2\x14.gateway.v1.DeliveryR\bdelivery\x12.\n" +
-	"\x04body\x18\x04 \x01(\v2\x10.gateway.v1.BodyB\b\xfaB\x05\x8a\x01\x02\x10\x01R\x04body\x12\x16\n" +
-	"\x06origin\x18\x05 \x01(\tR\x06origin\"\xd4\x02\n" +
+	"\bdelivery\x18\x03 \x01(\v2\x14.gateway.v1.DeliveryR\bdelivery\x127\n" +
+	"\apayload\x18\x04 \x01(\v2\x13.gateway.v1.PayloadB\b\xfaB\x05\x8a\x01\x02\x10\x01R\apayload\x12\x16\n" +
+	"\x06origin\x18\x05 \x01(\tR\x06origin\"\xdb\x05\n" +
 	"\x14BatchPushMessageResp\x12\x1f\n" +
 	"\vtotal_count\x18\x01 \x01(\x05R\n" +
 	"totalCount\x12#\n" +
 	"\rsuccess_count\x18\x02 \x01(\x05R\fsuccessCount\x12\x1d\n" +
 	"\n" +
-	"fail_count\x18\x03 \x01(\x05R\tfailCount\x12N\n" +
-	"\ffailed_items\x18\x04 \x03(\v2+.gateway.v1.BatchPushMessageResp.FailedItemR\vfailedItems\x1a\x86\x01\n" +
+	"fail_count\x18\x03 \x01(\x05R\tfailCount\x12Q\n" +
+	"\rsuccess_items\x18\x04 \x03(\v2,.gateway.v1.BatchPushMessageResp.SuccessItemR\fsuccessItems\x12N\n" +
+	"\ffailed_items\x18\x05 \x03(\v2+.gateway.v1.BatchPushMessageResp.FailedItemR\vfailedItems\x12#\n" +
+	"\rpending_items\x18\x06 \x03(\tR\fpendingItems\x1a\x8c\x02\n" +
+	"\vSuccessItem\x12\x1d\n" +
+	"\n" +
+	"target_key\x18\x01 \x01(\tR\ttargetKey\x12\x1d\n" +
+	"\n" +
+	"session_id\x18\x02 \x01(\tR\tsessionId\x12\x15\n" +
+	"\x06seq_id\x18\x03 \x01(\x04R\x05seqId\x12[\n" +
+	"\fdeliver_type\x18\x04 \x01(\x0e28.gateway.v1.BatchPushMessageResp.SuccessItem.DeliverTypeR\vdeliverType\"K\n" +
+	"\vDeliverType\x12\x1c\n" +
+	"\x18DELIVER_TYPE_UNSPECIFIED\x10\x00\x12\n" +
+	"\n" +
+	"\x06ONLINE\x10\x01\x12\x12\n" +
+	"\x0eOFFLINE_QUEUED\x10\x02\x1a\x86\x01\n" +
 	"\n" +
 	"FailedItem\x12\x1d\n" +
 	"\n" +
 	"target_key\x18\x01 \x01(\tR\ttargetKey\x124\n" +
 	"\n" +
 	"error_code\x18\x02 \x01(\x0e2\x15.gateway.v1.ErrorCodeR\terrorCode\x12#\n" +
-	"\rerror_message\x18\x03 \x01(\tR\ferrorMessage\"\xa5\x03\n" +
+	"\rerror_message\x18\x03 \x01(\tR\ferrorMessage\"\xae\x03\n" +
 	"\x12BroadcastToRoomReq\x12#\n" +
 	"\aroom_id\x18\x01 \x01(\tB\n" +
 	"\xfaB\ar\x05\x10\x01\x18\x80\x02R\x06roomId\x12#\n" +
 	"\bbiz_code\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\abizCode\x120\n" +
-	"\bdelivery\x18\x03 \x01(\v2\x14.gateway.v1.DeliveryR\bdelivery\x12.\n" +
-	"\x04body\x18\x04 \x01(\v2\x10.gateway.v1.BodyB\b\xfaB\x05\x8a\x01\x02\x10\x01R\x04body\x12%\n" +
+	"\bdelivery\x18\x03 \x01(\v2\x14.gateway.v1.DeliveryR\bdelivery\x127\n" +
+	"\apayload\x18\x04 \x01(\v2\x13.gateway.v1.PayloadB\b\xfaB\x05\x8a\x01\x02\x10\x01R\apayload\x12%\n" +
 	"\x0eexclude_sender\x18\x05 \x01(\bR\rexcludeSender\x12$\n" +
 	"\x0esender_user_id\x18\x06 \x01(\tR\fsenderUserId\x12U\n" +
 	"\rfilter_labels\x18\a \x03(\v20.gateway.v1.BroadcastToRoomReq.FilterLabelsEntryR\ffilterLabels\x1a?\n" +
@@ -3405,13 +3727,13 @@ const file_gateway_v1_gateway_service_proto_rawDesc = "" +
 	"node_count\x18\x04 \x01(\x03R\tnodeCount\x124\n" +
 	"\n" +
 	"error_code\x18\x05 \x01(\x0e2\x15.gateway.v1.ErrorCodeR\terrorCode\x12#\n" +
-	"\rerror_message\x18\x06 \x01(\tR\ferrorMessage\"\x8b\x02\n" +
+	"\rerror_message\x18\x06 \x01(\tR\ferrorMessage\"\x94\x02\n" +
 	"\x13BroadcastToTopicReq\x12 \n" +
 	"\x05topic\x18\x01 \x01(\tB\n" +
 	"\xfaB\ar\x05\x10\x01\x18\x80\x02R\x05topic\x12#\n" +
 	"\bbiz_code\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\abizCode\x120\n" +
-	"\bdelivery\x18\x03 \x01(\v2\x14.gateway.v1.DeliveryR\bdelivery\x12.\n" +
-	"\x04body\x18\x04 \x01(\v2\x10.gateway.v1.BodyB\b\xfaB\x05\x8a\x01\x02\x10\x01R\x04body\x12%\n" +
+	"\bdelivery\x18\x03 \x01(\v2\x14.gateway.v1.DeliveryR\bdelivery\x127\n" +
+	"\apayload\x18\x04 \x01(\v2\x13.gateway.v1.PayloadB\b\xfaB\x05\x8a\x01\x02\x10\x01R\apayload\x12%\n" +
 	"\x0eexclude_sender\x18\x05 \x01(\bR\rexcludeSender\x12$\n" +
 	"\x0esender_user_id\x18\x06 \x01(\tR\fsenderUserId\"\xd7\x01\n" +
 	"\x14BroadcastToTopicResp\x12\x1a\n" +
@@ -3421,11 +3743,11 @@ const file_gateway_v1_gateway_service_proto_rawDesc = "" +
 	"node_count\x18\x03 \x01(\x03R\tnodeCount\x124\n" +
 	"\n" +
 	"error_code\x18\x04 \x01(\x0e2\x15.gateway.v1.ErrorCodeR\terrorCode\x12#\n" +
-	"\rerror_message\x18\x05 \x01(\tR\ferrorMessage\"\x8f\x02\n" +
+	"\rerror_message\x18\x05 \x01(\tR\ferrorMessage\"\x98\x02\n" +
 	"\x11BroadcastToAllReq\x12#\n" +
 	"\bbiz_code\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\abizCode\x120\n" +
-	"\bdelivery\x18\x02 \x01(\v2\x14.gateway.v1.DeliveryR\bdelivery\x12.\n" +
-	"\x04body\x18\x03 \x01(\v2\x10.gateway.v1.BodyB\b\xfaB\x05\x8a\x01\x02\x10\x01R\x04body\x12(\n" +
+	"\bdelivery\x18\x02 \x01(\v2\x14.gateway.v1.DeliveryR\bdelivery\x127\n" +
+	"\apayload\x18\x03 \x01(\v2\x13.gateway.v1.PayloadB\b\xfaB\x05\x8a\x01\x02\x10\x01R\apayload\x12(\n" +
 	"\x10filter_biz_codes\x18\x04 \x03(\tR\x0efilterBizCodes\x12\x1d\n" +
 	"\n" +
 	"batch_size\x18\x05 \x01(\x05R\tbatchSize\x12*\n" +
@@ -3436,7 +3758,7 @@ const file_gateway_v1_gateway_service_proto_rawDesc = "" +
 	"\x15estimated_duration_ms\x18\x03 \x01(\x03R\x13estimatedDurationMs\x124\n" +
 	"\n" +
 	"error_code\x18\x04 \x01(\x0e2\x15.gateway.v1.ErrorCodeR\terrorCode\x12#\n" +
-	"\rerror_message\x18\x05 \x01(\tR\ferrorMessage\"\xec\x03\n" +
+	"\rerror_message\x18\x05 \x01(\tR\ferrorMessage\"\xd6\x05\n" +
 	"\x13ForwardToSessionReq\x12'\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\tsessionId\x12!\n" +
@@ -3444,28 +3766,45 @@ const file_gateway_v1_gateway_service_proto_rawDesc = "" +
 	"\tdevice_id\x18\x03 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\bdeviceId\x12\x15\n" +
 	"\x06msg_id\x18\x04 \x01(\tR\x05msgId\x12\x15\n" +
 	"\x06seq_id\x18\x05 \x01(\x04R\x05seqId\x12\x19\n" +
-	"\bbiz_code\x18\x06 \x01(\tR\abizCode\x120\n" +
-	"\bdelivery\x18\a \x01(\v2\x14.gateway.v1.DeliveryR\bdelivery\x12$\n" +
-	"\x04body\x18\b \x01(\v2\x10.gateway.v1.BodyR\x04body\x12F\n" +
-	"\aheaders\x18\t \x03(\v2,.gateway.v1.ForwardToSessionReq.HeadersEntryR\aheaders\x12 \n" +
-	"\ffrom_node_id\x18\n" +
-	" \x01(\tR\n" +
+	"\bbiz_code\x18\x06 \x01(\tR\abizCode\x12\x1d\n" +
+	"\n" +
+	"event_type\x18\a \x01(\tR\teventType\x120\n" +
+	"\bdelivery\x18\b \x01(\v2\x14.gateway.v1.DeliveryR\bdelivery\x12-\n" +
+	"\apayload\x18\t \x01(\v2\x13.gateway.v1.PayloadR\apayload\x12F\n" +
+	"\aheaders\x18\n" +
+	" \x03(\v2,.gateway.v1.ForwardToSessionReq.HeadersEntryR\aheaders\x12 \n" +
+	"\ffrom_node_id\x18\v \x01(\tR\n" +
 	"fromNodeId\x12\x1b\n" +
-	"\thop_count\x18\v \x01(\x05R\bhopCount\x1a:\n" +
+	"\thop_count\x18\f \x01(\x05R\bhopCount\x12M\n" +
+	"\vreliability\x18\r \x01(\x0e2+.gateway.v1.ForwardToSessionReq.ReliabilityR\vreliability\x12!\n" +
+	"\fdelivery_tag\x18\x0e \x01(\tR\vdeliveryTag\x1a:\n" +
 	"\fHeadersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x8f\x01\n" +
-	"\x14ForwardToSessionResp\x12\x1c\n" +
-	"\tdelivered\x18\x01 \x01(\bR\tdelivered\x124\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"N\n" +
+	"\vReliability\x12\x1b\n" +
+	"\x17RELIABILITY_UNSPECIFIED\x10\x00\x12\x0f\n" +
+	"\vBEST_EFFORT\x10\x01\x12\x11\n" +
+	"\rAT_LEAST_ONCE\x10\x02\"\xc2\x02\n" +
+	"\x14ForwardToSessionResp\x12G\n" +
+	"\x06status\x18\x01 \x01(\x0e2/.gateway.v1.ForwardToSessionResp.DeliveryStatusR\x06status\x124\n" +
 	"\n" +
 	"error_code\x18\x02 \x01(\x0e2\x15.gateway.v1.ErrorCodeR\terrorCode\x12#\n" +
-	"\rerror_message\x18\x03 \x01(\tR\ferrorMessage\"\xa5\x02\n" +
+	"\rerror_message\x18\x03 \x01(\tR\ferrorMessage\x12\x1f\n" +
+	"\vquery_token\x18\x04 \x01(\tR\n" +
+	"queryToken\"e\n" +
+	"\x0eDeliveryStatus\x12\x1f\n" +
+	"\x1bDELIVERY_STATUS_UNSPECIFIED\x10\x00\x12\f\n" +
+	"\bACCEPTED\x10\x01\x12\r\n" +
+	"\tDELIVERED\x10\x02\x12\t\n" +
+	"\x05ACKED\x10\x03\x12\n" +
+	"\n" +
+	"\x06FAILED\x10\x04\"\xae\x02\n" +
 	"\x10ForwardToRoomReq\x12#\n" +
 	"\aroom_id\x18\x01 \x01(\tB\n" +
 	"\xfaB\ar\x05\x10\x01\x18\x80\x02R\x06roomId\x12#\n" +
 	"\bbiz_code\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\abizCode\x120\n" +
-	"\bdelivery\x18\x03 \x01(\v2\x14.gateway.v1.DeliveryR\bdelivery\x12.\n" +
-	"\x04body\x18\x04 \x01(\v2\x10.gateway.v1.BodyB\b\xfaB\x05\x8a\x01\x02\x10\x01R\x04body\x12&\n" +
+	"\bdelivery\x18\x03 \x01(\v2\x14.gateway.v1.DeliveryR\bdelivery\x127\n" +
+	"\apayload\x18\x04 \x01(\v2\x13.gateway.v1.PayloadB\b\xfaB\x05\x8a\x01\x02\x10\x01R\apayload\x12&\n" +
 	"\x0ftarget_node_ids\x18\x05 \x03(\tR\rtargetNodeIds\x12 \n" +
 	"\ffrom_node_id\x18\x06 \x01(\tR\n" +
 	"fromNodeId\x12\x1b\n" +
@@ -3684,145 +4023,157 @@ func file_gateway_v1_gateway_service_proto_rawDescGZIP() []byte {
 	return file_gateway_v1_gateway_service_proto_rawDescData
 }
 
-var file_gateway_v1_gateway_service_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_gateway_v1_gateway_service_proto_msgTypes = make([]protoimpl.MessageInfo, 46)
+var file_gateway_v1_gateway_service_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
+var file_gateway_v1_gateway_service_proto_msgTypes = make([]protoimpl.MessageInfo, 48)
 var file_gateway_v1_gateway_service_proto_goTypes = []any{
-	(PushMessageResp_Status)(0),             // 0: gateway.v1.PushMessageResp.Status
-	(DrainNodeResp_DrainState)(0),           // 1: gateway.v1.DrainNodeResp.DrainState
-	(*PushMessageReq)(nil),                  // 2: gateway.v1.PushMessageReq
-	(*PushMessageResp)(nil),                 // 3: gateway.v1.PushMessageResp
-	(*BatchPushMessageReq)(nil),             // 4: gateway.v1.BatchPushMessageReq
-	(*BatchPushMessageResp)(nil),            // 5: gateway.v1.BatchPushMessageResp
-	(*BroadcastToRoomReq)(nil),              // 6: gateway.v1.BroadcastToRoomReq
-	(*BroadcastToRoomResp)(nil),             // 7: gateway.v1.BroadcastToRoomResp
-	(*BroadcastToTopicReq)(nil),             // 8: gateway.v1.BroadcastToTopicReq
-	(*BroadcastToTopicResp)(nil),            // 9: gateway.v1.BroadcastToTopicResp
-	(*BroadcastToAllReq)(nil),               // 10: gateway.v1.BroadcastToAllReq
-	(*BroadcastToAllResp)(nil),              // 11: gateway.v1.BroadcastToAllResp
-	(*ForwardToSessionReq)(nil),             // 12: gateway.v1.ForwardToSessionReq
-	(*ForwardToSessionResp)(nil),            // 13: gateway.v1.ForwardToSessionResp
-	(*ForwardToRoomReq)(nil),                // 14: gateway.v1.ForwardToRoomReq
-	(*ForwardToRoomResp)(nil),               // 15: gateway.v1.ForwardToRoomResp
-	(*KickUserReq)(nil),                     // 16: gateway.v1.KickUserReq
-	(*KickUserResp)(nil),                    // 17: gateway.v1.KickUserResp
-	(*KickSessionReq)(nil),                  // 18: gateway.v1.KickSessionReq
-	(*KickSessionResp)(nil),                 // 19: gateway.v1.KickSessionResp
-	(*KickDeviceReq)(nil),                   // 20: gateway.v1.KickDeviceReq
-	(*KickDeviceResp)(nil),                  // 21: gateway.v1.KickDeviceResp
-	(*DrainNodeReq)(nil),                    // 22: gateway.v1.DrainNodeReq
-	(*DrainNodeResp)(nil),                   // 23: gateway.v1.DrainNodeResp
-	(*UndrainNodeReq)(nil),                  // 24: gateway.v1.UndrainNodeReq
-	(*UndrainNodeResp)(nil),                 // 25: gateway.v1.UndrainNodeResp
-	(*GetNodeStatusReq)(nil),                // 26: gateway.v1.GetNodeStatusReq
-	(*GetNodeStatusResp)(nil),               // 27: gateway.v1.GetNodeStatusResp
-	(*GetStatsReq)(nil),                     // 28: gateway.v1.GetStatsReq
-	(*GetStatsResp)(nil),                    // 29: gateway.v1.GetStatsResp
-	(*GetBizStatsReq)(nil),                  // 30: gateway.v1.GetBizStatsReq
-	(*GetBizStatsResp)(nil),                 // 31: gateway.v1.GetBizStatsResp
-	(*GetRoomStatsReq)(nil),                 // 32: gateway.v1.GetRoomStatsReq
-	(*GetRoomStatsResp)(nil),                // 33: gateway.v1.GetRoomStatsResp
-	(*QueryRouteReq)(nil),                   // 34: gateway.v1.QueryRouteReq
-	(*QueryRouteResp)(nil),                  // 35: gateway.v1.QueryRouteResp
-	(*QuerySessionReq)(nil),                 // 36: gateway.v1.QuerySessionReq
-	(*QuerySessionResp)(nil),                // 37: gateway.v1.QuerySessionResp
-	(*ListSessionsReq)(nil),                 // 38: gateway.v1.ListSessionsReq
-	(*ListSessionsResp)(nil),                // 39: gateway.v1.ListSessionsResp
-	nil,                                     // 40: gateway.v1.PushMessageReq.HeadersEntry
-	(*BatchPushMessageResp_FailedItem)(nil), // 41: gateway.v1.BatchPushMessageResp.FailedItem
-	nil,                                     // 42: gateway.v1.BroadcastToRoomReq.FilterLabelsEntry
-	nil,                                     // 43: gateway.v1.ForwardToSessionReq.HeadersEntry
-	(*GetStatsResp_BizStat)(nil),            // 44: gateway.v1.GetStatsResp.BizStat
-	(*GetStatsResp_RoomStat)(nil),           // 45: gateway.v1.GetStatsResp.RoomStat
-	(*QueryRouteResp_RouteInfo)(nil),        // 46: gateway.v1.QueryRouteResp.RouteInfo
-	(*ListSessionsResp_SessionItem)(nil),    // 47: gateway.v1.ListSessionsResp.SessionItem
-	(*RouteTarget)(nil),                     // 48: gateway.v1.RouteTarget
-	(*Delivery)(nil),                        // 49: gateway.v1.Delivery
-	(*Body)(nil),                            // 50: gateway.v1.Body
-	(ErrorCode)(0),                          // 51: gateway.v1.ErrorCode
+	(PushMessageResp_Status)(0),                       // 0: gateway.v1.PushMessageResp.Status
+	(BatchPushMessageResp_SuccessItem_DeliverType)(0), // 1: gateway.v1.BatchPushMessageResp.SuccessItem.DeliverType
+	(ForwardToSessionReq_Reliability)(0),              // 2: gateway.v1.ForwardToSessionReq.Reliability
+	(ForwardToSessionResp_DeliveryStatus)(0),          // 3: gateway.v1.ForwardToSessionResp.DeliveryStatus
+	(DrainNodeResp_DrainState)(0),                     // 4: gateway.v1.DrainNodeResp.DrainState
+	(*Payload)(nil),                                   // 5: gateway.v1.Payload
+	(*PushMessageReq)(nil),                            // 6: gateway.v1.PushMessageReq
+	(*PushMessageResp)(nil),                           // 7: gateway.v1.PushMessageResp
+	(*BatchPushMessageReq)(nil),                       // 8: gateway.v1.BatchPushMessageReq
+	(*BatchPushMessageResp)(nil),                      // 9: gateway.v1.BatchPushMessageResp
+	(*BroadcastToRoomReq)(nil),                        // 10: gateway.v1.BroadcastToRoomReq
+	(*BroadcastToRoomResp)(nil),                       // 11: gateway.v1.BroadcastToRoomResp
+	(*BroadcastToTopicReq)(nil),                       // 12: gateway.v1.BroadcastToTopicReq
+	(*BroadcastToTopicResp)(nil),                      // 13: gateway.v1.BroadcastToTopicResp
+	(*BroadcastToAllReq)(nil),                         // 14: gateway.v1.BroadcastToAllReq
+	(*BroadcastToAllResp)(nil),                        // 15: gateway.v1.BroadcastToAllResp
+	(*ForwardToSessionReq)(nil),                       // 16: gateway.v1.ForwardToSessionReq
+	(*ForwardToSessionResp)(nil),                      // 17: gateway.v1.ForwardToSessionResp
+	(*ForwardToRoomReq)(nil),                          // 18: gateway.v1.ForwardToRoomReq
+	(*ForwardToRoomResp)(nil),                         // 19: gateway.v1.ForwardToRoomResp
+	(*KickUserReq)(nil),                               // 20: gateway.v1.KickUserReq
+	(*KickUserResp)(nil),                              // 21: gateway.v1.KickUserResp
+	(*KickSessionReq)(nil),                            // 22: gateway.v1.KickSessionReq
+	(*KickSessionResp)(nil),                           // 23: gateway.v1.KickSessionResp
+	(*KickDeviceReq)(nil),                             // 24: gateway.v1.KickDeviceReq
+	(*KickDeviceResp)(nil),                            // 25: gateway.v1.KickDeviceResp
+	(*DrainNodeReq)(nil),                              // 26: gateway.v1.DrainNodeReq
+	(*DrainNodeResp)(nil),                             // 27: gateway.v1.DrainNodeResp
+	(*UndrainNodeReq)(nil),                            // 28: gateway.v1.UndrainNodeReq
+	(*UndrainNodeResp)(nil),                           // 29: gateway.v1.UndrainNodeResp
+	(*GetNodeStatusReq)(nil),                          // 30: gateway.v1.GetNodeStatusReq
+	(*GetNodeStatusResp)(nil),                         // 31: gateway.v1.GetNodeStatusResp
+	(*GetStatsReq)(nil),                               // 32: gateway.v1.GetStatsReq
+	(*GetStatsResp)(nil),                              // 33: gateway.v1.GetStatsResp
+	(*GetBizStatsReq)(nil),                            // 34: gateway.v1.GetBizStatsReq
+	(*GetBizStatsResp)(nil),                           // 35: gateway.v1.GetBizStatsResp
+	(*GetRoomStatsReq)(nil),                           // 36: gateway.v1.GetRoomStatsReq
+	(*GetRoomStatsResp)(nil),                          // 37: gateway.v1.GetRoomStatsResp
+	(*QueryRouteReq)(nil),                             // 38: gateway.v1.QueryRouteReq
+	(*QueryRouteResp)(nil),                            // 39: gateway.v1.QueryRouteResp
+	(*QuerySessionReq)(nil),                           // 40: gateway.v1.QuerySessionReq
+	(*QuerySessionResp)(nil),                          // 41: gateway.v1.QuerySessionResp
+	(*ListSessionsReq)(nil),                           // 42: gateway.v1.ListSessionsReq
+	(*ListSessionsResp)(nil),                          // 43: gateway.v1.ListSessionsResp
+	nil,                                               // 44: gateway.v1.PushMessageReq.HeadersEntry
+	(*BatchPushMessageResp_SuccessItem)(nil),          // 45: gateway.v1.BatchPushMessageResp.SuccessItem
+	(*BatchPushMessageResp_FailedItem)(nil),           // 46: gateway.v1.BatchPushMessageResp.FailedItem
+	nil,                                               // 47: gateway.v1.BroadcastToRoomReq.FilterLabelsEntry
+	nil,                                               // 48: gateway.v1.ForwardToSessionReq.HeadersEntry
+	(*GetStatsResp_BizStat)(nil),                      // 49: gateway.v1.GetStatsResp.BizStat
+	(*GetStatsResp_RoomStat)(nil),                     // 50: gateway.v1.GetStatsResp.RoomStat
+	(*QueryRouteResp_RouteInfo)(nil),                  // 51: gateway.v1.QueryRouteResp.RouteInfo
+	(*ListSessionsResp_SessionItem)(nil),              // 52: gateway.v1.ListSessionsResp.SessionItem
+	(Codec)(0),                                        // 53: gateway.v1.Codec
+	(CompressAlgo)(0),                                 // 54: gateway.v1.CompressAlgo
+	(*RouteTarget)(nil),                               // 55: gateway.v1.RouteTarget
+	(*Delivery)(nil),                                  // 56: gateway.v1.Delivery
+	(ErrorCode)(0),                                    // 57: gateway.v1.ErrorCode
 }
 var file_gateway_v1_gateway_service_proto_depIdxs = []int32{
-	48, // 0: gateway.v1.PushMessageReq.to:type_name -> gateway.v1.RouteTarget
-	49, // 1: gateway.v1.PushMessageReq.delivery:type_name -> gateway.v1.Delivery
-	50, // 2: gateway.v1.PushMessageReq.body:type_name -> gateway.v1.Body
-	40, // 3: gateway.v1.PushMessageReq.headers:type_name -> gateway.v1.PushMessageReq.HeadersEntry
-	0,  // 4: gateway.v1.PushMessageResp.status:type_name -> gateway.v1.PushMessageResp.Status
-	51, // 5: gateway.v1.PushMessageResp.error_code:type_name -> gateway.v1.ErrorCode
-	48, // 6: gateway.v1.BatchPushMessageReq.to_list:type_name -> gateway.v1.RouteTarget
-	49, // 7: gateway.v1.BatchPushMessageReq.delivery:type_name -> gateway.v1.Delivery
-	50, // 8: gateway.v1.BatchPushMessageReq.body:type_name -> gateway.v1.Body
-	41, // 9: gateway.v1.BatchPushMessageResp.failed_items:type_name -> gateway.v1.BatchPushMessageResp.FailedItem
-	49, // 10: gateway.v1.BroadcastToRoomReq.delivery:type_name -> gateway.v1.Delivery
-	50, // 11: gateway.v1.BroadcastToRoomReq.body:type_name -> gateway.v1.Body
-	42, // 12: gateway.v1.BroadcastToRoomReq.filter_labels:type_name -> gateway.v1.BroadcastToRoomReq.FilterLabelsEntry
-	51, // 13: gateway.v1.BroadcastToRoomResp.error_code:type_name -> gateway.v1.ErrorCode
-	49, // 14: gateway.v1.BroadcastToTopicReq.delivery:type_name -> gateway.v1.Delivery
-	50, // 15: gateway.v1.BroadcastToTopicReq.body:type_name -> gateway.v1.Body
-	51, // 16: gateway.v1.BroadcastToTopicResp.error_code:type_name -> gateway.v1.ErrorCode
-	49, // 17: gateway.v1.BroadcastToAllReq.delivery:type_name -> gateway.v1.Delivery
-	50, // 18: gateway.v1.BroadcastToAllReq.body:type_name -> gateway.v1.Body
-	51, // 19: gateway.v1.BroadcastToAllResp.error_code:type_name -> gateway.v1.ErrorCode
-	49, // 20: gateway.v1.ForwardToSessionReq.delivery:type_name -> gateway.v1.Delivery
-	50, // 21: gateway.v1.ForwardToSessionReq.body:type_name -> gateway.v1.Body
-	43, // 22: gateway.v1.ForwardToSessionReq.headers:type_name -> gateway.v1.ForwardToSessionReq.HeadersEntry
-	51, // 23: gateway.v1.ForwardToSessionResp.error_code:type_name -> gateway.v1.ErrorCode
-	49, // 24: gateway.v1.ForwardToRoomReq.delivery:type_name -> gateway.v1.Delivery
-	50, // 25: gateway.v1.ForwardToRoomReq.body:type_name -> gateway.v1.Body
-	51, // 26: gateway.v1.ForwardToRoomResp.error_code:type_name -> gateway.v1.ErrorCode
-	51, // 27: gateway.v1.KickUserReq.code:type_name -> gateway.v1.ErrorCode
-	51, // 28: gateway.v1.KickSessionReq.code:type_name -> gateway.v1.ErrorCode
-	51, // 29: gateway.v1.KickSessionResp.error_code:type_name -> gateway.v1.ErrorCode
-	51, // 30: gateway.v1.KickDeviceReq.code:type_name -> gateway.v1.ErrorCode
-	1,  // 31: gateway.v1.DrainNodeResp.state:type_name -> gateway.v1.DrainNodeResp.DrainState
-	1,  // 32: gateway.v1.UndrainNodeResp.previous_state:type_name -> gateway.v1.DrainNodeResp.DrainState
-	1,  // 33: gateway.v1.GetNodeStatusResp.drain_state:type_name -> gateway.v1.DrainNodeResp.DrainState
-	44, // 34: gateway.v1.GetStatsResp.biz_stats:type_name -> gateway.v1.GetStatsResp.BizStat
-	45, // 35: gateway.v1.GetStatsResp.room_stats:type_name -> gateway.v1.GetStatsResp.RoomStat
-	46, // 36: gateway.v1.QueryRouteResp.routes:type_name -> gateway.v1.QueryRouteResp.RouteInfo
-	47, // 37: gateway.v1.ListSessionsResp.items:type_name -> gateway.v1.ListSessionsResp.SessionItem
-	51, // 38: gateway.v1.BatchPushMessageResp.FailedItem.error_code:type_name -> gateway.v1.ErrorCode
-	2,  // 39: gateway.v1.GatewayInternal.PushMessage:input_type -> gateway.v1.PushMessageReq
-	4,  // 40: gateway.v1.GatewayInternal.BatchPushMessage:input_type -> gateway.v1.BatchPushMessageReq
-	6,  // 41: gateway.v1.GatewayInternal.BroadcastToRoom:input_type -> gateway.v1.BroadcastToRoomReq
-	8,  // 42: gateway.v1.GatewayInternal.BroadcastToTopic:input_type -> gateway.v1.BroadcastToTopicReq
-	10, // 43: gateway.v1.GatewayInternal.BroadcastToAll:input_type -> gateway.v1.BroadcastToAllReq
-	12, // 44: gateway.v1.GatewayInternal.ForwardToSession:input_type -> gateway.v1.ForwardToSessionReq
-	14, // 45: gateway.v1.GatewayInternal.ForwardToRoom:input_type -> gateway.v1.ForwardToRoomReq
-	16, // 46: gateway.v1.GatewayInternal.KickUser:input_type -> gateway.v1.KickUserReq
-	18, // 47: gateway.v1.GatewayInternal.KickSession:input_type -> gateway.v1.KickSessionReq
-	20, // 48: gateway.v1.GatewayInternal.KickDevice:input_type -> gateway.v1.KickDeviceReq
-	22, // 49: gateway.v1.GatewayInternal.DrainNode:input_type -> gateway.v1.DrainNodeReq
-	24, // 50: gateway.v1.GatewayInternal.UndrainNode:input_type -> gateway.v1.UndrainNodeReq
-	26, // 51: gateway.v1.GatewayInternal.GetNodeStatus:input_type -> gateway.v1.GetNodeStatusReq
-	28, // 52: gateway.v1.GatewayInternal.GetStats:input_type -> gateway.v1.GetStatsReq
-	30, // 53: gateway.v1.GatewayInternal.GetBizStats:input_type -> gateway.v1.GetBizStatsReq
-	32, // 54: gateway.v1.GatewayInternal.GetRoomStats:input_type -> gateway.v1.GetRoomStatsReq
-	34, // 55: gateway.v1.GatewayInternal.QueryRoute:input_type -> gateway.v1.QueryRouteReq
-	36, // 56: gateway.v1.GatewayInternal.QuerySession:input_type -> gateway.v1.QuerySessionReq
-	38, // 57: gateway.v1.GatewayInternal.ListSessions:input_type -> gateway.v1.ListSessionsReq
-	3,  // 58: gateway.v1.GatewayInternal.PushMessage:output_type -> gateway.v1.PushMessageResp
-	5,  // 59: gateway.v1.GatewayInternal.BatchPushMessage:output_type -> gateway.v1.BatchPushMessageResp
-	7,  // 60: gateway.v1.GatewayInternal.BroadcastToRoom:output_type -> gateway.v1.BroadcastToRoomResp
-	9,  // 61: gateway.v1.GatewayInternal.BroadcastToTopic:output_type -> gateway.v1.BroadcastToTopicResp
-	11, // 62: gateway.v1.GatewayInternal.BroadcastToAll:output_type -> gateway.v1.BroadcastToAllResp
-	13, // 63: gateway.v1.GatewayInternal.ForwardToSession:output_type -> gateway.v1.ForwardToSessionResp
-	15, // 64: gateway.v1.GatewayInternal.ForwardToRoom:output_type -> gateway.v1.ForwardToRoomResp
-	17, // 65: gateway.v1.GatewayInternal.KickUser:output_type -> gateway.v1.KickUserResp
-	19, // 66: gateway.v1.GatewayInternal.KickSession:output_type -> gateway.v1.KickSessionResp
-	21, // 67: gateway.v1.GatewayInternal.KickDevice:output_type -> gateway.v1.KickDeviceResp
-	23, // 68: gateway.v1.GatewayInternal.DrainNode:output_type -> gateway.v1.DrainNodeResp
-	25, // 69: gateway.v1.GatewayInternal.UndrainNode:output_type -> gateway.v1.UndrainNodeResp
-	27, // 70: gateway.v1.GatewayInternal.GetNodeStatus:output_type -> gateway.v1.GetNodeStatusResp
-	29, // 71: gateway.v1.GatewayInternal.GetStats:output_type -> gateway.v1.GetStatsResp
-	31, // 72: gateway.v1.GatewayInternal.GetBizStats:output_type -> gateway.v1.GetBizStatsResp
-	33, // 73: gateway.v1.GatewayInternal.GetRoomStats:output_type -> gateway.v1.GetRoomStatsResp
-	35, // 74: gateway.v1.GatewayInternal.QueryRoute:output_type -> gateway.v1.QueryRouteResp
-	37, // 75: gateway.v1.GatewayInternal.QuerySession:output_type -> gateway.v1.QuerySessionResp
-	39, // 76: gateway.v1.GatewayInternal.ListSessions:output_type -> gateway.v1.ListSessionsResp
-	58, // [58:77] is the sub-list for method output_type
-	39, // [39:58] is the sub-list for method input_type
-	39, // [39:39] is the sub-list for extension type_name
-	39, // [39:39] is the sub-list for extension extendee
-	0,  // [0:39] is the sub-list for field type_name
+	53, // 0: gateway.v1.Payload.codec:type_name -> gateway.v1.Codec
+	54, // 1: gateway.v1.Payload.compress:type_name -> gateway.v1.CompressAlgo
+	55, // 2: gateway.v1.PushMessageReq.to:type_name -> gateway.v1.RouteTarget
+	56, // 3: gateway.v1.PushMessageReq.delivery:type_name -> gateway.v1.Delivery
+	5,  // 4: gateway.v1.PushMessageReq.payload:type_name -> gateway.v1.Payload
+	44, // 5: gateway.v1.PushMessageReq.headers:type_name -> gateway.v1.PushMessageReq.HeadersEntry
+	0,  // 6: gateway.v1.PushMessageResp.status:type_name -> gateway.v1.PushMessageResp.Status
+	57, // 7: gateway.v1.PushMessageResp.error_code:type_name -> gateway.v1.ErrorCode
+	55, // 8: gateway.v1.BatchPushMessageReq.to_list:type_name -> gateway.v1.RouteTarget
+	56, // 9: gateway.v1.BatchPushMessageReq.delivery:type_name -> gateway.v1.Delivery
+	5,  // 10: gateway.v1.BatchPushMessageReq.payload:type_name -> gateway.v1.Payload
+	45, // 11: gateway.v1.BatchPushMessageResp.success_items:type_name -> gateway.v1.BatchPushMessageResp.SuccessItem
+	46, // 12: gateway.v1.BatchPushMessageResp.failed_items:type_name -> gateway.v1.BatchPushMessageResp.FailedItem
+	56, // 13: gateway.v1.BroadcastToRoomReq.delivery:type_name -> gateway.v1.Delivery
+	5,  // 14: gateway.v1.BroadcastToRoomReq.payload:type_name -> gateway.v1.Payload
+	47, // 15: gateway.v1.BroadcastToRoomReq.filter_labels:type_name -> gateway.v1.BroadcastToRoomReq.FilterLabelsEntry
+	57, // 16: gateway.v1.BroadcastToRoomResp.error_code:type_name -> gateway.v1.ErrorCode
+	56, // 17: gateway.v1.BroadcastToTopicReq.delivery:type_name -> gateway.v1.Delivery
+	5,  // 18: gateway.v1.BroadcastToTopicReq.payload:type_name -> gateway.v1.Payload
+	57, // 19: gateway.v1.BroadcastToTopicResp.error_code:type_name -> gateway.v1.ErrorCode
+	56, // 20: gateway.v1.BroadcastToAllReq.delivery:type_name -> gateway.v1.Delivery
+	5,  // 21: gateway.v1.BroadcastToAllReq.payload:type_name -> gateway.v1.Payload
+	57, // 22: gateway.v1.BroadcastToAllResp.error_code:type_name -> gateway.v1.ErrorCode
+	56, // 23: gateway.v1.ForwardToSessionReq.delivery:type_name -> gateway.v1.Delivery
+	5,  // 24: gateway.v1.ForwardToSessionReq.payload:type_name -> gateway.v1.Payload
+	48, // 25: gateway.v1.ForwardToSessionReq.headers:type_name -> gateway.v1.ForwardToSessionReq.HeadersEntry
+	2,  // 26: gateway.v1.ForwardToSessionReq.reliability:type_name -> gateway.v1.ForwardToSessionReq.Reliability
+	3,  // 27: gateway.v1.ForwardToSessionResp.status:type_name -> gateway.v1.ForwardToSessionResp.DeliveryStatus
+	57, // 28: gateway.v1.ForwardToSessionResp.error_code:type_name -> gateway.v1.ErrorCode
+	56, // 29: gateway.v1.ForwardToRoomReq.delivery:type_name -> gateway.v1.Delivery
+	5,  // 30: gateway.v1.ForwardToRoomReq.payload:type_name -> gateway.v1.Payload
+	57, // 31: gateway.v1.ForwardToRoomResp.error_code:type_name -> gateway.v1.ErrorCode
+	57, // 32: gateway.v1.KickUserReq.code:type_name -> gateway.v1.ErrorCode
+	57, // 33: gateway.v1.KickSessionReq.code:type_name -> gateway.v1.ErrorCode
+	57, // 34: gateway.v1.KickSessionResp.error_code:type_name -> gateway.v1.ErrorCode
+	57, // 35: gateway.v1.KickDeviceReq.code:type_name -> gateway.v1.ErrorCode
+	4,  // 36: gateway.v1.DrainNodeResp.state:type_name -> gateway.v1.DrainNodeResp.DrainState
+	4,  // 37: gateway.v1.UndrainNodeResp.previous_state:type_name -> gateway.v1.DrainNodeResp.DrainState
+	4,  // 38: gateway.v1.GetNodeStatusResp.drain_state:type_name -> gateway.v1.DrainNodeResp.DrainState
+	49, // 39: gateway.v1.GetStatsResp.biz_stats:type_name -> gateway.v1.GetStatsResp.BizStat
+	50, // 40: gateway.v1.GetStatsResp.room_stats:type_name -> gateway.v1.GetStatsResp.RoomStat
+	51, // 41: gateway.v1.QueryRouteResp.routes:type_name -> gateway.v1.QueryRouteResp.RouteInfo
+	52, // 42: gateway.v1.ListSessionsResp.items:type_name -> gateway.v1.ListSessionsResp.SessionItem
+	1,  // 43: gateway.v1.BatchPushMessageResp.SuccessItem.deliver_type:type_name -> gateway.v1.BatchPushMessageResp.SuccessItem.DeliverType
+	57, // 44: gateway.v1.BatchPushMessageResp.FailedItem.error_code:type_name -> gateway.v1.ErrorCode
+	6,  // 45: gateway.v1.GatewayInternal.PushMessage:input_type -> gateway.v1.PushMessageReq
+	8,  // 46: gateway.v1.GatewayInternal.BatchPushMessage:input_type -> gateway.v1.BatchPushMessageReq
+	10, // 47: gateway.v1.GatewayInternal.BroadcastToRoom:input_type -> gateway.v1.BroadcastToRoomReq
+	12, // 48: gateway.v1.GatewayInternal.BroadcastToTopic:input_type -> gateway.v1.BroadcastToTopicReq
+	14, // 49: gateway.v1.GatewayInternal.BroadcastToAll:input_type -> gateway.v1.BroadcastToAllReq
+	16, // 50: gateway.v1.GatewayInternal.ForwardToSession:input_type -> gateway.v1.ForwardToSessionReq
+	18, // 51: gateway.v1.GatewayInternal.ForwardToRoom:input_type -> gateway.v1.ForwardToRoomReq
+	20, // 52: gateway.v1.GatewayInternal.KickUser:input_type -> gateway.v1.KickUserReq
+	22, // 53: gateway.v1.GatewayInternal.KickSession:input_type -> gateway.v1.KickSessionReq
+	24, // 54: gateway.v1.GatewayInternal.KickDevice:input_type -> gateway.v1.KickDeviceReq
+	26, // 55: gateway.v1.GatewayInternal.DrainNode:input_type -> gateway.v1.DrainNodeReq
+	28, // 56: gateway.v1.GatewayInternal.UndrainNode:input_type -> gateway.v1.UndrainNodeReq
+	30, // 57: gateway.v1.GatewayInternal.GetNodeStatus:input_type -> gateway.v1.GetNodeStatusReq
+	32, // 58: gateway.v1.GatewayInternal.GetStats:input_type -> gateway.v1.GetStatsReq
+	34, // 59: gateway.v1.GatewayInternal.GetBizStats:input_type -> gateway.v1.GetBizStatsReq
+	36, // 60: gateway.v1.GatewayInternal.GetRoomStats:input_type -> gateway.v1.GetRoomStatsReq
+	38, // 61: gateway.v1.GatewayInternal.QueryRoute:input_type -> gateway.v1.QueryRouteReq
+	40, // 62: gateway.v1.GatewayInternal.QuerySession:input_type -> gateway.v1.QuerySessionReq
+	42, // 63: gateway.v1.GatewayInternal.ListSessions:input_type -> gateway.v1.ListSessionsReq
+	7,  // 64: gateway.v1.GatewayInternal.PushMessage:output_type -> gateway.v1.PushMessageResp
+	9,  // 65: gateway.v1.GatewayInternal.BatchPushMessage:output_type -> gateway.v1.BatchPushMessageResp
+	11, // 66: gateway.v1.GatewayInternal.BroadcastToRoom:output_type -> gateway.v1.BroadcastToRoomResp
+	13, // 67: gateway.v1.GatewayInternal.BroadcastToTopic:output_type -> gateway.v1.BroadcastToTopicResp
+	15, // 68: gateway.v1.GatewayInternal.BroadcastToAll:output_type -> gateway.v1.BroadcastToAllResp
+	17, // 69: gateway.v1.GatewayInternal.ForwardToSession:output_type -> gateway.v1.ForwardToSessionResp
+	19, // 70: gateway.v1.GatewayInternal.ForwardToRoom:output_type -> gateway.v1.ForwardToRoomResp
+	21, // 71: gateway.v1.GatewayInternal.KickUser:output_type -> gateway.v1.KickUserResp
+	23, // 72: gateway.v1.GatewayInternal.KickSession:output_type -> gateway.v1.KickSessionResp
+	25, // 73: gateway.v1.GatewayInternal.KickDevice:output_type -> gateway.v1.KickDeviceResp
+	27, // 74: gateway.v1.GatewayInternal.DrainNode:output_type -> gateway.v1.DrainNodeResp
+	29, // 75: gateway.v1.GatewayInternal.UndrainNode:output_type -> gateway.v1.UndrainNodeResp
+	31, // 76: gateway.v1.GatewayInternal.GetNodeStatus:output_type -> gateway.v1.GetNodeStatusResp
+	33, // 77: gateway.v1.GatewayInternal.GetStats:output_type -> gateway.v1.GetStatsResp
+	35, // 78: gateway.v1.GatewayInternal.GetBizStats:output_type -> gateway.v1.GetBizStatsResp
+	37, // 79: gateway.v1.GatewayInternal.GetRoomStats:output_type -> gateway.v1.GetRoomStatsResp
+	39, // 80: gateway.v1.GatewayInternal.QueryRoute:output_type -> gateway.v1.QueryRouteResp
+	41, // 81: gateway.v1.GatewayInternal.QuerySession:output_type -> gateway.v1.QuerySessionResp
+	43, // 82: gateway.v1.GatewayInternal.ListSessions:output_type -> gateway.v1.ListSessionsResp
+	64, // [64:83] is the sub-list for method output_type
+	45, // [45:64] is the sub-list for method input_type
+	45, // [45:45] is the sub-list for extension type_name
+	45, // [45:45] is the sub-list for extension extendee
+	0,  // [0:45] is the sub-list for field type_name
 }
 
 func init() { file_gateway_v1_gateway_service_proto_init() }
@@ -3836,8 +4187,8 @@ func file_gateway_v1_gateway_service_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gateway_v1_gateway_service_proto_rawDesc), len(file_gateway_v1_gateway_service_proto_rawDesc)),
-			NumEnums:      2,
-			NumMessages:   46,
+			NumEnums:      5,
+			NumMessages:   48,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

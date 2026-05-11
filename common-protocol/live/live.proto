@@ -1,0 +1,97 @@
+syntax = "proto3";
+
+package live.v1;
+
+option go_package = "github.com/vadam-zhan/long-gw/common-protocol/gen/live/v1;livev1";
+
+import "validate/validate.proto";
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Live 域业务错误码（范围：12001-12099）
+// ═════════════════════════════════════════════════════════════════════════════
+enum LiveErrorCode {
+    LIVE_ERROR_CODE_UNSPECIFIED = 0;
+
+    // ── 房间层（12001-12020）──
+    LIVE_ROOM_NOT_FOUND        = 12001; // 直播间不存在
+    LIVE_ROOM_CLOSED           = 12002; // 直播间已关闭
+    LIVE_ROOM_FULL             = 12003; // 直播间人数已满
+    LIVE_ROOM_RESTRICTED       = 12004; // 直播间受限（地区/等级/白名单）
+    LIVE_WRONG_PASSWORD        = 12005; // 密码房密码错误
+    LIVE_HOST_OFFLINE          = 12006; // 主播离线
+    LIVE_HOST_NOT_FOUND        = 12007; // 主播不存在
+
+    // ── 用户交互层（12021-12040）──
+    LIVE_BANNED                = 12021; // 已被禁言/拉黑
+    LIVE_NOT_IN_ROOM           = 12022; // 不在该直播间
+    LIVE_ALREADY_IN_ROOM       = 12023; // 已经在该直播间
+    LIVE_COMMENT_TOO_FAST      = 12024; // 弹幕发送过快
+    LIVE_COMMENT_TOO_LONG      = 12025; // 弹幕内容过长
+    LIVE_GIFT_NOT_FOUND        = 12026; // 礼物不存在
+    LIVE_INSUFFICIENT_BALANCE  = 12027; // 余额不足
+    LIVE_GIFT_DISABLED         = 12028; // 礼物功能被禁用
+
+    // ── 系统层（12041-12099）──
+    LIVE_STREAM_INTERRUPTED    = 12041; // 直播流中断
+    LIVE_STREAM_NOT_STARTED    = 12042; // 直播尚未开始
+    LIVE_RATE_LIMITED          = 12043; // 直播间操作频率受限
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Live 域业务事件
+//
+// 传输方式：序列化为 bytes 后写入 gateway.v1.DispatchContext.payload
+// 路由标识：gateway.v1.DispatchContext.event_type = "live.{action}"
+//
+// 事件类型映射：
+//   "live.join"    → LiveJoin
+//   "live.leave"   → LiveLeave
+//   "live.comment" → LiveComment
+//   "live.gift"    → LiveGift
+//   "live.signal"  → LiveSignal
+//   "live.state"   → LiveState
+// ═════════════════════════════════════════════════════════════════════════════
+
+// ── event_type=live.join（C→S）─────────────────────────────────────────────
+//   进入直播间
+message LiveJoin {
+    string room_id = 1 [(validate.rules).string = {max_len: 128}];
+    string password = 2;                                               // 可选：密码房
+    map<string, string> ext = 3;
+}
+
+// ── event_type=live.leave（C→S）────────────────────────────────────────────
+//   离开直播间
+message LiveLeave {
+    string room_id = 1 [(validate.rules).string = {max_len: 128}];
+    string reason = 2;                                                 // "normal" | "kick" | "timeout"
+}
+
+message LiveComment {
+    string room_id  = 1 [(validate.rules).string = {max_len: 128}];
+    string content  = 2 [(validate.rules).string = {max_len: 512}];
+    string color    = 3;
+    int32  level    = 4;
+}
+
+message LiveGift {
+    string room_id    = 1 [(validate.rules).string = {max_len: 128}];
+    string gift_id    = 2 [(validate.rules).string = {max_len: 128}];
+    string gift_name  = 3;
+    int32  count      = 4;
+    int64  total_cost = 5;
+    string combo_id   = 6;
+}
+
+message LiveSignal {
+    string room_id    = 1 [(validate.rules).string = {max_len: 128}];
+    string signal_type = 2;
+    bytes  payload    = 3;
+}
+
+message LiveState {
+    string room_id    = 1 [(validate.rules).string = {max_len: 128}];
+    string state      = 2;
+    int64  viewer_count = 3;
+    int64  like_count = 4;
+}

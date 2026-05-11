@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+package data.v1;
+
+option go_package = "github.com/vadam-zhan/long-gw/common-protocol/gen/data/v1;datav1";
+
+import "validate/validate.proto";
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 实时数据推送业务错误码（范围：16001-16099）
+// ═════════════════════════════════════════════════════════════════════════════
+enum DataErrorCode {
+    DATA_ERROR_CODE_UNSPECIFIED = 0;
+
+    // ── 订阅层（16001-16020）──
+    DATA_SUBSCRIPTION_NOT_FOUND = 16001; // 订阅不存在
+    DATA_SUBSCRIPTION_LIMIT_EXCEEDED = 16002; // 订阅数量超限
+    DATA_SUBSCRIPTION_DUPLICATE = 16003; // 重复订阅
+    DATA_TYPE_NOT_SUPPORTED    = 16004; // 数据类型不支持
+    DATA_ID_NOT_FOUND          = 16005; // 数据对象不存在
+
+    // ── 数据层（16021-16040）──
+    DATA_SCHEMA_MISMATCH       = 16021; // 数据格式不匹配
+    DATA_VERSION_CONFLICT      = 16022; // 数据版本冲突
+    DATA_STALE                 = 16023; // 数据已过期
+    DATA_PERMISSION_DENIED     = 16024; // 无数据访问权限
+    DATA_FILTER_INVALID        = 16025; // 数据过滤条件无效
+
+    // ── 系统层（16041-16099）──
+    DATA_RATE_EXCEEDED         = 16041; // 数据推送频率超限
+    DATA_SNAPSHOT_FAILED       = 16042; // 全量快照获取失败
+    DATA_BACKPRESSURE          = 16043; // 客户端消费过慢（背压）
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 实时数据推送
+//
+// 传输方式：序列化为 bytes 后写入 gateway.v1.DispatchContext.payload
+// 路由标识：gateway.v1.DispatchContext.event_type = "data.{action}"
+//
+// 适用场景：
+//   1. 股票行情（低频但要求低延迟）
+//   2. 游戏状态同步（高频，AT_MOST_ONCE）
+//   3. IoT 传感器数据（高频，可丢弃）
+//
+// 事件类型映射：
+//   "data.update" → DataUpdate
+// ═════════════════════════════════════════════════════════════════════════════
+
+// ── event_type=data.update ─────────────────────────────────────────────────
+message DataUpdate {
+    // data_type: 数据类型标识（业务自定义）
+    //   "stock.quote" | "game.state" | "iot.sensor" | "sport.score"
+    string data_type = 1 [(validate.rules).string = {max_len: 64}];
+
+    // data_id: 数据对象 ID
+    //   股票："AAPL" | 游戏房间："room_123" | 传感器："device_456"
+    string data_id = 2 [(validate.rules).string = {max_len: 128}];
+
+    // payload: 实际数据（JSON 或 protobuf bytes）
+    bytes payload = 3;
+
+    // version: 数据版本（用于客户端去重/幂等）
+    int64 version = 4;
+
+    // is_delta: true = 增量更新，false = 全量快照
+    bool is_delta = 5;
+
+    // expire_at: 数据过期时间（Unix 毫秒），0 = 不过期
+    int64 expire_at = 6;
+
+    // seq: 序列号（用于检测丢包和乱序）
+    int64 seq = 7;
+}

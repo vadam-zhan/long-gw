@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package call.v1;
+
+option go_package = "github.com/vadam-zhan/long-gw/common-protocol/gen/call/v1;callv1";
+
+import "validate/validate.proto";
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Call 域业务错误码（范围：14001-14099）
+// ═════════════════════════════════════════════════════════════════════════════
+enum CallErrorCode {
+    CALL_ERROR_CODE_UNSPECIFIED = 0;
+
+    // ── 呼叫层（14001-14020）──
+    CALL_PEER_BUSY             = 14001; // 对方通话中
+    CALL_PEER_OFFLINE          = 14002; // 对方离线
+    CALL_PEER_NOT_FOUND        = 14003; // 呼叫对象不存在
+    CALL_REJECTED              = 14004; // 对方拒接
+    CALL_TIMEOUT               = 14005; // 呼叫超时
+    CALL_CANCELLED             = 14006; // 呼叫已取消
+    CALL_NO_ANSWER             = 14007; // 对方未接听
+
+    // ── 通话层（14021-14040）──
+    CALL_NOT_FOUND             = 14021; // 通话不存在
+    CALL_ALREADY_ENDED         = 14022; // 通话已结束
+    CALL_PERMISSION_DENIED     = 14023; // 无通话权限
+    CALL_CONFERENCE_FULL       = 14024; // 会议人数已满
+    CALL_MEMBER_NOT_FOUND      = 14025; // 会议成员不存在
+    CALL_INVITE_EXPIRED        = 14026; // 邀请已过期
+
+    // ── 媒体层（14041-14060）──
+    CALL_INVALID_SDP           = 14041; // SDP 协商失败
+    CALL_ICE_FAILED            = 14042; // ICE 打洞失败
+    CALL_NETWORK_UNSTABLE      = 14043; // 网络不稳定
+    CALL_UNSUPPORTED_CODEC     = 14044; // 不支持编解码器
+    CALL_MEDIA_ERROR           = 14045; // 媒体引擎错误
+    CALL_MIC_CAMERA_DENIED     = 14046; // 麦克风/摄像头权限被拒绝
+
+    // ── 系统层（14061-14099）──
+    CALL_RATE_LIMITED          = 14061; // 通话请求频率受限
+    CALL_RECORDING_NOT_ALLOWED = 14062; // 不允许录制
+    CALL_SERVICE_UNAVAILABLE   = 14063; // 通话服务不可用
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Call 域业务事件（音视频通话）
+//
+// 传输方式：序列化为 bytes 后写入 gateway.v1.DispatchContext.payload
+// 路由标识：gateway.v1.DispatchContext.event_type = "call.{action}"
+//
+// 事件类型映射：
+//   "call.offer"  → CallOffer
+//   "call.answer" → CallAnswer
+//   "call.ice"    → CallICE
+//   "call.hangup" → CallHangup
+//   "call.modify" → CallModify
+// ═════════════════════════════════════════════════════════════════════════════
+
+message CallOffer {
+    string call_id    = 1 [(validate.rules).string = {max_len: 128}];
+    string callee_id  = 2;
+    string call_type  = 3;
+    bytes  sdp        = 4;
+    map<string, string> ext = 5;
+}
+
+message CallAnswer {
+    string call_id   = 1 [(validate.rules).string = {max_len: 128}];
+    bool   accepted  = 2;
+    string reason    = 3;
+    bytes  sdp       = 4;
+}
+
+message CallICE {
+    string call_id      = 1 [(validate.rules).string = {max_len: 128}];
+    string candidate    = 2;
+    string sdp_mid      = 3;
+    int32  sdp_mline_index = 4;
+}
+
+message CallHangup {
+    string call_id = 1 [(validate.rules).string = {max_len: 128}];
+    string reason  = 2;
+    int64  duration_ms = 3;
+}
+
+message CallModify {
+    string call_id   = 1 [(validate.rules).string = {max_len: 128}];
+    string action    = 2;
+    bool   enabled   = 3;
+}

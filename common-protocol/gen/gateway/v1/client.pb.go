@@ -22,641 +22,131 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type PresenceUpdate_PresenceState int32
+// ═════════════════════════════════════════════════════════════════════════════
+// Gateway 治理层业务错误码（范围：18001-18099）
+//
+// 这些错误码用于 gateway 治理事件（RateLimited / AdminNotice）的业务场景，
+// 与 gateway.v1.ErrorCode（网关层错误码 1xxx-5xxx）互补。
+// ═════════════════════════════════════════════════════════════════════════════
+type ClientErrorCode int32
 
 const (
-	PresenceUpdate_PRESENCE_STATE_UNSPECIFIED PresenceUpdate_PresenceState = 0
-	PresenceUpdate_ONLINE                     PresenceUpdate_PresenceState = 1
-	PresenceUpdate_AWAY                       PresenceUpdate_PresenceState = 2
-	PresenceUpdate_BUSY                       PresenceUpdate_PresenceState = 3
-	PresenceUpdate_OFFLINE                    PresenceUpdate_PresenceState = 4 // 由网关推断，客户端不应主动发送
-	PresenceUpdate_INVISIBLE                  PresenceUpdate_PresenceState = 5
+	ClientErrorCode_CLIENT_ERROR_CODE_UNSPECIFIED ClientErrorCode = 0
+	// ── 客户端合规（18001-18015）──
+	ClientErrorCode_CLIENT_VERSION_DEPRECATED  ClientErrorCode = 18001 // 客户端版本过旧，必须升级
+	ClientErrorCode_CLIENT_VERSION_UNSUPPORTED ClientErrorCode = 18002 // 客户端版本不受支持
+	ClientErrorCode_CLIENT_PROTOCOL_MISMATCH   ClientErrorCode = 18003 // 协议版本不匹配
+	ClientErrorCode_CLIENT_SDK_INCOMPATIBLE    ClientErrorCode = 18004 // SDK 与网关不兼容
+	// ── 地理与网络（18016-18030）──
+	ClientErrorCode_CLIENT_REGION_BLOCKED    ClientErrorCode = 18016 // 地区被屏蔽
+	ClientErrorCode_CLIENT_IP_BLOCKED        ClientErrorCode = 18017 // IP 被屏蔽
+	ClientErrorCode_CLIENT_NETWORK_UNTRUSTED ClientErrorCode = 18018 // 不可信网络环境（VPN/代理检测）
+	// ── 限流与降级（18031-18045）──
+	ClientErrorCode_CLIENT_RATE_LIMITED        ClientErrorCode = 18031 // 客户端请求频率受限
+	ClientErrorCode_CLIENT_CONN_LIMIT_EXCEEDED ClientErrorCode = 18032 // 单用户连接数超限
+	ClientErrorCode_CLIENT_GLOBAL_RATE_LIMITED ClientErrorCode = 18033 // 全局限流
+	ClientErrorCode_CLIENT_DEGRADED            ClientErrorCode = 18034 // 服务降级中（部分功能受限）
+	// ── 运维与系统（18046-18099）──
+	ClientErrorCode_CLIENT_MAINTENANCE        ClientErrorCode = 18046 // 系统维护中
+	ClientErrorCode_CLIENT_ADMIN_KICK         ClientErrorCode = 18047 // 管理员强制踢人
+	ClientErrorCode_CLIENT_VIOLATION_DETECTED ClientErrorCode = 18048 // 检测到违规行为
+	ClientErrorCode_CLIENT_RESOURCE_EXHAUSTED ClientErrorCode = 18049 // 网关资源耗尽
 )
 
-// Enum value maps for PresenceUpdate_PresenceState.
+// Enum value maps for ClientErrorCode.
 var (
-	PresenceUpdate_PresenceState_name = map[int32]string{
-		0: "PRESENCE_STATE_UNSPECIFIED",
-		1: "ONLINE",
-		2: "AWAY",
-		3: "BUSY",
-		4: "OFFLINE",
-		5: "INVISIBLE",
+	ClientErrorCode_name = map[int32]string{
+		0:     "CLIENT_ERROR_CODE_UNSPECIFIED",
+		18001: "CLIENT_VERSION_DEPRECATED",
+		18002: "CLIENT_VERSION_UNSUPPORTED",
+		18003: "CLIENT_PROTOCOL_MISMATCH",
+		18004: "CLIENT_SDK_INCOMPATIBLE",
+		18016: "CLIENT_REGION_BLOCKED",
+		18017: "CLIENT_IP_BLOCKED",
+		18018: "CLIENT_NETWORK_UNTRUSTED",
+		18031: "CLIENT_RATE_LIMITED",
+		18032: "CLIENT_CONN_LIMIT_EXCEEDED",
+		18033: "CLIENT_GLOBAL_RATE_LIMITED",
+		18034: "CLIENT_DEGRADED",
+		18046: "CLIENT_MAINTENANCE",
+		18047: "CLIENT_ADMIN_KICK",
+		18048: "CLIENT_VIOLATION_DETECTED",
+		18049: "CLIENT_RESOURCE_EXHAUSTED",
 	}
-	PresenceUpdate_PresenceState_value = map[string]int32{
-		"PRESENCE_STATE_UNSPECIFIED": 0,
-		"ONLINE":                     1,
-		"AWAY":                       2,
-		"BUSY":                       3,
-		"OFFLINE":                    4,
-		"INVISIBLE":                  5,
+	ClientErrorCode_value = map[string]int32{
+		"CLIENT_ERROR_CODE_UNSPECIFIED": 0,
+		"CLIENT_VERSION_DEPRECATED":     18001,
+		"CLIENT_VERSION_UNSUPPORTED":    18002,
+		"CLIENT_PROTOCOL_MISMATCH":      18003,
+		"CLIENT_SDK_INCOMPATIBLE":       18004,
+		"CLIENT_REGION_BLOCKED":         18016,
+		"CLIENT_IP_BLOCKED":             18017,
+		"CLIENT_NETWORK_UNTRUSTED":      18018,
+		"CLIENT_RATE_LIMITED":           18031,
+		"CLIENT_CONN_LIMIT_EXCEEDED":    18032,
+		"CLIENT_GLOBAL_RATE_LIMITED":    18033,
+		"CLIENT_DEGRADED":               18034,
+		"CLIENT_MAINTENANCE":            18046,
+		"CLIENT_ADMIN_KICK":             18047,
+		"CLIENT_VIOLATION_DETECTED":     18048,
+		"CLIENT_RESOURCE_EXHAUSTED":     18049,
 	}
 )
 
-func (x PresenceUpdate_PresenceState) Enum() *PresenceUpdate_PresenceState {
-	p := new(PresenceUpdate_PresenceState)
+func (x ClientErrorCode) Enum() *ClientErrorCode {
+	p := new(ClientErrorCode)
 	*p = x
 	return p
 }
 
-func (x PresenceUpdate_PresenceState) String() string {
+func (x ClientErrorCode) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (PresenceUpdate_PresenceState) Descriptor() protoreflect.EnumDescriptor {
+func (ClientErrorCode) Descriptor() protoreflect.EnumDescriptor {
 	return file_gateway_v1_client_proto_enumTypes[0].Descriptor()
 }
 
-func (PresenceUpdate_PresenceState) Type() protoreflect.EnumType {
+func (ClientErrorCode) Type() protoreflect.EnumType {
 	return &file_gateway_v1_client_proto_enumTypes[0]
 }
 
-func (x PresenceUpdate_PresenceState) Number() protoreflect.EnumNumber {
+func (x ClientErrorCode) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use PresenceUpdate_PresenceState.Descriptor instead.
-func (PresenceUpdate_PresenceState) EnumDescriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{21, 0}
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Layer 2：SDK 层强类型 payload
-//
-// 设计原则：
-//  1. 控制面 payload（Handshake/Ack/Kick/Error 等）直接序列化后写入 Message.body.data
-//  2. 业务面 payload 通过 WellKnownPayload 统一包装，用于 BUSINESS 帧的二次分发
-//  3. 新增的业务类型（Call/Signal）直接定义，不嵌套在 WellKnownPayload 中
-//
-// ─────────────────────────────────────────────────────────────────────────────
-// ═════════════════════════════════════════════════════════════════════════════
-// 控制面 Payload
-// ═════════════════════════════════════════════════════════════════════════════
-type HandshakeRequest struct {
-	state               protoimpl.MessageState `protogen:"open.v1"`
-	AppId               string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`                                           // 多租户：应用标识
-	Token               string                 `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`                                                        // 短期 JWT
-	DeviceId            string                 `protobuf:"bytes,3,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`                                  // 设备指纹
-	DeviceType          string                 `protobuf:"bytes,4,opt,name=device_type,json=deviceType,proto3" json:"device_type,omitempty"`                            // "ios" | "android" | "web" | "pc" | "iot"
-	SdkVersion          string                 `protobuf:"bytes,5,opt,name=sdk_version,json=sdkVersion,proto3" json:"sdk_version,omitempty"`                            // 能力协商
-	LastSeqId           uint64                 `protobuf:"varint,6,opt,name=last_seq_id,json=lastSeqId,proto3" json:"last_seq_id,omitempty"`                            // 上次 session 最高 SeqID，用于断线重放
-	SupportedExtensions []string               `protobuf:"bytes,7,rep,name=supported_extensions,json=supportedExtensions,proto3" json:"supported_extensions,omitempty"` // 客户端支持的扩展（如 ["compress:zstd", "qos:3"]）
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
-}
-
-func (x *HandshakeRequest) Reset() {
-	*x = HandshakeRequest{}
-	mi := &file_gateway_v1_client_proto_msgTypes[0]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *HandshakeRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*HandshakeRequest) ProtoMessage() {}
-
-func (x *HandshakeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[0]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use HandshakeRequest.ProtoReflect.Descriptor instead.
-func (*HandshakeRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ClientErrorCode.Descriptor instead.
+func (ClientErrorCode) EnumDescriptor() ([]byte, []int) {
 	return file_gateway_v1_client_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *HandshakeRequest) GetAppId() string {
-	if x != nil {
-		return x.AppId
-	}
-	return ""
-}
-
-func (x *HandshakeRequest) GetToken() string {
-	if x != nil {
-		return x.Token
-	}
-	return ""
-}
-
-func (x *HandshakeRequest) GetDeviceId() string {
-	if x != nil {
-		return x.DeviceId
-	}
-	return ""
-}
-
-func (x *HandshakeRequest) GetDeviceType() string {
-	if x != nil {
-		return x.DeviceType
-	}
-	return ""
-}
-
-func (x *HandshakeRequest) GetSdkVersion() string {
-	if x != nil {
-		return x.SdkVersion
-	}
-	return ""
-}
-
-func (x *HandshakeRequest) GetLastSeqId() uint64 {
-	if x != nil {
-		return x.LastSeqId
-	}
-	return 0
-}
-
-func (x *HandshakeRequest) GetSupportedExtensions() []string {
-	if x != nil {
-		return x.SupportedExtensions
-	}
-	return nil
-}
-
-type HandshakeResponse struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	SessionId         string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	UserId            string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
-	ServerTime        int64                  `protobuf:"varint,3,opt,name=server_time,json=serverTime,proto3" json:"server_time,omitempty"`                      // 服务端 Unix 毫秒
-	HeartbeatInterval int32                  `protobuf:"varint,4,opt,name=heartbeat_interval,json=heartbeatInterval,proto3" json:"heartbeat_interval,omitempty"` // 建议心跳间隔（秒）
-	MaxBodySize       int64                  `protobuf:"varint,5,opt,name=max_body_size,json=maxBodySize,proto3" json:"max_body_size,omitempty"`                 // 允许的最大 payload 字节数
-	ReplayFrom        uint64                 `protobuf:"varint,6,opt,name=replay_from,json=replayFrom,proto3" json:"replay_from,omitempty"`                      // 从此 SeqID 开始补发
-	Extensions        []string               `protobuf:"bytes,7,rep,name=extensions,proto3" json:"extensions,omitempty"`                                         // 网关实际启用的扩展列表
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
-}
-
-func (x *HandshakeResponse) Reset() {
-	*x = HandshakeResponse{}
-	mi := &file_gateway_v1_client_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *HandshakeResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*HandshakeResponse) ProtoMessage() {}
-
-func (x *HandshakeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use HandshakeResponse.ProtoReflect.Descriptor instead.
-func (*HandshakeResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *HandshakeResponse) GetSessionId() string {
-	if x != nil {
-		return x.SessionId
-	}
-	return ""
-}
-
-func (x *HandshakeResponse) GetUserId() string {
-	if x != nil {
-		return x.UserId
-	}
-	return ""
-}
-
-func (x *HandshakeResponse) GetServerTime() int64 {
-	if x != nil {
-		return x.ServerTime
-	}
-	return 0
-}
-
-func (x *HandshakeResponse) GetHeartbeatInterval() int32 {
-	if x != nil {
-		return x.HeartbeatInterval
-	}
-	return 0
-}
-
-func (x *HandshakeResponse) GetMaxBodySize() int64 {
-	if x != nil {
-		return x.MaxBodySize
-	}
-	return 0
-}
-
-func (x *HandshakeResponse) GetReplayFrom() uint64 {
-	if x != nil {
-		return x.ReplayFrom
-	}
-	return 0
-}
-
-func (x *HandshakeResponse) GetExtensions() []string {
-	if x != nil {
-		return x.Extensions
-	}
-	return nil
-}
-
-type AuthRefreshRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
-	DeviceId      string                 `protobuf:"bytes,2,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
-	DeviceType    string                 `protobuf:"bytes,3,opt,name=device_type,json=deviceType,proto3" json:"device_type,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *AuthRefreshRequest) Reset() {
-	*x = AuthRefreshRequest{}
-	mi := &file_gateway_v1_client_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AuthRefreshRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AuthRefreshRequest) ProtoMessage() {}
-
-func (x *AuthRefreshRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AuthRefreshRequest.ProtoReflect.Descriptor instead.
-func (*AuthRefreshRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *AuthRefreshRequest) GetToken() string {
-	if x != nil {
-		return x.Token
-	}
-	return ""
-}
-
-func (x *AuthRefreshRequest) GetDeviceId() string {
-	if x != nil {
-		return x.DeviceId
-	}
-	return ""
-}
-
-func (x *AuthRefreshRequest) GetDeviceType() string {
-	if x != nil {
-		return x.DeviceType
-	}
-	return ""
-}
-
-type AuthRefreshResponse struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	Success           bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
-	ErrorCode         ErrorCode              `protobuf:"varint,2,opt,name=error_code,json=errorCode,proto3,enum=gateway.v1.ErrorCode" json:"error_code,omitempty"` // 使用统一 ErrorCode
-	ErrorMessage      string                 `protobuf:"bytes,3,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
-	HeartbeatInterval int32                  `protobuf:"varint,4,opt,name=heartbeat_interval,json=heartbeatInterval,proto3" json:"heartbeat_interval,omitempty"`
-	SessionId         string                 `protobuf:"bytes,5,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	MaxBodySize       int64                  `protobuf:"varint,6,opt,name=max_body_size,json=maxBodySize,proto3" json:"max_body_size,omitempty"`
-	ReplayFrom        uint64                 `protobuf:"varint,7,opt,name=replay_from,json=replayFrom,proto3" json:"replay_from,omitempty"`
-	TokenExpireAt     int64                  `protobuf:"varint,8,opt,name=token_expire_at,json=tokenExpireAt,proto3" json:"token_expire_at,omitempty"` // 新 Token 过期时间
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
-}
-
-func (x *AuthRefreshResponse) Reset() {
-	*x = AuthRefreshResponse{}
-	mi := &file_gateway_v1_client_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AuthRefreshResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AuthRefreshResponse) ProtoMessage() {}
-
-func (x *AuthRefreshResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AuthRefreshResponse.ProtoReflect.Descriptor instead.
-func (*AuthRefreshResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *AuthRefreshResponse) GetSuccess() bool {
-	if x != nil {
-		return x.Success
-	}
-	return false
-}
-
-func (x *AuthRefreshResponse) GetErrorCode() ErrorCode {
-	if x != nil {
-		return x.ErrorCode
-	}
-	return ErrorCode_ERROR_CODE_UNSPECIFIED
-}
-
-func (x *AuthRefreshResponse) GetErrorMessage() string {
-	if x != nil {
-		return x.ErrorMessage
-	}
-	return ""
-}
-
-func (x *AuthRefreshResponse) GetHeartbeatInterval() int32 {
-	if x != nil {
-		return x.HeartbeatInterval
-	}
-	return 0
-}
-
-func (x *AuthRefreshResponse) GetSessionId() string {
-	if x != nil {
-		return x.SessionId
-	}
-	return ""
-}
-
-func (x *AuthRefreshResponse) GetMaxBodySize() int64 {
-	if x != nil {
-		return x.MaxBodySize
-	}
-	return 0
-}
-
-func (x *AuthRefreshResponse) GetReplayFrom() uint64 {
-	if x != nil {
-		return x.ReplayFrom
-	}
-	return 0
-}
-
-func (x *AuthRefreshResponse) GetTokenExpireAt() int64 {
-	if x != nil {
-		return x.TokenExpireAt
-	}
-	return 0
-}
-
-type ResumeRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	SessionId     string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
-	LastSeqId     uint64                 `protobuf:"varint,2,opt,name=last_seq_id,json=lastSeqId,proto3" json:"last_seq_id,omitempty"` // 客户端已收到的最高 SeqID
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ResumeRequest) Reset() {
-	*x = ResumeRequest{}
-	mi := &file_gateway_v1_client_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ResumeRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ResumeRequest) ProtoMessage() {}
-
-func (x *ResumeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ResumeRequest.ProtoReflect.Descriptor instead.
-func (*ResumeRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *ResumeRequest) GetSessionId() string {
-	if x != nil {
-		return x.SessionId
-	}
-	return ""
-}
-
-func (x *ResumeRequest) GetLastSeqId() uint64 {
-	if x != nil {
-		return x.LastSeqId
-	}
-	return 0
-}
-
-type ResumeResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
-	ErrorCode     ErrorCode              `protobuf:"varint,2,opt,name=error_code,json=errorCode,proto3,enum=gateway.v1.ErrorCode" json:"error_code,omitempty"`
-	ErrorMessage  string                 `protobuf:"bytes,3,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
-	ReplayFrom    uint64                 `protobuf:"varint,4,opt,name=replay_from,json=replayFrom,proto3" json:"replay_from,omitempty"`    // 实际从哪个 SeqID 开始补发
-	ReplayCount   int32                  `protobuf:"varint,5,opt,name=replay_count,json=replayCount,proto3" json:"replay_count,omitempty"` // 待补发消息数量（用于客户端进度展示）
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ResumeResponse) Reset() {
-	*x = ResumeResponse{}
-	mi := &file_gateway_v1_client_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ResumeResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ResumeResponse) ProtoMessage() {}
-
-func (x *ResumeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ResumeResponse.ProtoReflect.Descriptor instead.
-func (*ResumeResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *ResumeResponse) GetSuccess() bool {
-	if x != nil {
-		return x.Success
-	}
-	return false
-}
-
-func (x *ResumeResponse) GetErrorCode() ErrorCode {
-	if x != nil {
-		return x.ErrorCode
-	}
-	return ErrorCode_ERROR_CODE_UNSPECIFIED
-}
-
-func (x *ResumeResponse) GetErrorMessage() string {
-	if x != nil {
-		return x.ErrorMessage
-	}
-	return ""
-}
-
-func (x *ResumeResponse) GetReplayFrom() uint64 {
-	if x != nil {
-		return x.ReplayFrom
-	}
-	return 0
-}
-
-func (x *ResumeResponse) GetReplayCount() int32 {
-	if x != nil {
-		return x.ReplayCount
-	}
-	return 0
-}
-
-type KickRequest struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Code           ErrorCode              `protobuf:"varint,1,opt,name=code,proto3,enum=gateway.v1.ErrorCode" json:"code,omitempty"` // 结构化错误码
-	Reason         string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
-	ReconnectAfter int32                  `protobuf:"varint,3,opt,name=reconnect_after,json=reconnectAfter,proto3" json:"reconnect_after,omitempty"` // >0 建议等待 N 秒后重连
-	Permanent      bool                   `protobuf:"varint,4,opt,name=permanent,proto3" json:"permanent,omitempty"`                                 // true = 禁止自动重连（封号）
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *KickRequest) Reset() {
-	*x = KickRequest{}
-	mi := &file_gateway_v1_client_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *KickRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*KickRequest) ProtoMessage() {}
-
-func (x *KickRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use KickRequest.ProtoReflect.Descriptor instead.
-func (*KickRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *KickRequest) GetCode() ErrorCode {
-	if x != nil {
-		return x.Code
-	}
-	return ErrorCode_ERROR_CODE_UNSPECIFIED
-}
-
-func (x *KickRequest) GetReason() string {
-	if x != nil {
-		return x.Reason
-	}
-	return ""
-}
-
-func (x *KickRequest) GetReconnectAfter() int32 {
-	if x != nil {
-		return x.ReconnectAfter
-	}
-	return 0
-}
-
-func (x *KickRequest) GetPermanent() bool {
-	if x != nil {
-		return x.Permanent
-	}
-	return false
-}
-
-type ErrorPayload struct {
+type RateLimited struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Code          ErrorCode              `protobuf:"varint,1,opt,name=code,proto3,enum=gateway.v1.ErrorCode" json:"code,omitempty"`
-	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	RefMsgId      string                 `protobuf:"bytes,3,opt,name=ref_msg_id,json=refMsgId,proto3" json:"ref_msg_id,omitempty"`                                                       // 触发此错误的原始 msg_id
-	Details       map[string]string      `protobuf:"bytes,4,rep,name=details,proto3" json:"details,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // 额外上下文（如限流配额、重试建议）
+	LimitType     string                 `protobuf:"bytes,2,opt,name=limit_type,json=limitType,proto3" json:"limit_type,omitempty"` // "conn" | "user" | "biz" | "global"
+	CurrentQps    int32                  `protobuf:"varint,3,opt,name=current_qps,json=currentQps,proto3" json:"current_qps,omitempty"`
+	LimitQps      int32                  `protobuf:"varint,4,opt,name=limit_qps,json=limitQps,proto3" json:"limit_qps,omitempty"`
+	RetryAfterMs  int32                  `protobuf:"varint,5,opt,name=retry_after_ms,json=retryAfterMs,proto3" json:"retry_after_ms,omitempty"`
+	Details       map[string]string      `protobuf:"bytes,6,rep,name=details,proto3" json:"details,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *ErrorPayload) Reset() {
-	*x = ErrorPayload{}
-	mi := &file_gateway_v1_client_proto_msgTypes[7]
+func (x *RateLimited) Reset() {
+	*x = RateLimited{}
+	mi := &file_gateway_v1_client_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *ErrorPayload) String() string {
+func (x *RateLimited) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ErrorPayload) ProtoMessage() {}
+func (*RateLimited) ProtoMessage() {}
 
-func (x *ErrorPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[7]
+func (x *RateLimited) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_client_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -667,706 +157,80 @@ func (x *ErrorPayload) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ErrorPayload.ProtoReflect.Descriptor instead.
-func (*ErrorPayload) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{7}
+// Deprecated: Use RateLimited.ProtoReflect.Descriptor instead.
+func (*RateLimited) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_client_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *ErrorPayload) GetCode() ErrorCode {
+func (x *RateLimited) GetCode() ErrorCode {
 	if x != nil {
 		return x.Code
 	}
 	return ErrorCode_ERROR_CODE_UNSPECIFIED
 }
 
-func (x *ErrorPayload) GetMessage() string {
-	if x != nil {
-		return x.Message
-	}
-	return ""
-}
-
-func (x *ErrorPayload) GetRefMsgId() string {
-	if x != nil {
-		return x.RefMsgId
-	}
-	return ""
-}
-
-func (x *ErrorPayload) GetDetails() map[string]string {
-	if x != nil {
-		return x.Details
-	}
-	return nil
-}
-
-type AckPayload struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RefMsgId      string                 `protobuf:"bytes,1,opt,name=ref_msg_id,json=refMsgId,proto3" json:"ref_msg_id,omitempty"` // 被确认的消息 msg_id
-	RecvTime      int64                  `protobuf:"varint,2,opt,name=recv_time,json=recvTime,proto3" json:"recv_time,omitempty"`  // 客户端收到时间（Unix 毫秒），用于 RTT 度量
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *AckPayload) Reset() {
-	*x = AckPayload{}
-	mi := &file_gateway_v1_client_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *AckPayload) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*AckPayload) ProtoMessage() {}
-
-func (x *AckPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[8]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use AckPayload.ProtoReflect.Descriptor instead.
-func (*AckPayload) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *AckPayload) GetRefMsgId() string {
-	if x != nil {
-		return x.RefMsgId
-	}
-	return ""
-}
-
-func (x *AckPayload) GetRecvTime() int64 {
-	if x != nil {
-		return x.RecvTime
-	}
-	return 0
-}
-
-type BatchAckPayload struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	MsgIds        []string               `protobuf:"bytes,1,rep,name=msg_ids,json=msgIds,proto3" json:"msg_ids,omitempty"`
-	RecvTime      int64                  `protobuf:"varint,2,opt,name=recv_time,json=recvTime,proto3" json:"recv_time,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *BatchAckPayload) Reset() {
-	*x = BatchAckPayload{}
-	mi := &file_gateway_v1_client_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *BatchAckPayload) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*BatchAckPayload) ProtoMessage() {}
-
-func (x *BatchAckPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use BatchAckPayload.ProtoReflect.Descriptor instead.
-func (*BatchAckPayload) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{9}
-}
-
-func (x *BatchAckPayload) GetMsgIds() []string {
-	if x != nil {
-		return x.MsgIds
-	}
-	return nil
-}
-
-func (x *BatchAckPayload) GetRecvTime() int64 {
-	if x != nil {
-		return x.RecvTime
-	}
-	return 0
-}
-
-type ReplayRequestPayload struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	FromSeq       uint64                 `protobuf:"varint,1,opt,name=from_seq,json=fromSeq,proto3" json:"from_seq,omitempty"` // 从哪个 SeqID 开始
-	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`                    // 最多补发多少条
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ReplayRequestPayload) Reset() {
-	*x = ReplayRequestPayload{}
-	mi := &file_gateway_v1_client_proto_msgTypes[10]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ReplayRequestPayload) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ReplayRequestPayload) ProtoMessage() {}
-
-func (x *ReplayRequestPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[10]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ReplayRequestPayload.ProtoReflect.Descriptor instead.
-func (*ReplayRequestPayload) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{10}
-}
-
-func (x *ReplayRequestPayload) GetFromSeq() uint64 {
-	if x != nil {
-		return x.FromSeq
-	}
-	return 0
-}
-
-func (x *ReplayRequestPayload) GetLimit() int32 {
-	if x != nil {
-		return x.Limit
-	}
-	return 0
-}
-
-type ReplayResponsePayload struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
-	LastSeq       uint64                 `protobuf:"varint,2,opt,name=last_seq,json=lastSeq,proto3" json:"last_seq,omitempty"`       // 实际补发到的最新 SeqID
-	SentCount     int32                  `protobuf:"varint,3,opt,name=sent_count,json=sentCount,proto3" json:"sent_count,omitempty"` // 实际补发了多少条
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ReplayResponsePayload) Reset() {
-	*x = ReplayResponsePayload{}
-	mi := &file_gateway_v1_client_proto_msgTypes[11]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ReplayResponsePayload) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ReplayResponsePayload) ProtoMessage() {}
-
-func (x *ReplayResponsePayload) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[11]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ReplayResponsePayload.ProtoReflect.Descriptor instead.
-func (*ReplayResponsePayload) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{11}
-}
-
-func (x *ReplayResponsePayload) GetSuccess() bool {
-	if x != nil {
-		return x.Success
-	}
-	return false
-}
-
-func (x *ReplayResponsePayload) GetLastSeq() uint64 {
-	if x != nil {
-		return x.LastSeq
-	}
-	return 0
-}
-
-func (x *ReplayResponsePayload) GetSentCount() int32 {
-	if x != nil {
-		return x.SentCount
-	}
-	return 0
-}
-
-// ── 关闭 ─────────────────────────────────────────────────────────────────────
-type CloseRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Reason        string                 `protobuf:"bytes,1,opt,name=reason,proto3" json:"reason,omitempty"`                         // 关闭原因（如 "app_background" | "user_logout" | "network_switch"）
-	ExpectAck     bool                   `protobuf:"varint,2,opt,name=expect_ack,json=expectAck,proto3" json:"expect_ack,omitempty"` // true = 等待服务端 CLOSE_ACK 后再断开 TCP
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CloseRequest) Reset() {
-	*x = CloseRequest{}
-	mi := &file_gateway_v1_client_proto_msgTypes[12]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CloseRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CloseRequest) ProtoMessage() {}
-
-func (x *CloseRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[12]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CloseRequest.ProtoReflect.Descriptor instead.
-func (*CloseRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *CloseRequest) GetReason() string {
-	if x != nil {
-		return x.Reason
-	}
-	return ""
-}
-
-func (x *CloseRequest) GetExpectAck() bool {
-	if x != nil {
-		return x.ExpectAck
-	}
-	return false
-}
-
-type CloseResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
-	ServerTime    int64                  `protobuf:"varint,2,opt,name=server_time,json=serverTime,proto3" json:"server_time,omitempty"` // 服务端确认关闭时间
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CloseResponse) Reset() {
-	*x = CloseResponse{}
-	mi := &file_gateway_v1_client_proto_msgTypes[13]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CloseResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CloseResponse) ProtoMessage() {}
-
-func (x *CloseResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[13]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CloseResponse.ProtoReflect.Descriptor instead.
-func (*CloseResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{13}
-}
-
-func (x *CloseResponse) GetSuccess() bool {
-	if x != nil {
-		return x.Success
-	}
-	return false
-}
-
-func (x *CloseResponse) GetServerTime() int64 {
-	if x != nil {
-		return x.ServerTime
-	}
-	return 0
-}
-
-// ── 心跳 ─────────────────────────────────────────────────────────────────────
-type PingPayload struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ClientSendTs  int64                  `protobuf:"varint,1,opt,name=client_send_ts,json=clientSendTs,proto3" json:"client_send_ts,omitempty"` // 客户端发送时间（Unix 毫秒，用于 RTT 计算）
-	RttSampleMs   int32                  `protobuf:"varint,2,opt,name=rtt_sample_ms,json=rttSampleMs,proto3" json:"rtt_sample_ms,omitempty"`    // 客户端测得的上次 RTT（网关可用作网络质量指标）
-	ConnEpoch     string                 `protobuf:"bytes,3,opt,name=conn_epoch,json=connEpoch,proto3" json:"conn_epoch,omitempty"`             // 连接纪元（用于检测僵尸连接）
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *PingPayload) Reset() {
-	*x = PingPayload{}
-	mi := &file_gateway_v1_client_proto_msgTypes[14]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PingPayload) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PingPayload) ProtoMessage() {}
-
-func (x *PingPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[14]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PingPayload.ProtoReflect.Descriptor instead.
-func (*PingPayload) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{14}
-}
-
-func (x *PingPayload) GetClientSendTs() int64 {
-	if x != nil {
-		return x.ClientSendTs
-	}
-	return 0
-}
-
-func (x *PingPayload) GetRttSampleMs() int32 {
-	if x != nil {
-		return x.RttSampleMs
-	}
-	return 0
-}
-
-func (x *PingPayload) GetConnEpoch() string {
-	if x != nil {
-		return x.ConnEpoch
-	}
-	return ""
-}
-
-type PongPayload struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	ServerRecvTs      int64                  `protobuf:"varint,1,opt,name=server_recv_ts,json=serverRecvTs,proto3" json:"server_recv_ts,omitempty"`              // 服务端收到 PING 的时间
-	ServerSendTs      int64                  `protobuf:"varint,2,opt,name=server_send_ts,json=serverSendTs,proto3" json:"server_send_ts,omitempty"`              // 服务端发送 PONG 的时间
-	HeartbeatInterval int32                  `protobuf:"varint,3,opt,name=heartbeat_interval,json=heartbeatInterval,proto3" json:"heartbeat_interval,omitempty"` // 服务端动态调整的心跳间隔（秒）
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
-}
-
-func (x *PongPayload) Reset() {
-	*x = PongPayload{}
-	mi := &file_gateway_v1_client_proto_msgTypes[15]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PongPayload) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PongPayload) ProtoMessage() {}
-
-func (x *PongPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[15]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PongPayload.ProtoReflect.Descriptor instead.
-func (*PongPayload) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{15}
-}
-
-func (x *PongPayload) GetServerRecvTs() int64 {
-	if x != nil {
-		return x.ServerRecvTs
-	}
-	return 0
-}
-
-func (x *PongPayload) GetServerSendTs() int64 {
-	if x != nil {
-		return x.ServerSendTs
-	}
-	return 0
-}
-
-func (x *PongPayload) GetHeartbeatInterval() int32 {
-	if x != nil {
-		return x.HeartbeatInterval
-	}
-	return 0
-}
-
-// ── 投递确认 ─────────────────────────────────────────────────────────────────
-type DeliveryAckPayload struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RefMsgId      string                 `protobuf:"bytes,1,opt,name=ref_msg_id,json=refMsgId,proto3" json:"ref_msg_id,omitempty"`         // 被确认投递成功的消息 msg_id
-	DeliveredAt   int64                  `protobuf:"varint,2,opt,name=delivered_at,json=deliveredAt,proto3" json:"delivered_at,omitempty"` // 服务端实际投递时间（Unix 毫秒）
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DeliveryAckPayload) Reset() {
-	*x = DeliveryAckPayload{}
-	mi := &file_gateway_v1_client_proto_msgTypes[16]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DeliveryAckPayload) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeliveryAckPayload) ProtoMessage() {}
-
-func (x *DeliveryAckPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[16]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use DeliveryAckPayload.ProtoReflect.Descriptor instead.
-func (*DeliveryAckPayload) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{16}
-}
-
-func (x *DeliveryAckPayload) GetRefMsgId() string {
-	if x != nil {
-		return x.RefMsgId
-	}
-	return ""
-}
-
-func (x *DeliveryAckPayload) GetDeliveredAt() int64 {
-	if x != nil {
-		return x.DeliveredAt
-	}
-	return 0
-}
-
-type ReadReceiptPayload struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RefMsgId      string                 `protobuf:"bytes,1,opt,name=ref_msg_id,json=refMsgId,proto3" json:"ref_msg_id,omitempty"` // 被标记为已读的消息 msg_id
-	ReadAt        int64                  `protobuf:"varint,2,opt,name=read_at,json=readAt,proto3" json:"read_at,omitempty"`        // 用户实际阅读时间（Unix 毫秒）
-	ConvId        string                 `protobuf:"bytes,3,opt,name=conv_id,json=convId,proto3" json:"conv_id,omitempty"`         // 所属会话（用于服务端更新会话已读水位线）
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ReadReceiptPayload) Reset() {
-	*x = ReadReceiptPayload{}
-	mi := &file_gateway_v1_client_proto_msgTypes[17]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ReadReceiptPayload) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ReadReceiptPayload) ProtoMessage() {}
-
-func (x *ReadReceiptPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[17]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ReadReceiptPayload.ProtoReflect.Descriptor instead.
-func (*ReadReceiptPayload) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{17}
-}
-
-func (x *ReadReceiptPayload) GetRefMsgId() string {
-	if x != nil {
-		return x.RefMsgId
-	}
-	return ""
-}
-
-func (x *ReadReceiptPayload) GetReadAt() int64 {
-	if x != nil {
-		return x.ReadAt
-	}
-	return 0
-}
-
-func (x *ReadReceiptPayload) GetConvId() string {
-	if x != nil {
-		return x.ConvId
-	}
-	return ""
-}
-
-// ── 治理 ─────────────────────────────────────────────────────────────────────
-type RateLimitedPayload struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Code          ErrorCode              `protobuf:"varint,1,opt,name=code,proto3,enum=gateway.v1.ErrorCode" json:"code,omitempty"`                                                      // 触发限流的具体原因
-	LimitType     string                 `protobuf:"bytes,2,opt,name=limit_type,json=limitType,proto3" json:"limit_type,omitempty"`                                                      // "conn" | "user" | "biz" | "room" | "global"
-	CurrentQps    int32                  `protobuf:"varint,3,opt,name=current_qps,json=currentQps,proto3" json:"current_qps,omitempty"`                                                  // 当前实际 QPS
-	LimitQps      int32                  `protobuf:"varint,4,opt,name=limit_qps,json=limitQps,proto3" json:"limit_qps,omitempty"`                                                        // 限制的 QPS 阈值
-	RetryAfterMs  int32                  `protobuf:"varint,5,opt,name=retry_after_ms,json=retryAfterMs,proto3" json:"retry_after_ms,omitempty"`                                          // 建议等待时间（毫秒）
-	Details       map[string]string      `protobuf:"bytes,6,rep,name=details,proto3" json:"details,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // 额外上下文（如 "room_id": "room_123"）
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RateLimitedPayload) Reset() {
-	*x = RateLimitedPayload{}
-	mi := &file_gateway_v1_client_proto_msgTypes[18]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RateLimitedPayload) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RateLimitedPayload) ProtoMessage() {}
-
-func (x *RateLimitedPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[18]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RateLimitedPayload.ProtoReflect.Descriptor instead.
-func (*RateLimitedPayload) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{18}
-}
-
-func (x *RateLimitedPayload) GetCode() ErrorCode {
-	if x != nil {
-		return x.Code
-	}
-	return ErrorCode_ERROR_CODE_UNSPECIFIED
-}
-
-func (x *RateLimitedPayload) GetLimitType() string {
+func (x *RateLimited) GetLimitType() string {
 	if x != nil {
 		return x.LimitType
 	}
 	return ""
 }
 
-func (x *RateLimitedPayload) GetCurrentQps() int32 {
+func (x *RateLimited) GetCurrentQps() int32 {
 	if x != nil {
 		return x.CurrentQps
 	}
 	return 0
 }
 
-func (x *RateLimitedPayload) GetLimitQps() int32 {
+func (x *RateLimited) GetLimitQps() int32 {
 	if x != nil {
 		return x.LimitQps
 	}
 	return 0
 }
 
-func (x *RateLimitedPayload) GetRetryAfterMs() int32 {
+func (x *RateLimited) GetRetryAfterMs() int32 {
 	if x != nil {
 		return x.RetryAfterMs
 	}
 	return 0
 }
 
-func (x *RateLimitedPayload) GetDetails() map[string]string {
+func (x *RateLimited) GetDetails() map[string]string {
 	if x != nil {
 		return x.Details
 	}
 	return nil
 }
 
-type SystemBroadcastPayload struct {
+type SystemBroadcast struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	BroadcastId   string                 `protobuf:"bytes,1,opt,name=broadcast_id,json=broadcastId,proto3" json:"broadcast_id,omitempty"`                                        // 广播唯一 ID（用于幂等去重）
-	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`                                                                       // 广播标题
-	Content       string                 `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`                                                                   // 广播内容
-	Priority      string                 `protobuf:"bytes,4,opt,name=priority,proto3" json:"priority,omitempty"`                                                                 // "high" | "normal" | "low"
-	ExpireAt      int64                  `protobuf:"varint,5,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`                                                // 过期时间
-	Ext           map[string]string      `protobuf:"bytes,6,rep,name=ext,proto3" json:"ext,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // 扩展（如跳转链接、操作按钮）
+	BroadcastId   string                 `protobuf:"bytes,1,opt,name=broadcast_id,json=broadcastId,proto3" json:"broadcast_id,omitempty"`
+	Title         string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Content       string                 `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`
+	Priority      string                 `protobuf:"bytes,4,opt,name=priority,proto3" json:"priority,omitempty"` // "high" | "normal" | "low"
+	ExpireAt      int64                  `protobuf:"varint,5,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
+	Ext           map[string]string      `protobuf:"bytes,6,rep,name=ext,proto3" json:"ext,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *SystemBroadcastPayload) Reset() {
-	*x = SystemBroadcastPayload{}
-	mi := &file_gateway_v1_client_proto_msgTypes[19]
+func (x *SystemBroadcast) Reset() {
+	*x = SystemBroadcast{}
+	mi := &file_gateway_v1_client_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *SystemBroadcastPayload) String() string {
+func (x *SystemBroadcast) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*SystemBroadcastPayload) ProtoMessage() {}
+func (*SystemBroadcast) ProtoMessage() {}
 
-func (x *SystemBroadcastPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[19]
+func (x *SystemBroadcast) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_client_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1377,79 +241,79 @@ func (x *SystemBroadcastPayload) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use SystemBroadcastPayload.ProtoReflect.Descriptor instead.
-func (*SystemBroadcastPayload) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{19}
+// Deprecated: Use SystemBroadcast.ProtoReflect.Descriptor instead.
+func (*SystemBroadcast) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_client_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *SystemBroadcastPayload) GetBroadcastId() string {
+func (x *SystemBroadcast) GetBroadcastId() string {
 	if x != nil {
 		return x.BroadcastId
 	}
 	return ""
 }
 
-func (x *SystemBroadcastPayload) GetTitle() string {
+func (x *SystemBroadcast) GetTitle() string {
 	if x != nil {
 		return x.Title
 	}
 	return ""
 }
 
-func (x *SystemBroadcastPayload) GetContent() string {
+func (x *SystemBroadcast) GetContent() string {
 	if x != nil {
 		return x.Content
 	}
 	return ""
 }
 
-func (x *SystemBroadcastPayload) GetPriority() string {
+func (x *SystemBroadcast) GetPriority() string {
 	if x != nil {
 		return x.Priority
 	}
 	return ""
 }
 
-func (x *SystemBroadcastPayload) GetExpireAt() int64 {
+func (x *SystemBroadcast) GetExpireAt() int64 {
 	if x != nil {
 		return x.ExpireAt
 	}
 	return 0
 }
 
-func (x *SystemBroadcastPayload) GetExt() map[string]string {
+func (x *SystemBroadcast) GetExt() map[string]string {
 	if x != nil {
 		return x.Ext
 	}
 	return nil
 }
 
-type AdminNoticePayload struct {
+type AdminNotice struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Code          ErrorCode              `protobuf:"varint,1,opt,name=code,proto3,enum=gateway.v1.ErrorCode" json:"code,omitempty"`                                                      // 通知类型（如 ERR_AUTH_EXPIRED | ERR_DEVICE_BLOCKED）
-	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`                                                                           // 人类可读说明
-	EffectiveAt   int64                  `protobuf:"varint,3,opt,name=effective_at,json=effectiveAt,proto3" json:"effective_at,omitempty"`                                               // 生效时间
-	ExpireAt      int64                  `protobuf:"varint,4,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`                                                        // 过期时间（0 表示永久）
-	Actions       map[string]string      `protobuf:"bytes,5,rep,name=actions,proto3" json:"actions,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // 建议操作（如 {"action": "relogin", "url": "..."}）
+	Code          ErrorCode              `protobuf:"varint,1,opt,name=code,proto3,enum=gateway.v1.ErrorCode" json:"code,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	EffectiveAt   int64                  `protobuf:"varint,3,opt,name=effective_at,json=effectiveAt,proto3" json:"effective_at,omitempty"`
+	ExpireAt      int64                  `protobuf:"varint,4,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
+	Actions       map[string]string      `protobuf:"bytes,5,rep,name=actions,proto3" json:"actions,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // 建议操作（如 {"action": "relogin"}）
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *AdminNoticePayload) Reset() {
-	*x = AdminNoticePayload{}
-	mi := &file_gateway_v1_client_proto_msgTypes[20]
+func (x *AdminNotice) Reset() {
+	*x = AdminNotice{}
+	mi := &file_gateway_v1_client_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AdminNoticePayload) String() string {
+func (x *AdminNotice) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AdminNoticePayload) ProtoMessage() {}
+func (*AdminNotice) ProtoMessage() {}
 
-func (x *AdminNoticePayload) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[20]
+func (x *AdminNotice) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_client_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1460,2184 +324,44 @@ func (x *AdminNoticePayload) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AdminNoticePayload.ProtoReflect.Descriptor instead.
-func (*AdminNoticePayload) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{20}
+// Deprecated: Use AdminNotice.ProtoReflect.Descriptor instead.
+func (*AdminNotice) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_client_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *AdminNoticePayload) GetCode() ErrorCode {
+func (x *AdminNotice) GetCode() ErrorCode {
 	if x != nil {
 		return x.Code
 	}
 	return ErrorCode_ERROR_CODE_UNSPECIFIED
 }
 
-func (x *AdminNoticePayload) GetMessage() string {
+func (x *AdminNotice) GetMessage() string {
 	if x != nil {
 		return x.Message
 	}
 	return ""
 }
 
-func (x *AdminNoticePayload) GetEffectiveAt() int64 {
+func (x *AdminNotice) GetEffectiveAt() int64 {
 	if x != nil {
 		return x.EffectiveAt
 	}
 	return 0
 }
 
-func (x *AdminNoticePayload) GetExpireAt() int64 {
+func (x *AdminNotice) GetExpireAt() int64 {
 	if x != nil {
 		return x.ExpireAt
 	}
 	return 0
 }
 
-func (x *AdminNoticePayload) GetActions() map[string]string {
+func (x *AdminNotice) GetActions() map[string]string {
 	if x != nil {
 		return x.Actions
 	}
 	return nil
-}
-
-// ── Presence ─────────────────────────────────────────────────────────────────
-type PresenceUpdate struct {
-	state         protoimpl.MessageState       `protogen:"open.v1"`
-	State         PresenceUpdate_PresenceState `protobuf:"varint,1,opt,name=state,proto3,enum=gateway.v1.PresenceUpdate_PresenceState" json:"state,omitempty"`
-	StatusText    string                       `protobuf:"bytes,2,opt,name=status_text,json=statusText,proto3" json:"status_text,omitempty"`
-	LastActiveAt  int64                        `protobuf:"varint,3,opt,name=last_active_at,json=lastActiveAt,proto3" json:"last_active_at,omitempty"`
-	Ext           map[string]string            `protobuf:"bytes,4,rep,name=ext,proto3" json:"ext,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *PresenceUpdate) Reset() {
-	*x = PresenceUpdate{}
-	mi := &file_gateway_v1_client_proto_msgTypes[21]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PresenceUpdate) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PresenceUpdate) ProtoMessage() {}
-
-func (x *PresenceUpdate) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[21]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PresenceUpdate.ProtoReflect.Descriptor instead.
-func (*PresenceUpdate) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{21}
-}
-
-func (x *PresenceUpdate) GetState() PresenceUpdate_PresenceState {
-	if x != nil {
-		return x.State
-	}
-	return PresenceUpdate_PRESENCE_STATE_UNSPECIFIED
-}
-
-func (x *PresenceUpdate) GetStatusText() string {
-	if x != nil {
-		return x.StatusText
-	}
-	return ""
-}
-
-func (x *PresenceUpdate) GetLastActiveAt() int64 {
-	if x != nil {
-		return x.LastActiveAt
-	}
-	return 0
-}
-
-func (x *PresenceUpdate) GetExt() map[string]string {
-	if x != nil {
-		return x.Ext
-	}
-	return nil
-}
-
-type PresenceSubscribeRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TargetUserIds []string               `protobuf:"bytes,1,rep,name=target_user_ids,json=targetUserIds,proto3" json:"target_user_ids,omitempty"`
-	Subscribe     bool                   `protobuf:"varint,2,opt,name=subscribe,proto3" json:"subscribe,omitempty"` // true = 订阅，false = 取消订阅
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *PresenceSubscribeRequest) Reset() {
-	*x = PresenceSubscribeRequest{}
-	mi := &file_gateway_v1_client_proto_msgTypes[22]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PresenceSubscribeRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PresenceSubscribeRequest) ProtoMessage() {}
-
-func (x *PresenceSubscribeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[22]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PresenceSubscribeRequest.ProtoReflect.Descriptor instead.
-func (*PresenceSubscribeRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{22}
-}
-
-func (x *PresenceSubscribeRequest) GetTargetUserIds() []string {
-	if x != nil {
-		return x.TargetUserIds
-	}
-	return nil
-}
-
-func (x *PresenceSubscribeRequest) GetSubscribe() bool {
-	if x != nil {
-		return x.Subscribe
-	}
-	return false
-}
-
-type PresenceSubscribeResponse struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Success         bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
-	ErrorCode       ErrorCode              `protobuf:"varint,2,opt,name=error_code,json=errorCode,proto3,enum=gateway.v1.ErrorCode" json:"error_code,omitempty"`
-	ErrorMessage    string                 `protobuf:"bytes,3,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
-	SubscribedCount int32                  `protobuf:"varint,4,opt,name=subscribed_count,json=subscribedCount,proto3" json:"subscribed_count,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *PresenceSubscribeResponse) Reset() {
-	*x = PresenceSubscribeResponse{}
-	mi := &file_gateway_v1_client_proto_msgTypes[23]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PresenceSubscribeResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PresenceSubscribeResponse) ProtoMessage() {}
-
-func (x *PresenceSubscribeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[23]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PresenceSubscribeResponse.ProtoReflect.Descriptor instead.
-func (*PresenceSubscribeResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{23}
-}
-
-func (x *PresenceSubscribeResponse) GetSuccess() bool {
-	if x != nil {
-		return x.Success
-	}
-	return false
-}
-
-func (x *PresenceSubscribeResponse) GetErrorCode() ErrorCode {
-	if x != nil {
-		return x.ErrorCode
-	}
-	return ErrorCode_ERROR_CODE_UNSPECIFIED
-}
-
-func (x *PresenceSubscribeResponse) GetErrorMessage() string {
-	if x != nil {
-		return x.ErrorMessage
-	}
-	return ""
-}
-
-func (x *PresenceSubscribeResponse) GetSubscribedCount() int32 {
-	if x != nil {
-		return x.SubscribedCount
-	}
-	return 0
-}
-
-// ── 订阅管理 ─────────────────────────────────────────────────────────────────
-type SubscribeRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Target:
-	//
-	//	*SubscribeRequest_Room
-	//	*SubscribeRequest_Topic
-	//	*SubscribeRequest_Group
-	Target        isSubscribeRequest_Target `protobuf_oneof:"target"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SubscribeRequest) Reset() {
-	*x = SubscribeRequest{}
-	mi := &file_gateway_v1_client_proto_msgTypes[24]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SubscribeRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SubscribeRequest) ProtoMessage() {}
-
-func (x *SubscribeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[24]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SubscribeRequest.ProtoReflect.Descriptor instead.
-func (*SubscribeRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{24}
-}
-
-func (x *SubscribeRequest) GetTarget() isSubscribeRequest_Target {
-	if x != nil {
-		return x.Target
-	}
-	return nil
-}
-
-func (x *SubscribeRequest) GetRoom() *SubscribeRequest_RoomTarget {
-	if x != nil {
-		if x, ok := x.Target.(*SubscribeRequest_Room); ok {
-			return x.Room
-		}
-	}
-	return nil
-}
-
-func (x *SubscribeRequest) GetTopic() *SubscribeRequest_TopicTarget {
-	if x != nil {
-		if x, ok := x.Target.(*SubscribeRequest_Topic); ok {
-			return x.Topic
-		}
-	}
-	return nil
-}
-
-func (x *SubscribeRequest) GetGroup() *SubscribeRequest_GroupTarget {
-	if x != nil {
-		if x, ok := x.Target.(*SubscribeRequest_Group); ok {
-			return x.Group
-		}
-	}
-	return nil
-}
-
-type isSubscribeRequest_Target interface {
-	isSubscribeRequest_Target()
-}
-
-type SubscribeRequest_Room struct {
-	Room *SubscribeRequest_RoomTarget `protobuf:"bytes,1,opt,name=room,proto3,oneof"`
-}
-
-type SubscribeRequest_Topic struct {
-	Topic *SubscribeRequest_TopicTarget `protobuf:"bytes,2,opt,name=topic,proto3,oneof"`
-}
-
-type SubscribeRequest_Group struct {
-	Group *SubscribeRequest_GroupTarget `protobuf:"bytes,3,opt,name=group,proto3,oneof"`
-}
-
-func (*SubscribeRequest_Room) isSubscribeRequest_Target() {}
-
-func (*SubscribeRequest_Topic) isSubscribeRequest_Target() {}
-
-func (*SubscribeRequest_Group) isSubscribeRequest_Target() {}
-
-type SubscribeResponse struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	Success           bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
-	ErrorCode         ErrorCode              `protobuf:"varint,2,opt,name=error_code,json=errorCode,proto3,enum=gateway.v1.ErrorCode" json:"error_code,omitempty"`
-	ErrorMessage      string                 `protobuf:"bytes,3,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
-	MemberCount       int64                  `protobuf:"varint,4,opt,name=member_count,json=memberCount,proto3" json:"member_count,omitempty"`
-	TotalMemberCount  int64                  `protobuf:"varint,5,opt,name=total_member_count,json=totalMemberCount,proto3" json:"total_member_count,omitempty"`
-	LastSeq           int64                  `protobuf:"varint,6,opt,name=last_seq,json=lastSeq,proto3" json:"last_seq,omitempty"`
-	MaxMessageHistory int32                  `protobuf:"varint,7,opt,name=max_message_history,json=maxMessageHistory,proto3" json:"max_message_history,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
-}
-
-func (x *SubscribeResponse) Reset() {
-	*x = SubscribeResponse{}
-	mi := &file_gateway_v1_client_proto_msgTypes[25]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SubscribeResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SubscribeResponse) ProtoMessage() {}
-
-func (x *SubscribeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[25]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SubscribeResponse.ProtoReflect.Descriptor instead.
-func (*SubscribeResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{25}
-}
-
-func (x *SubscribeResponse) GetSuccess() bool {
-	if x != nil {
-		return x.Success
-	}
-	return false
-}
-
-func (x *SubscribeResponse) GetErrorCode() ErrorCode {
-	if x != nil {
-		return x.ErrorCode
-	}
-	return ErrorCode_ERROR_CODE_UNSPECIFIED
-}
-
-func (x *SubscribeResponse) GetErrorMessage() string {
-	if x != nil {
-		return x.ErrorMessage
-	}
-	return ""
-}
-
-func (x *SubscribeResponse) GetMemberCount() int64 {
-	if x != nil {
-		return x.MemberCount
-	}
-	return 0
-}
-
-func (x *SubscribeResponse) GetTotalMemberCount() int64 {
-	if x != nil {
-		return x.TotalMemberCount
-	}
-	return 0
-}
-
-func (x *SubscribeResponse) GetLastSeq() int64 {
-	if x != nil {
-		return x.LastSeq
-	}
-	return 0
-}
-
-func (x *SubscribeResponse) GetMaxMessageHistory() int32 {
-	if x != nil {
-		return x.MaxMessageHistory
-	}
-	return 0
-}
-
-type UnsubscribeRequest struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Target:
-	//
-	//	*UnsubscribeRequest_Room
-	//	*UnsubscribeRequest_Topic
-	//	*UnsubscribeRequest_Group
-	Target        isUnsubscribeRequest_Target `protobuf_oneof:"target"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *UnsubscribeRequest) Reset() {
-	*x = UnsubscribeRequest{}
-	mi := &file_gateway_v1_client_proto_msgTypes[26]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UnsubscribeRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UnsubscribeRequest) ProtoMessage() {}
-
-func (x *UnsubscribeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[26]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UnsubscribeRequest.ProtoReflect.Descriptor instead.
-func (*UnsubscribeRequest) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{26}
-}
-
-func (x *UnsubscribeRequest) GetTarget() isUnsubscribeRequest_Target {
-	if x != nil {
-		return x.Target
-	}
-	return nil
-}
-
-func (x *UnsubscribeRequest) GetRoom() *SubscribeRequest_RoomTarget {
-	if x != nil {
-		if x, ok := x.Target.(*UnsubscribeRequest_Room); ok {
-			return x.Room
-		}
-	}
-	return nil
-}
-
-func (x *UnsubscribeRequest) GetTopic() *SubscribeRequest_TopicTarget {
-	if x != nil {
-		if x, ok := x.Target.(*UnsubscribeRequest_Topic); ok {
-			return x.Topic
-		}
-	}
-	return nil
-}
-
-func (x *UnsubscribeRequest) GetGroup() *SubscribeRequest_GroupTarget {
-	if x != nil {
-		if x, ok := x.Target.(*UnsubscribeRequest_Group); ok {
-			return x.Group
-		}
-	}
-	return nil
-}
-
-type isUnsubscribeRequest_Target interface {
-	isUnsubscribeRequest_Target()
-}
-
-type UnsubscribeRequest_Room struct {
-	Room *SubscribeRequest_RoomTarget `protobuf:"bytes,1,opt,name=room,proto3,oneof"`
-}
-
-type UnsubscribeRequest_Topic struct {
-	Topic *SubscribeRequest_TopicTarget `protobuf:"bytes,2,opt,name=topic,proto3,oneof"`
-}
-
-type UnsubscribeRequest_Group struct {
-	Group *SubscribeRequest_GroupTarget `protobuf:"bytes,3,opt,name=group,proto3,oneof"`
-}
-
-func (*UnsubscribeRequest_Room) isUnsubscribeRequest_Target() {}
-
-func (*UnsubscribeRequest_Topic) isUnsubscribeRequest_Target() {}
-
-func (*UnsubscribeRequest_Group) isUnsubscribeRequest_Target() {}
-
-type UnsubscribeResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
-	ErrorCode     ErrorCode              `protobuf:"varint,2,opt,name=error_code,json=errorCode,proto3,enum=gateway.v1.ErrorCode" json:"error_code,omitempty"`
-	ErrorMessage  string                 `protobuf:"bytes,3,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *UnsubscribeResponse) Reset() {
-	*x = UnsubscribeResponse{}
-	mi := &file_gateway_v1_client_proto_msgTypes[27]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UnsubscribeResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UnsubscribeResponse) ProtoMessage() {}
-
-func (x *UnsubscribeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[27]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use UnsubscribeResponse.ProtoReflect.Descriptor instead.
-func (*UnsubscribeResponse) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{27}
-}
-
-func (x *UnsubscribeResponse) GetSuccess() bool {
-	if x != nil {
-		return x.Success
-	}
-	return false
-}
-
-func (x *UnsubscribeResponse) GetErrorCode() ErrorCode {
-	if x != nil {
-		return x.ErrorCode
-	}
-	return ErrorCode_ERROR_CODE_UNSPECIFIED
-}
-
-func (x *UnsubscribeResponse) GetErrorMessage() string {
-	if x != nil {
-		return x.ErrorMessage
-	}
-	return ""
-}
-
-// ═════════════════════════════════════════════════════════════════════════════
-// 业务面 Payload：WellKnownPayload（用于 BUSINESS 帧）
-// ═════════════════════════════════════════════════════════════════════════════
-type WellKnownPayload struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Types that are valid to be assigned to Content:
-	//
-	//	*WellKnownPayload_ImChat
-	//	*WellKnownPayload_ImReceipt
-	//	*WellKnownPayload_ImRevoke
-	//	*WellKnownPayload_ImTyping
-	//	*WellKnownPayload_ImReaction
-	//	*WellKnownPayload_ImPin
-	//	*WellKnownPayload_PushNotify
-	//	*WellKnownPayload_LiveComment
-	//	*WellKnownPayload_LiveGift
-	//	*WellKnownPayload_LiveSignal
-	//	*WellKnownPayload_LiveState
-	//	*WellKnownPayload_CallOffer
-	//	*WellKnownPayload_CallAnswer
-	//	*WellKnownPayload_CallIce
-	//	*WellKnownPayload_CallHangup
-	//	*WellKnownPayload_CallModify
-	//	*WellKnownPayload_Raw
-	Content       isWellKnownPayload_Content `protobuf_oneof:"content"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *WellKnownPayload) Reset() {
-	*x = WellKnownPayload{}
-	mi := &file_gateway_v1_client_proto_msgTypes[28]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *WellKnownPayload) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*WellKnownPayload) ProtoMessage() {}
-
-func (x *WellKnownPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[28]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use WellKnownPayload.ProtoReflect.Descriptor instead.
-func (*WellKnownPayload) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{28}
-}
-
-func (x *WellKnownPayload) GetContent() isWellKnownPayload_Content {
-	if x != nil {
-		return x.Content
-	}
-	return nil
-}
-
-func (x *WellKnownPayload) GetImChat() *IMChat {
-	if x != nil {
-		if x, ok := x.Content.(*WellKnownPayload_ImChat); ok {
-			return x.ImChat
-		}
-	}
-	return nil
-}
-
-func (x *WellKnownPayload) GetImReceipt() *IMReceipt {
-	if x != nil {
-		if x, ok := x.Content.(*WellKnownPayload_ImReceipt); ok {
-			return x.ImReceipt
-		}
-	}
-	return nil
-}
-
-func (x *WellKnownPayload) GetImRevoke() *IMRevoke {
-	if x != nil {
-		if x, ok := x.Content.(*WellKnownPayload_ImRevoke); ok {
-			return x.ImRevoke
-		}
-	}
-	return nil
-}
-
-func (x *WellKnownPayload) GetImTyping() *IMTyping {
-	if x != nil {
-		if x, ok := x.Content.(*WellKnownPayload_ImTyping); ok {
-			return x.ImTyping
-		}
-	}
-	return nil
-}
-
-func (x *WellKnownPayload) GetImReaction() *IMReaction {
-	if x != nil {
-		if x, ok := x.Content.(*WellKnownPayload_ImReaction); ok {
-			return x.ImReaction
-		}
-	}
-	return nil
-}
-
-func (x *WellKnownPayload) GetImPin() *IMPin {
-	if x != nil {
-		if x, ok := x.Content.(*WellKnownPayload_ImPin); ok {
-			return x.ImPin
-		}
-	}
-	return nil
-}
-
-func (x *WellKnownPayload) GetPushNotify() *PushNotify {
-	if x != nil {
-		if x, ok := x.Content.(*WellKnownPayload_PushNotify); ok {
-			return x.PushNotify
-		}
-	}
-	return nil
-}
-
-func (x *WellKnownPayload) GetLiveComment() *LiveComment {
-	if x != nil {
-		if x, ok := x.Content.(*WellKnownPayload_LiveComment); ok {
-			return x.LiveComment
-		}
-	}
-	return nil
-}
-
-func (x *WellKnownPayload) GetLiveGift() *LiveGift {
-	if x != nil {
-		if x, ok := x.Content.(*WellKnownPayload_LiveGift); ok {
-			return x.LiveGift
-		}
-	}
-	return nil
-}
-
-func (x *WellKnownPayload) GetLiveSignal() *LiveSignal {
-	if x != nil {
-		if x, ok := x.Content.(*WellKnownPayload_LiveSignal); ok {
-			return x.LiveSignal
-		}
-	}
-	return nil
-}
-
-func (x *WellKnownPayload) GetLiveState() *LiveState {
-	if x != nil {
-		if x, ok := x.Content.(*WellKnownPayload_LiveState); ok {
-			return x.LiveState
-		}
-	}
-	return nil
-}
-
-func (x *WellKnownPayload) GetCallOffer() *CallOffer {
-	if x != nil {
-		if x, ok := x.Content.(*WellKnownPayload_CallOffer); ok {
-			return x.CallOffer
-		}
-	}
-	return nil
-}
-
-func (x *WellKnownPayload) GetCallAnswer() *CallAnswer {
-	if x != nil {
-		if x, ok := x.Content.(*WellKnownPayload_CallAnswer); ok {
-			return x.CallAnswer
-		}
-	}
-	return nil
-}
-
-func (x *WellKnownPayload) GetCallIce() *CallICE {
-	if x != nil {
-		if x, ok := x.Content.(*WellKnownPayload_CallIce); ok {
-			return x.CallIce
-		}
-	}
-	return nil
-}
-
-func (x *WellKnownPayload) GetCallHangup() *CallHangup {
-	if x != nil {
-		if x, ok := x.Content.(*WellKnownPayload_CallHangup); ok {
-			return x.CallHangup
-		}
-	}
-	return nil
-}
-
-func (x *WellKnownPayload) GetCallModify() *CallModify {
-	if x != nil {
-		if x, ok := x.Content.(*WellKnownPayload_CallModify); ok {
-			return x.CallModify
-		}
-	}
-	return nil
-}
-
-func (x *WellKnownPayload) GetRaw() []byte {
-	if x != nil {
-		if x, ok := x.Content.(*WellKnownPayload_Raw); ok {
-			return x.Raw
-		}
-	}
-	return nil
-}
-
-type isWellKnownPayload_Content interface {
-	isWellKnownPayload_Content()
-}
-
-type WellKnownPayload_ImChat struct {
-	// IM 域
-	ImChat *IMChat `protobuf:"bytes,1,opt,name=im_chat,json=imChat,proto3,oneof"`
-}
-
-type WellKnownPayload_ImReceipt struct {
-	ImReceipt *IMReceipt `protobuf:"bytes,2,opt,name=im_receipt,json=imReceipt,proto3,oneof"`
-}
-
-type WellKnownPayload_ImRevoke struct {
-	ImRevoke *IMRevoke `protobuf:"bytes,3,opt,name=im_revoke,json=imRevoke,proto3,oneof"`
-}
-
-type WellKnownPayload_ImTyping struct {
-	ImTyping *IMTyping `protobuf:"bytes,4,opt,name=im_typing,json=imTyping,proto3,oneof"`
-}
-
-type WellKnownPayload_ImReaction struct {
-	ImReaction *IMReaction `protobuf:"bytes,5,opt,name=im_reaction,json=imReaction,proto3,oneof"`
-}
-
-type WellKnownPayload_ImPin struct {
-	ImPin *IMPin `protobuf:"bytes,6,opt,name=im_pin,json=imPin,proto3,oneof"`
-}
-
-type WellKnownPayload_PushNotify struct {
-	// Push 域
-	PushNotify *PushNotify `protobuf:"bytes,10,opt,name=push_notify,json=pushNotify,proto3,oneof"`
-}
-
-type WellKnownPayload_LiveComment struct {
-	// Live 域
-	LiveComment *LiveComment `protobuf:"bytes,20,opt,name=live_comment,json=liveComment,proto3,oneof"`
-}
-
-type WellKnownPayload_LiveGift struct {
-	LiveGift *LiveGift `protobuf:"bytes,21,opt,name=live_gift,json=liveGift,proto3,oneof"`
-}
-
-type WellKnownPayload_LiveSignal struct {
-	LiveSignal *LiveSignal `protobuf:"bytes,22,opt,name=live_signal,json=liveSignal,proto3,oneof"`
-}
-
-type WellKnownPayload_LiveState struct {
-	LiveState *LiveState `protobuf:"bytes,23,opt,name=live_state,json=liveState,proto3,oneof"`
-}
-
-type WellKnownPayload_CallOffer struct {
-	// Call 域
-	CallOffer *CallOffer `protobuf:"bytes,30,opt,name=call_offer,json=callOffer,proto3,oneof"`
-}
-
-type WellKnownPayload_CallAnswer struct {
-	CallAnswer *CallAnswer `protobuf:"bytes,31,opt,name=call_answer,json=callAnswer,proto3,oneof"`
-}
-
-type WellKnownPayload_CallIce struct {
-	CallIce *CallICE `protobuf:"bytes,32,opt,name=call_ice,json=callIce,proto3,oneof"`
-}
-
-type WellKnownPayload_CallHangup struct {
-	CallHangup *CallHangup `protobuf:"bytes,33,opt,name=call_hangup,json=callHangup,proto3,oneof"`
-}
-
-type WellKnownPayload_CallModify struct {
-	CallModify *CallModify `protobuf:"bytes,34,opt,name=call_modify,json=callModify,proto3,oneof"`
-}
-
-type WellKnownPayload_Raw struct {
-	// 透传原始字节（业务私有协议）
-	Raw []byte `protobuf:"bytes,99,opt,name=raw,proto3,oneof"`
-}
-
-func (*WellKnownPayload_ImChat) isWellKnownPayload_Content() {}
-
-func (*WellKnownPayload_ImReceipt) isWellKnownPayload_Content() {}
-
-func (*WellKnownPayload_ImRevoke) isWellKnownPayload_Content() {}
-
-func (*WellKnownPayload_ImTyping) isWellKnownPayload_Content() {}
-
-func (*WellKnownPayload_ImReaction) isWellKnownPayload_Content() {}
-
-func (*WellKnownPayload_ImPin) isWellKnownPayload_Content() {}
-
-func (*WellKnownPayload_PushNotify) isWellKnownPayload_Content() {}
-
-func (*WellKnownPayload_LiveComment) isWellKnownPayload_Content() {}
-
-func (*WellKnownPayload_LiveGift) isWellKnownPayload_Content() {}
-
-func (*WellKnownPayload_LiveSignal) isWellKnownPayload_Content() {}
-
-func (*WellKnownPayload_LiveState) isWellKnownPayload_Content() {}
-
-func (*WellKnownPayload_CallOffer) isWellKnownPayload_Content() {}
-
-func (*WellKnownPayload_CallAnswer) isWellKnownPayload_Content() {}
-
-func (*WellKnownPayload_CallIce) isWellKnownPayload_Content() {}
-
-func (*WellKnownPayload_CallHangup) isWellKnownPayload_Content() {}
-
-func (*WellKnownPayload_CallModify) isWellKnownPayload_Content() {}
-
-func (*WellKnownPayload_Raw) isWellKnownPayload_Content() {}
-
-// ═════════════════════════════════════════════════════════════════════════════
-// IM 域 Payload
-// ═════════════════════════════════════════════════════════════════════════════
-type IMChat struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ConvId        string                 `protobuf:"bytes,1,opt,name=conv_id,json=convId,proto3" json:"conv_id,omitempty"`                                                       // 会话 ID（单聊 = hash(uid1,uid2)，群聊 = group_id）
-	ContentType   string                 `protobuf:"bytes,2,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"`                                        // "text" | "image" | "video" | "audio" | "file" | "location" | "custom"
-	Content       []byte                 `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`                                                                   // 按 content_type 解析的实际内容
-	Mentions      []string               `protobuf:"bytes,4,rep,name=mentions,proto3" json:"mentions,omitempty"`                                                                 // 被 @ 的 uid 列表
-	ReplyTo       string                 `protobuf:"bytes,5,opt,name=reply_to,json=replyTo,proto3" json:"reply_to,omitempty"`                                                    // 回复的消息 msg_id
-	Ext           map[string]string      `protobuf:"bytes,6,rep,name=ext,proto3" json:"ext,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // 扩展（如表情、翻译结果）
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *IMChat) Reset() {
-	*x = IMChat{}
-	mi := &file_gateway_v1_client_proto_msgTypes[29]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *IMChat) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*IMChat) ProtoMessage() {}
-
-func (x *IMChat) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[29]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use IMChat.ProtoReflect.Descriptor instead.
-func (*IMChat) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{29}
-}
-
-func (x *IMChat) GetConvId() string {
-	if x != nil {
-		return x.ConvId
-	}
-	return ""
-}
-
-func (x *IMChat) GetContentType() string {
-	if x != nil {
-		return x.ContentType
-	}
-	return ""
-}
-
-func (x *IMChat) GetContent() []byte {
-	if x != nil {
-		return x.Content
-	}
-	return nil
-}
-
-func (x *IMChat) GetMentions() []string {
-	if x != nil {
-		return x.Mentions
-	}
-	return nil
-}
-
-func (x *IMChat) GetReplyTo() string {
-	if x != nil {
-		return x.ReplyTo
-	}
-	return ""
-}
-
-func (x *IMChat) GetExt() map[string]string {
-	if x != nil {
-		return x.Ext
-	}
-	return nil
-}
-
-type IMReceipt struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ConvId        string                 `protobuf:"bytes,1,opt,name=conv_id,json=convId,proto3" json:"conv_id,omitempty"`
-	ReceiptType   string                 `protobuf:"bytes,2,opt,name=receipt_type,json=receiptType,proto3" json:"receipt_type,omitempty"` // "delivered" | "read"
-	MsgIds        []string               `protobuf:"bytes,3,rep,name=msg_ids,json=msgIds,proto3" json:"msg_ids,omitempty"`
-	ReadSeq       uint64                 `protobuf:"varint,4,opt,name=read_seq,json=readSeq,proto3" json:"read_seq,omitempty"` // 已读水位线
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *IMReceipt) Reset() {
-	*x = IMReceipt{}
-	mi := &file_gateway_v1_client_proto_msgTypes[30]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *IMReceipt) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*IMReceipt) ProtoMessage() {}
-
-func (x *IMReceipt) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[30]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use IMReceipt.ProtoReflect.Descriptor instead.
-func (*IMReceipt) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{30}
-}
-
-func (x *IMReceipt) GetConvId() string {
-	if x != nil {
-		return x.ConvId
-	}
-	return ""
-}
-
-func (x *IMReceipt) GetReceiptType() string {
-	if x != nil {
-		return x.ReceiptType
-	}
-	return ""
-}
-
-func (x *IMReceipt) GetMsgIds() []string {
-	if x != nil {
-		return x.MsgIds
-	}
-	return nil
-}
-
-func (x *IMReceipt) GetReadSeq() uint64 {
-	if x != nil {
-		return x.ReadSeq
-	}
-	return 0
-}
-
-type IMRevoke struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ConvId        string                 `protobuf:"bytes,1,opt,name=conv_id,json=convId,proto3" json:"conv_id,omitempty"`
-	MsgId         string                 `protobuf:"bytes,2,opt,name=msg_id,json=msgId,proto3" json:"msg_id,omitempty"`
-	Reason        string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"` // 撤回原因（可选）
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *IMRevoke) Reset() {
-	*x = IMRevoke{}
-	mi := &file_gateway_v1_client_proto_msgTypes[31]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *IMRevoke) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*IMRevoke) ProtoMessage() {}
-
-func (x *IMRevoke) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[31]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use IMRevoke.ProtoReflect.Descriptor instead.
-func (*IMRevoke) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{31}
-}
-
-func (x *IMRevoke) GetConvId() string {
-	if x != nil {
-		return x.ConvId
-	}
-	return ""
-}
-
-func (x *IMRevoke) GetMsgId() string {
-	if x != nil {
-		return x.MsgId
-	}
-	return ""
-}
-
-func (x *IMRevoke) GetReason() string {
-	if x != nil {
-		return x.Reason
-	}
-	return ""
-}
-
-type IMTyping struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ConvId        string                 `protobuf:"bytes,1,opt,name=conv_id,json=convId,proto3" json:"conv_id,omitempty"`
-	ContentType   string                 `protobuf:"bytes,2,opt,name=content_type,json=contentType,proto3" json:"content_type,omitempty"` // "text" | "voice" | ""（仅展示"正在输入"）
-	DurationMs    int32                  `protobuf:"varint,3,opt,name=duration_ms,json=durationMs,proto3" json:"duration_ms,omitempty"`   // 语音消息预计时长（如果是语音输入）
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *IMTyping) Reset() {
-	*x = IMTyping{}
-	mi := &file_gateway_v1_client_proto_msgTypes[32]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *IMTyping) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*IMTyping) ProtoMessage() {}
-
-func (x *IMTyping) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[32]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use IMTyping.ProtoReflect.Descriptor instead.
-func (*IMTyping) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{32}
-}
-
-func (x *IMTyping) GetConvId() string {
-	if x != nil {
-		return x.ConvId
-	}
-	return ""
-}
-
-func (x *IMTyping) GetContentType() string {
-	if x != nil {
-		return x.ContentType
-	}
-	return ""
-}
-
-func (x *IMTyping) GetDurationMs() int32 {
-	if x != nil {
-		return x.DurationMs
-	}
-	return 0
-}
-
-type IMReaction struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ConvId        string                 `protobuf:"bytes,1,opt,name=conv_id,json=convId,proto3" json:"conv_id,omitempty"`
-	MsgId         string                 `protobuf:"bytes,2,opt,name=msg_id,json=msgId,proto3" json:"msg_id,omitempty"`
-	Reaction      string                 `protobuf:"bytes,3,opt,name=reaction,proto3" json:"reaction,omitempty"`         // 表情 Unicode 或自定义标识
-	IsAdd         bool                   `protobuf:"varint,4,opt,name=is_add,json=isAdd,proto3" json:"is_add,omitempty"` // true = 添加，false = 移除
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *IMReaction) Reset() {
-	*x = IMReaction{}
-	mi := &file_gateway_v1_client_proto_msgTypes[33]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *IMReaction) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*IMReaction) ProtoMessage() {}
-
-func (x *IMReaction) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[33]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use IMReaction.ProtoReflect.Descriptor instead.
-func (*IMReaction) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{33}
-}
-
-func (x *IMReaction) GetConvId() string {
-	if x != nil {
-		return x.ConvId
-	}
-	return ""
-}
-
-func (x *IMReaction) GetMsgId() string {
-	if x != nil {
-		return x.MsgId
-	}
-	return ""
-}
-
-func (x *IMReaction) GetReaction() string {
-	if x != nil {
-		return x.Reaction
-	}
-	return ""
-}
-
-func (x *IMReaction) GetIsAdd() bool {
-	if x != nil {
-		return x.IsAdd
-	}
-	return false
-}
-
-type IMPin struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ConvId        string                 `protobuf:"bytes,1,opt,name=conv_id,json=convId,proto3" json:"conv_id,omitempty"`
-	MsgId         string                 `protobuf:"bytes,2,opt,name=msg_id,json=msgId,proto3" json:"msg_id,omitempty"`
-	IsPin         bool                   `protobuf:"varint,3,opt,name=is_pin,json=isPin,proto3" json:"is_pin,omitempty"` // true = 置顶，false = 取消置顶
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *IMPin) Reset() {
-	*x = IMPin{}
-	mi := &file_gateway_v1_client_proto_msgTypes[34]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *IMPin) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*IMPin) ProtoMessage() {}
-
-func (x *IMPin) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[34]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use IMPin.ProtoReflect.Descriptor instead.
-func (*IMPin) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{34}
-}
-
-func (x *IMPin) GetConvId() string {
-	if x != nil {
-		return x.ConvId
-	}
-	return ""
-}
-
-func (x *IMPin) GetMsgId() string {
-	if x != nil {
-		return x.MsgId
-	}
-	return ""
-}
-
-func (x *IMPin) GetIsPin() bool {
-	if x != nil {
-		return x.IsPin
-	}
-	return false
-}
-
-// ═════════════════════════════════════════════════════════════════════════════
-// Push 域 Payload
-// ═════════════════════════════════════════════════════════════════════════════
-type PushNotify struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Title         string                 `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
-	Body          string                 `protobuf:"bytes,2,opt,name=body,proto3" json:"body,omitempty"`
-	Sound         string                 `protobuf:"bytes,3,opt,name=sound,proto3" json:"sound,omitempty"`                                                                         // "default" | "" | 自定义音效
-	Badge         int32                  `protobuf:"varint,4,opt,name=badge,proto3" json:"badge,omitempty"`                                                                        // 角标数，-1 表示不变
-	Data          map[string]string      `protobuf:"bytes,5,rep,name=data,proto3" json:"data,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // 后台静默处理数据
-	Priority      string                 `protobuf:"bytes,6,opt,name=priority,proto3" json:"priority,omitempty"`                                                                   // "high" | "normal"
-	CollapseKey   string                 `protobuf:"bytes,7,opt,name=collapse_key,json=collapseKey,proto3" json:"collapse_key,omitempty"`                                          // 相同 key 的未投递 push 会被覆盖
-	ChannelId     string                 `protobuf:"bytes,8,opt,name=channel_id,json=channelId,proto3" json:"channel_id,omitempty"`                                                // Android 通知渠道 ID
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *PushNotify) Reset() {
-	*x = PushNotify{}
-	mi := &file_gateway_v1_client_proto_msgTypes[35]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PushNotify) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PushNotify) ProtoMessage() {}
-
-func (x *PushNotify) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[35]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use PushNotify.ProtoReflect.Descriptor instead.
-func (*PushNotify) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{35}
-}
-
-func (x *PushNotify) GetTitle() string {
-	if x != nil {
-		return x.Title
-	}
-	return ""
-}
-
-func (x *PushNotify) GetBody() string {
-	if x != nil {
-		return x.Body
-	}
-	return ""
-}
-
-func (x *PushNotify) GetSound() string {
-	if x != nil {
-		return x.Sound
-	}
-	return ""
-}
-
-func (x *PushNotify) GetBadge() int32 {
-	if x != nil {
-		return x.Badge
-	}
-	return 0
-}
-
-func (x *PushNotify) GetData() map[string]string {
-	if x != nil {
-		return x.Data
-	}
-	return nil
-}
-
-func (x *PushNotify) GetPriority() string {
-	if x != nil {
-		return x.Priority
-	}
-	return ""
-}
-
-func (x *PushNotify) GetCollapseKey() string {
-	if x != nil {
-		return x.CollapseKey
-	}
-	return ""
-}
-
-func (x *PushNotify) GetChannelId() string {
-	if x != nil {
-		return x.ChannelId
-	}
-	return ""
-}
-
-// ═════════════════════════════════════════════════════════════════════════════
-// Live 域 Payload
-// ═════════════════════════════════════════════════════════════════════════════
-type LiveComment struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RoomId        string                 `protobuf:"bytes,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
-	Content       string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
-	Color         string                 `protobuf:"bytes,3,opt,name=color,proto3" json:"color,omitempty"`  // 付费彩色弹幕 hex 颜色值
-	Level         int32                  `protobuf:"varint,4,opt,name=level,proto3" json:"level,omitempty"` // 用户等级（影响弹幕样式/速度）
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *LiveComment) Reset() {
-	*x = LiveComment{}
-	mi := &file_gateway_v1_client_proto_msgTypes[36]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LiveComment) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LiveComment) ProtoMessage() {}
-
-func (x *LiveComment) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[36]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LiveComment.ProtoReflect.Descriptor instead.
-func (*LiveComment) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{36}
-}
-
-func (x *LiveComment) GetRoomId() string {
-	if x != nil {
-		return x.RoomId
-	}
-	return ""
-}
-
-func (x *LiveComment) GetContent() string {
-	if x != nil {
-		return x.Content
-	}
-	return ""
-}
-
-func (x *LiveComment) GetColor() string {
-	if x != nil {
-		return x.Color
-	}
-	return ""
-}
-
-func (x *LiveComment) GetLevel() int32 {
-	if x != nil {
-		return x.Level
-	}
-	return 0
-}
-
-type LiveGift struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RoomId        string                 `protobuf:"bytes,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
-	GiftId        string                 `protobuf:"bytes,2,opt,name=gift_id,json=giftId,proto3" json:"gift_id,omitempty"`
-	GiftName      string                 `protobuf:"bytes,3,opt,name=gift_name,json=giftName,proto3" json:"gift_name,omitempty"`
-	Count         int32                  `protobuf:"varint,4,opt,name=count,proto3" json:"count,omitempty"`
-	TotalCost     int64                  `protobuf:"varint,5,opt,name=total_cost,json=totalCost,proto3" json:"total_cost,omitempty"`
-	ComboId       string                 `protobuf:"bytes,6,opt,name=combo_id,json=comboId,proto3" json:"combo_id,omitempty"` // 连击 ID，相同 combo_id 的礼物客户端合并展示
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *LiveGift) Reset() {
-	*x = LiveGift{}
-	mi := &file_gateway_v1_client_proto_msgTypes[37]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LiveGift) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LiveGift) ProtoMessage() {}
-
-func (x *LiveGift) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[37]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LiveGift.ProtoReflect.Descriptor instead.
-func (*LiveGift) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{37}
-}
-
-func (x *LiveGift) GetRoomId() string {
-	if x != nil {
-		return x.RoomId
-	}
-	return ""
-}
-
-func (x *LiveGift) GetGiftId() string {
-	if x != nil {
-		return x.GiftId
-	}
-	return ""
-}
-
-func (x *LiveGift) GetGiftName() string {
-	if x != nil {
-		return x.GiftName
-	}
-	return ""
-}
-
-func (x *LiveGift) GetCount() int32 {
-	if x != nil {
-		return x.Count
-	}
-	return 0
-}
-
-func (x *LiveGift) GetTotalCost() int64 {
-	if x != nil {
-		return x.TotalCost
-	}
-	return 0
-}
-
-func (x *LiveGift) GetComboId() string {
-	if x != nil {
-		return x.ComboId
-	}
-	return ""
-}
-
-type LiveSignal struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RoomId        string                 `protobuf:"bytes,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
-	SignalType    string                 `protobuf:"bytes,2,opt,name=signal_type,json=signalType,proto3" json:"signal_type,omitempty"` // "pk_start" | "pk_end" | "mute_all" | "ban_chat" | "layout_change"
-	Payload       []byte                 `protobuf:"bytes,3,opt,name=payload,proto3" json:"payload,omitempty"`                         // 信号具体数据（JSON 或 protobuf）
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *LiveSignal) Reset() {
-	*x = LiveSignal{}
-	mi := &file_gateway_v1_client_proto_msgTypes[38]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LiveSignal) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LiveSignal) ProtoMessage() {}
-
-func (x *LiveSignal) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[38]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LiveSignal.ProtoReflect.Descriptor instead.
-func (*LiveSignal) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{38}
-}
-
-func (x *LiveSignal) GetRoomId() string {
-	if x != nil {
-		return x.RoomId
-	}
-	return ""
-}
-
-func (x *LiveSignal) GetSignalType() string {
-	if x != nil {
-		return x.SignalType
-	}
-	return ""
-}
-
-func (x *LiveSignal) GetPayload() []byte {
-	if x != nil {
-		return x.Payload
-	}
-	return nil
-}
-
-type LiveState struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RoomId        string                 `protobuf:"bytes,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
-	State         string                 `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`                                 // "live" | "paused" | "ended" | "banned"
-	ViewerCount   int64                  `protobuf:"varint,3,opt,name=viewer_count,json=viewerCount,proto3" json:"viewer_count,omitempty"` // 当前在线观众数
-	LikeCount     int64                  `protobuf:"varint,4,opt,name=like_count,json=likeCount,proto3" json:"like_count,omitempty"`       // 累计点赞数
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *LiveState) Reset() {
-	*x = LiveState{}
-	mi := &file_gateway_v1_client_proto_msgTypes[39]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LiveState) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LiveState) ProtoMessage() {}
-
-func (x *LiveState) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[39]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LiveState.ProtoReflect.Descriptor instead.
-func (*LiveState) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{39}
-}
-
-func (x *LiveState) GetRoomId() string {
-	if x != nil {
-		return x.RoomId
-	}
-	return ""
-}
-
-func (x *LiveState) GetState() string {
-	if x != nil {
-		return x.State
-	}
-	return ""
-}
-
-func (x *LiveState) GetViewerCount() int64 {
-	if x != nil {
-		return x.ViewerCount
-	}
-	return 0
-}
-
-func (x *LiveState) GetLikeCount() int64 {
-	if x != nil {
-		return x.LikeCount
-	}
-	return 0
-}
-
-// ═════════════════════════════════════════════════════════════════════════════
-// Call 域 Payload（音视频通话）
-// ═════════════════════════════════════════════════════════════════════════════
-type CallOffer struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	CallId        string                 `protobuf:"bytes,1,opt,name=call_id,json=callId,proto3" json:"call_id,omitempty"`                                                       // 通话唯一 ID
-	CalleeId      string                 `protobuf:"bytes,2,opt,name=callee_id,json=calleeId,proto3" json:"callee_id,omitempty"`                                                 // 被叫用户 ID
-	CallType      string                 `protobuf:"bytes,3,opt,name=call_type,json=callType,proto3" json:"call_type,omitempty"`                                                 // "audio" | "video" | "screen"
-	Sdp           []byte                 `protobuf:"bytes,4,opt,name=sdp,proto3" json:"sdp,omitempty"`                                                                           // WebRTC Offer SDP
-	Ext           map[string]string      `protobuf:"bytes,5,rep,name=ext,proto3" json:"ext,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // 扩展（如群聊通话的成员列表）
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CallOffer) Reset() {
-	*x = CallOffer{}
-	mi := &file_gateway_v1_client_proto_msgTypes[40]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CallOffer) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CallOffer) ProtoMessage() {}
-
-func (x *CallOffer) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[40]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CallOffer.ProtoReflect.Descriptor instead.
-func (*CallOffer) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{40}
-}
-
-func (x *CallOffer) GetCallId() string {
-	if x != nil {
-		return x.CallId
-	}
-	return ""
-}
-
-func (x *CallOffer) GetCalleeId() string {
-	if x != nil {
-		return x.CalleeId
-	}
-	return ""
-}
-
-func (x *CallOffer) GetCallType() string {
-	if x != nil {
-		return x.CallType
-	}
-	return ""
-}
-
-func (x *CallOffer) GetSdp() []byte {
-	if x != nil {
-		return x.Sdp
-	}
-	return nil
-}
-
-func (x *CallOffer) GetExt() map[string]string {
-	if x != nil {
-		return x.Ext
-	}
-	return nil
-}
-
-type CallAnswer struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	CallId        string                 `protobuf:"bytes,1,opt,name=call_id,json=callId,proto3" json:"call_id,omitempty"`
-	Accepted      bool                   `protobuf:"varint,2,opt,name=accepted,proto3" json:"accepted,omitempty"` // true = 接听，false = 拒绝
-	Reason        string                 `protobuf:"bytes,3,opt,name=reason,proto3" json:"reason,omitempty"`      // 拒绝原因（如 "busy" | "decline"）
-	Sdp           []byte                 `protobuf:"bytes,4,opt,name=sdp,proto3" json:"sdp,omitempty"`            // WebRTC Answer SDP（接听时）
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CallAnswer) Reset() {
-	*x = CallAnswer{}
-	mi := &file_gateway_v1_client_proto_msgTypes[41]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CallAnswer) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CallAnswer) ProtoMessage() {}
-
-func (x *CallAnswer) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[41]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CallAnswer.ProtoReflect.Descriptor instead.
-func (*CallAnswer) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{41}
-}
-
-func (x *CallAnswer) GetCallId() string {
-	if x != nil {
-		return x.CallId
-	}
-	return ""
-}
-
-func (x *CallAnswer) GetAccepted() bool {
-	if x != nil {
-		return x.Accepted
-	}
-	return false
-}
-
-func (x *CallAnswer) GetReason() string {
-	if x != nil {
-		return x.Reason
-	}
-	return ""
-}
-
-func (x *CallAnswer) GetSdp() []byte {
-	if x != nil {
-		return x.Sdp
-	}
-	return nil
-}
-
-type CallICE struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	CallId        string                 `protobuf:"bytes,1,opt,name=call_id,json=callId,proto3" json:"call_id,omitempty"`
-	Candidate     string                 `protobuf:"bytes,2,opt,name=candidate,proto3" json:"candidate,omitempty"` // ICE candidate
-	SdpMid        string                 `protobuf:"bytes,3,opt,name=sdp_mid,json=sdpMid,proto3" json:"sdp_mid,omitempty"`
-	SdpMlineIndex int32                  `protobuf:"varint,4,opt,name=sdp_mline_index,json=sdpMlineIndex,proto3" json:"sdp_mline_index,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CallICE) Reset() {
-	*x = CallICE{}
-	mi := &file_gateway_v1_client_proto_msgTypes[42]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CallICE) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CallICE) ProtoMessage() {}
-
-func (x *CallICE) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[42]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CallICE.ProtoReflect.Descriptor instead.
-func (*CallICE) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{42}
-}
-
-func (x *CallICE) GetCallId() string {
-	if x != nil {
-		return x.CallId
-	}
-	return ""
-}
-
-func (x *CallICE) GetCandidate() string {
-	if x != nil {
-		return x.Candidate
-	}
-	return ""
-}
-
-func (x *CallICE) GetSdpMid() string {
-	if x != nil {
-		return x.SdpMid
-	}
-	return ""
-}
-
-func (x *CallICE) GetSdpMlineIndex() int32 {
-	if x != nil {
-		return x.SdpMlineIndex
-	}
-	return 0
-}
-
-type CallHangup struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	CallId        string                 `protobuf:"bytes,1,opt,name=call_id,json=callId,proto3" json:"call_id,omitempty"`
-	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`                            // "normal" | "timeout" | "network_error" | "kicked"
-	DurationMs    int64                  `protobuf:"varint,3,opt,name=duration_ms,json=durationMs,proto3" json:"duration_ms,omitempty"` // 通话时长（毫秒）
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CallHangup) Reset() {
-	*x = CallHangup{}
-	mi := &file_gateway_v1_client_proto_msgTypes[43]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CallHangup) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CallHangup) ProtoMessage() {}
-
-func (x *CallHangup) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[43]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CallHangup.ProtoReflect.Descriptor instead.
-func (*CallHangup) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{43}
-}
-
-func (x *CallHangup) GetCallId() string {
-	if x != nil {
-		return x.CallId
-	}
-	return ""
-}
-
-func (x *CallHangup) GetReason() string {
-	if x != nil {
-		return x.Reason
-	}
-	return ""
-}
-
-func (x *CallHangup) GetDurationMs() int64 {
-	if x != nil {
-		return x.DurationMs
-	}
-	return 0
-}
-
-type CallModify struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	CallId        string                 `protobuf:"bytes,1,opt,name=call_id,json=callId,proto3" json:"call_id,omitempty"`
-	Action        string                 `protobuf:"bytes,2,opt,name=action,proto3" json:"action,omitempty"` // "mute_audio" | "unmute_audio" | "mute_video" | "unmute_video" | "switch_camera" | "enable_speaker"
-	Enabled       bool                   `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CallModify) Reset() {
-	*x = CallModify{}
-	mi := &file_gateway_v1_client_proto_msgTypes[44]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CallModify) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CallModify) ProtoMessage() {}
-
-func (x *CallModify) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[44]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CallModify.ProtoReflect.Descriptor instead.
-func (*CallModify) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{44}
-}
-
-func (x *CallModify) GetCallId() string {
-	if x != nil {
-		return x.CallId
-	}
-	return ""
-}
-
-func (x *CallModify) GetAction() string {
-	if x != nil {
-		return x.Action
-	}
-	return ""
-}
-
-func (x *CallModify) GetEnabled() bool {
-	if x != nil {
-		return x.Enabled
-	}
-	return false
-}
-
-type SubscribeRequest_RoomTarget struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	RoomId        string                 `protobuf:"bytes,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
-	Password      string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SubscribeRequest_RoomTarget) Reset() {
-	*x = SubscribeRequest_RoomTarget{}
-	mi := &file_gateway_v1_client_proto_msgTypes[50]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SubscribeRequest_RoomTarget) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SubscribeRequest_RoomTarget) ProtoMessage() {}
-
-func (x *SubscribeRequest_RoomTarget) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[50]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SubscribeRequest_RoomTarget.ProtoReflect.Descriptor instead.
-func (*SubscribeRequest_RoomTarget) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{24, 0}
-}
-
-func (x *SubscribeRequest_RoomTarget) GetRoomId() string {
-	if x != nil {
-		return x.RoomId
-	}
-	return ""
-}
-
-func (x *SubscribeRequest_RoomTarget) GetPassword() string {
-	if x != nil {
-		return x.Password
-	}
-	return ""
-}
-
-type SubscribeRequest_TopicTarget struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Topic         string                 `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
-	LastSeq       int64                  `protobuf:"varint,2,opt,name=last_seq,json=lastSeq,proto3" json:"last_seq,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SubscribeRequest_TopicTarget) Reset() {
-	*x = SubscribeRequest_TopicTarget{}
-	mi := &file_gateway_v1_client_proto_msgTypes[51]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SubscribeRequest_TopicTarget) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SubscribeRequest_TopicTarget) ProtoMessage() {}
-
-func (x *SubscribeRequest_TopicTarget) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[51]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SubscribeRequest_TopicTarget.ProtoReflect.Descriptor instead.
-func (*SubscribeRequest_TopicTarget) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{24, 1}
-}
-
-func (x *SubscribeRequest_TopicTarget) GetTopic() string {
-	if x != nil {
-		return x.Topic
-	}
-	return ""
-}
-
-func (x *SubscribeRequest_TopicTarget) GetLastSeq() int64 {
-	if x != nil {
-		return x.LastSeq
-	}
-	return 0
-}
-
-type SubscribeRequest_GroupTarget struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	GroupId       string                 `protobuf:"bytes,1,opt,name=group_id,json=groupId,proto3" json:"group_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SubscribeRequest_GroupTarget) Reset() {
-	*x = SubscribeRequest_GroupTarget{}
-	mi := &file_gateway_v1_client_proto_msgTypes[52]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SubscribeRequest_GroupTarget) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SubscribeRequest_GroupTarget) ProtoMessage() {}
-
-func (x *SubscribeRequest_GroupTarget) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_client_proto_msgTypes[52]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SubscribeRequest_GroupTarget.ProtoReflect.Descriptor instead.
-func (*SubscribeRequest_GroupTarget) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_client_proto_rawDescGZIP(), []int{24, 2}
-}
-
-func (x *SubscribeRequest_GroupTarget) GetGroupId() string {
-	if x != nil {
-		return x.GroupId
-	}
-	return ""
 }
 
 var File_gateway_v1_client_proto protoreflect.FileDescriptor
@@ -3645,340 +369,55 @@ var File_gateway_v1_client_proto protoreflect.FileDescriptor
 const file_gateway_v1_client_proto_rawDesc = "" +
 	"\n" +
 	"\x17gateway/v1/client.proto\x12\n" +
-	"gateway.v1\x1a\x17gateway/v1/common.proto\x1a\x17validate/validate.proto\"\xa3\x02\n" +
-	"\x10HandshakeRequest\x12\x1f\n" +
-	"\x06app_id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\x05appId\x12\x1e\n" +
-	"\x05token\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80 R\x05token\x12%\n" +
-	"\tdevice_id\x18\x03 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\bdeviceId\x12)\n" +
-	"\vdevice_type\x18\x04 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\n" +
-	"deviceType\x12)\n" +
-	"\vsdk_version\x18\x05 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\n" +
-	"sdkVersion\x12\x1e\n" +
-	"\vlast_seq_id\x18\x06 \x01(\x04R\tlastSeqId\x121\n" +
-	"\x14supported_extensions\x18\a \x03(\tR\x13supportedExtensions\"\x94\x02\n" +
-	"\x11HandshakeResponse\x12'\n" +
-	"\n" +
-	"session_id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\tsessionId\x12!\n" +
-	"\auser_id\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\x06userId\x12\x1f\n" +
-	"\vserver_time\x18\x03 \x01(\x03R\n" +
-	"serverTime\x12-\n" +
-	"\x12heartbeat_interval\x18\x04 \x01(\x05R\x11heartbeatInterval\x12\"\n" +
-	"\rmax_body_size\x18\x05 \x01(\x03R\vmaxBodySize\x12\x1f\n" +
-	"\vreplay_from\x18\x06 \x01(\x04R\n" +
-	"replayFrom\x12\x1e\n" +
-	"\n" +
-	"extensions\x18\a \x03(\tR\n" +
-	"extensions\"\x86\x01\n" +
-	"\x12AuthRefreshRequest\x12\x1e\n" +
-	"\x05token\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80 R\x05token\x12%\n" +
-	"\tdevice_id\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\bdeviceId\x12)\n" +
-	"\vdevice_type\x18\x03 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\n" +
-	"deviceType\"\xc5\x02\n" +
-	"\x13AuthRefreshResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\x124\n" +
-	"\n" +
-	"error_code\x18\x02 \x01(\x0e2\x15.gateway.v1.ErrorCodeR\terrorCode\x12#\n" +
-	"\rerror_message\x18\x03 \x01(\tR\ferrorMessage\x12-\n" +
-	"\x12heartbeat_interval\x18\x04 \x01(\x05R\x11heartbeatInterval\x12\x1d\n" +
-	"\n" +
-	"session_id\x18\x05 \x01(\tR\tsessionId\x12\"\n" +
-	"\rmax_body_size\x18\x06 \x01(\x03R\vmaxBodySize\x12\x1f\n" +
-	"\vreplay_from\x18\a \x01(\x04R\n" +
-	"replayFrom\x12&\n" +
-	"\x0ftoken_expire_at\x18\b \x01(\x03R\rtokenExpireAt\"X\n" +
-	"\rResumeRequest\x12'\n" +
-	"\n" +
-	"session_id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\tsessionId\x12\x1e\n" +
-	"\vlast_seq_id\x18\x02 \x01(\x04R\tlastSeqId\"\xc9\x01\n" +
-	"\x0eResumeResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\x124\n" +
-	"\n" +
-	"error_code\x18\x02 \x01(\x0e2\x15.gateway.v1.ErrorCodeR\terrorCode\x12#\n" +
-	"\rerror_message\x18\x03 \x01(\tR\ferrorMessage\x12\x1f\n" +
-	"\vreplay_from\x18\x04 \x01(\x04R\n" +
-	"replayFrom\x12!\n" +
-	"\freplay_count\x18\x05 \x01(\x05R\vreplayCount\"\xa1\x01\n" +
-	"\vKickRequest\x12)\n" +
-	"\x04code\x18\x01 \x01(\x0e2\x15.gateway.v1.ErrorCodeR\x04code\x12 \n" +
-	"\x06reason\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80\bR\x06reason\x12'\n" +
-	"\x0freconnect_after\x18\x03 \x01(\x05R\x0ereconnectAfter\x12\x1c\n" +
-	"\tpermanent\x18\x04 \x01(\bR\tpermanent\"\x82\x02\n" +
-	"\fErrorPayload\x12)\n" +
-	"\x04code\x18\x01 \x01(\x0e2\x15.gateway.v1.ErrorCodeR\x04code\x12\"\n" +
-	"\amessage\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80\bR\amessage\x12&\n" +
-	"\n" +
-	"ref_msg_id\x18\x03 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\brefMsgId\x12?\n" +
-	"\adetails\x18\x04 \x03(\v2%.gateway.v1.ErrorPayload.DetailsEntryR\adetails\x1a:\n" +
-	"\fDetailsEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"Q\n" +
-	"\n" +
-	"AckPayload\x12&\n" +
-	"\n" +
-	"ref_msg_id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\brefMsgId\x12\x1b\n" +
-	"\trecv_time\x18\x02 \x01(\x03R\brecvTime\"S\n" +
-	"\x0fBatchAckPayload\x12#\n" +
-	"\amsg_ids\x18\x01 \x03(\tB\n" +
-	"\xfaB\a\x92\x01\x04\b\x01\x10dR\x06msgIds\x12\x1b\n" +
-	"\trecv_time\x18\x02 \x01(\x03R\brecvTime\"S\n" +
-	"\x14ReplayRequestPayload\x12\x19\n" +
-	"\bfrom_seq\x18\x01 \x01(\x04R\afromSeq\x12 \n" +
-	"\x05limit\x18\x02 \x01(\x05B\n" +
-	"\xfaB\a\x1a\x05\x18\xe8\a(\x01R\x05limit\"k\n" +
-	"\x15ReplayResponsePayload\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x19\n" +
-	"\blast_seq\x18\x02 \x01(\x04R\alastSeq\x12\x1d\n" +
-	"\n" +
-	"sent_count\x18\x03 \x01(\x05R\tsentCount\"E\n" +
-	"\fCloseRequest\x12\x16\n" +
-	"\x06reason\x18\x01 \x01(\tR\x06reason\x12\x1d\n" +
-	"\n" +
-	"expect_ack\x18\x02 \x01(\bR\texpectAck\"J\n" +
-	"\rCloseResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x1f\n" +
-	"\vserver_time\x18\x02 \x01(\x03R\n" +
-	"serverTime\"v\n" +
-	"\vPingPayload\x12$\n" +
-	"\x0eclient_send_ts\x18\x01 \x01(\x03R\fclientSendTs\x12\"\n" +
-	"\rrtt_sample_ms\x18\x02 \x01(\x05R\vrttSampleMs\x12\x1d\n" +
-	"\n" +
-	"conn_epoch\x18\x03 \x01(\tR\tconnEpoch\"\x88\x01\n" +
-	"\vPongPayload\x12$\n" +
-	"\x0eserver_recv_ts\x18\x01 \x01(\x03R\fserverRecvTs\x12$\n" +
-	"\x0eserver_send_ts\x18\x02 \x01(\x03R\fserverSendTs\x12-\n" +
-	"\x12heartbeat_interval\x18\x03 \x01(\x05R\x11heartbeatInterval\"_\n" +
-	"\x12DeliveryAckPayload\x12&\n" +
-	"\n" +
-	"ref_msg_id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\brefMsgId\x12!\n" +
-	"\fdelivered_at\x18\x02 \x01(\x03R\vdeliveredAt\"n\n" +
-	"\x12ReadReceiptPayload\x12&\n" +
-	"\n" +
-	"ref_msg_id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\brefMsgId\x12\x17\n" +
-	"\aread_at\x18\x02 \x01(\x03R\x06readAt\x12\x17\n" +
-	"\aconv_id\x18\x03 \x01(\tR\x06convId\"\xc5\x02\n" +
-	"\x12RateLimitedPayload\x12)\n" +
+	"gateway.v1\x1a\x17gateway/v1/common.proto\x1a\x17validate/validate.proto\"\xb7\x02\n" +
+	"\vRateLimited\x12)\n" +
 	"\x04code\x18\x01 \x01(\x0e2\x15.gateway.v1.ErrorCodeR\x04code\x12\x1d\n" +
 	"\n" +
 	"limit_type\x18\x02 \x01(\tR\tlimitType\x12\x1f\n" +
 	"\vcurrent_qps\x18\x03 \x01(\x05R\n" +
 	"currentQps\x12\x1b\n" +
 	"\tlimit_qps\x18\x04 \x01(\x05R\blimitQps\x12$\n" +
-	"\x0eretry_after_ms\x18\x05 \x01(\x05R\fretryAfterMs\x12E\n" +
-	"\adetails\x18\x06 \x03(\v2+.gateway.v1.RateLimitedPayload.DetailsEntryR\adetails\x1a:\n" +
+	"\x0eretry_after_ms\x18\x05 \x01(\x05R\fretryAfterMs\x12>\n" +
+	"\adetails\x18\x06 \x03(\v2$.gateway.v1.RateLimited.DetailsEntryR\adetails\x1a:\n" +
 	"\fDetailsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa5\x02\n" +
-	"\x16SystemBroadcastPayload\x12+\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x97\x02\n" +
+	"\x0fSystemBroadcast\x12+\n" +
 	"\fbroadcast_id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\vbroadcastId\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x18\n" +
 	"\acontent\x18\x03 \x01(\tR\acontent\x12\x1a\n" +
 	"\bpriority\x18\x04 \x01(\tR\bpriority\x12\x1b\n" +
-	"\texpire_at\x18\x05 \x01(\x03R\bexpireAt\x12=\n" +
-	"\x03ext\x18\x06 \x03(\v2+.gateway.v1.SystemBroadcastPayload.ExtEntryR\x03ext\x1a6\n" +
+	"\texpire_at\x18\x05 \x01(\x03R\bexpireAt\x126\n" +
+	"\x03ext\x18\x06 \x03(\v2$.gateway.v1.SystemBroadcast.ExtEntryR\x03ext\x1a6\n" +
 	"\bExtEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x9c\x02\n" +
-	"\x12AdminNoticePayload\x12)\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x8e\x02\n" +
+	"\vAdminNotice\x12)\n" +
 	"\x04code\x18\x01 \x01(\x0e2\x15.gateway.v1.ErrorCodeR\x04code\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12!\n" +
 	"\feffective_at\x18\x03 \x01(\x03R\veffectiveAt\x12\x1b\n" +
-	"\texpire_at\x18\x04 \x01(\x03R\bexpireAt\x12E\n" +
-	"\aactions\x18\x05 \x03(\v2+.gateway.v1.AdminNoticePayload.ActionsEntryR\aactions\x1a:\n" +
+	"\texpire_at\x18\x04 \x01(\x03R\bexpireAt\x12>\n" +
+	"\aactions\x18\x05 \x03(\v2$.gateway.v1.AdminNotice.ActionsEntryR\aactions\x1a:\n" +
 	"\fActionsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xf3\x02\n" +
-	"\x0ePresenceUpdate\x12>\n" +
-	"\x05state\x18\x01 \x01(\x0e2(.gateway.v1.PresenceUpdate.PresenceStateR\x05state\x12\x1f\n" +
-	"\vstatus_text\x18\x02 \x01(\tR\n" +
-	"statusText\x12$\n" +
-	"\x0elast_active_at\x18\x03 \x01(\x03R\flastActiveAt\x125\n" +
-	"\x03ext\x18\x04 \x03(\v2#.gateway.v1.PresenceUpdate.ExtEntryR\x03ext\x1a6\n" +
-	"\bExtEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"k\n" +
-	"\rPresenceState\x12\x1e\n" +
-	"\x1aPRESENCE_STATE_UNSPECIFIED\x10\x00\x12\n" +
-	"\n" +
-	"\x06ONLINE\x10\x01\x12\b\n" +
-	"\x04AWAY\x10\x02\x12\b\n" +
-	"\x04BUSY\x10\x03\x12\v\n" +
-	"\aOFFLINE\x10\x04\x12\r\n" +
-	"\tINVISIBLE\x10\x05\"m\n" +
-	"\x18PresenceSubscribeRequest\x123\n" +
-	"\x0ftarget_user_ids\x18\x01 \x03(\tB\v\xfaB\b\x92\x01\x05\b\x01\x10\xe8\aR\rtargetUserIds\x12\x1c\n" +
-	"\tsubscribe\x18\x02 \x01(\bR\tsubscribe\"\xbb\x01\n" +
-	"\x19PresenceSubscribeResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\x124\n" +
-	"\n" +
-	"error_code\x18\x02 \x01(\x0e2\x15.gateway.v1.ErrorCodeR\terrorCode\x12#\n" +
-	"\rerror_message\x18\x03 \x01(\tR\ferrorMessage\x12)\n" +
-	"\x10subscribed_count\x18\x04 \x01(\x05R\x0fsubscribedCount\"\x8c\x03\n" +
-	"\x10SubscribeRequest\x12=\n" +
-	"\x04room\x18\x01 \x01(\v2'.gateway.v1.SubscribeRequest.RoomTargetH\x00R\x04room\x12@\n" +
-	"\x05topic\x18\x02 \x01(\v2(.gateway.v1.SubscribeRequest.TopicTargetH\x00R\x05topic\x12@\n" +
-	"\x05group\x18\x03 \x01(\v2(.gateway.v1.SubscribeRequest.GroupTargetH\x00R\x05group\x1aA\n" +
-	"\n" +
-	"RoomTarget\x12\x17\n" +
-	"\aroom_id\x18\x01 \x01(\tR\x06roomId\x12\x1a\n" +
-	"\bpassword\x18\x02 \x01(\tR\bpassword\x1a>\n" +
-	"\vTopicTarget\x12\x14\n" +
-	"\x05topic\x18\x01 \x01(\tR\x05topic\x12\x19\n" +
-	"\blast_seq\x18\x02 \x01(\x03R\alastSeq\x1a(\n" +
-	"\vGroupTarget\x12\x19\n" +
-	"\bgroup_id\x18\x01 \x01(\tR\agroupIdB\b\n" +
-	"\x06target\"\xa4\x02\n" +
-	"\x11SubscribeResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\x124\n" +
-	"\n" +
-	"error_code\x18\x02 \x01(\x0e2\x15.gateway.v1.ErrorCodeR\terrorCode\x12#\n" +
-	"\rerror_message\x18\x03 \x01(\tR\ferrorMessage\x12!\n" +
-	"\fmember_count\x18\x04 \x01(\x03R\vmemberCount\x12,\n" +
-	"\x12total_member_count\x18\x05 \x01(\x03R\x10totalMemberCount\x12\x19\n" +
-	"\blast_seq\x18\x06 \x01(\x03R\alastSeq\x12.\n" +
-	"\x13max_message_history\x18\a \x01(\x05R\x11maxMessageHistory\"\xe1\x01\n" +
-	"\x12UnsubscribeRequest\x12=\n" +
-	"\x04room\x18\x01 \x01(\v2'.gateway.v1.SubscribeRequest.RoomTargetH\x00R\x04room\x12@\n" +
-	"\x05topic\x18\x02 \x01(\v2(.gateway.v1.SubscribeRequest.TopicTargetH\x00R\x05topic\x12@\n" +
-	"\x05group\x18\x03 \x01(\v2(.gateway.v1.SubscribeRequest.GroupTargetH\x00R\x05groupB\b\n" +
-	"\x06target\"\x8a\x01\n" +
-	"\x13UnsubscribeResponse\x12\x18\n" +
-	"\asuccess\x18\x01 \x01(\bR\asuccess\x124\n" +
-	"\n" +
-	"error_code\x18\x02 \x01(\x0e2\x15.gateway.v1.ErrorCodeR\terrorCode\x12#\n" +
-	"\rerror_message\x18\x03 \x01(\tR\ferrorMessage\"\xa5\a\n" +
-	"\x10WellKnownPayload\x12-\n" +
-	"\aim_chat\x18\x01 \x01(\v2\x12.gateway.v1.IMChatH\x00R\x06imChat\x126\n" +
-	"\n" +
-	"im_receipt\x18\x02 \x01(\v2\x15.gateway.v1.IMReceiptH\x00R\timReceipt\x123\n" +
-	"\tim_revoke\x18\x03 \x01(\v2\x14.gateway.v1.IMRevokeH\x00R\bimRevoke\x123\n" +
-	"\tim_typing\x18\x04 \x01(\v2\x14.gateway.v1.IMTypingH\x00R\bimTyping\x129\n" +
-	"\vim_reaction\x18\x05 \x01(\v2\x16.gateway.v1.IMReactionH\x00R\n" +
-	"imReaction\x12*\n" +
-	"\x06im_pin\x18\x06 \x01(\v2\x11.gateway.v1.IMPinH\x00R\x05imPin\x129\n" +
-	"\vpush_notify\x18\n" +
-	" \x01(\v2\x16.gateway.v1.PushNotifyH\x00R\n" +
-	"pushNotify\x12<\n" +
-	"\flive_comment\x18\x14 \x01(\v2\x17.gateway.v1.LiveCommentH\x00R\vliveComment\x123\n" +
-	"\tlive_gift\x18\x15 \x01(\v2\x14.gateway.v1.LiveGiftH\x00R\bliveGift\x129\n" +
-	"\vlive_signal\x18\x16 \x01(\v2\x16.gateway.v1.LiveSignalH\x00R\n" +
-	"liveSignal\x126\n" +
-	"\n" +
-	"live_state\x18\x17 \x01(\v2\x15.gateway.v1.LiveStateH\x00R\tliveState\x126\n" +
-	"\n" +
-	"call_offer\x18\x1e \x01(\v2\x15.gateway.v1.CallOfferH\x00R\tcallOffer\x129\n" +
-	"\vcall_answer\x18\x1f \x01(\v2\x16.gateway.v1.CallAnswerH\x00R\n" +
-	"callAnswer\x120\n" +
-	"\bcall_ice\x18  \x01(\v2\x13.gateway.v1.CallICEH\x00R\acallIce\x129\n" +
-	"\vcall_hangup\x18! \x01(\v2\x16.gateway.v1.CallHangupH\x00R\n" +
-	"callHangup\x129\n" +
-	"\vcall_modify\x18\" \x01(\v2\x16.gateway.v1.CallModifyH\x00R\n" +
-	"callModify\x12\x12\n" +
-	"\x03raw\x18c \x01(\fH\x00R\x03rawB\t\n" +
-	"\acontent\"\x99\x02\n" +
-	"\x06IMChat\x12!\n" +
-	"\aconv_id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x02R\x06convId\x12*\n" +
-	"\fcontent_type\x18\x02 \x01(\tB\a\xfaB\x04r\x02\x18@R\vcontentType\x12\x18\n" +
-	"\acontent\x18\x03 \x01(\fR\acontent\x12\x1a\n" +
-	"\bmentions\x18\x04 \x03(\tR\bmentions\x12#\n" +
-	"\breply_to\x18\x05 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\areplyTo\x12-\n" +
-	"\x03ext\x18\x06 \x03(\v2\x1b.gateway.v1.IMChat.ExtEntryR\x03ext\x1a6\n" +
-	"\bExtEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x8e\x01\n" +
-	"\tIMReceipt\x12\x17\n" +
-	"\aconv_id\x18\x01 \x01(\tR\x06convId\x12*\n" +
-	"\freceipt_type\x18\x02 \x01(\tB\a\xfaB\x04r\x02\x18 R\vreceiptType\x12!\n" +
-	"\amsg_ids\x18\x03 \x03(\tB\b\xfaB\x05\x92\x01\x02\x10dR\x06msgIds\x12\x19\n" +
-	"\bread_seq\x18\x04 \x01(\x04R\areadSeq\"\\\n" +
-	"\bIMRevoke\x12\x17\n" +
-	"\aconv_id\x18\x01 \x01(\tR\x06convId\x12\x1f\n" +
-	"\x06msg_id\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\x05msgId\x12\x16\n" +
-	"\x06reason\x18\x03 \x01(\tR\x06reason\"g\n" +
-	"\bIMTyping\x12\x17\n" +
-	"\aconv_id\x18\x01 \x01(\tR\x06convId\x12!\n" +
-	"\fcontent_type\x18\x02 \x01(\tR\vcontentType\x12\x1f\n" +
-	"\vduration_ms\x18\x03 \x01(\x05R\n" +
-	"durationMs\"y\n" +
-	"\n" +
-	"IMReaction\x12\x17\n" +
-	"\aconv_id\x18\x01 \x01(\tR\x06convId\x12\x1f\n" +
-	"\x06msg_id\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\x05msgId\x12\x1a\n" +
-	"\breaction\x18\x03 \x01(\tR\breaction\x12\x15\n" +
-	"\x06is_add\x18\x04 \x01(\bR\x05isAdd\"X\n" +
-	"\x05IMPin\x12\x17\n" +
-	"\aconv_id\x18\x01 \x01(\tR\x06convId\x12\x1f\n" +
-	"\x06msg_id\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\x05msgId\x12\x15\n" +
-	"\x06is_pin\x18\x03 \x01(\bR\x05isPin\"\xc3\x02\n" +
-	"\n" +
-	"PushNotify\x12\x1e\n" +
-	"\x05title\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x02R\x05title\x12\x1c\n" +
-	"\x04body\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80\bR\x04body\x12\x14\n" +
-	"\x05sound\x18\x03 \x01(\tR\x05sound\x12\x14\n" +
-	"\x05badge\x18\x04 \x01(\x05R\x05badge\x124\n" +
-	"\x04data\x18\x05 \x03(\v2 .gateway.v1.PushNotify.DataEntryR\x04data\x12\x1a\n" +
-	"\bpriority\x18\x06 \x01(\tR\bpriority\x12!\n" +
-	"\fcollapse_key\x18\a \x01(\tR\vcollapseKey\x12\x1d\n" +
-	"\n" +
-	"channel_id\x18\b \x01(\tR\tchannelId\x1a7\n" +
-	"\tDataEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x80\x01\n" +
-	"\vLiveComment\x12!\n" +
-	"\aroom_id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\x06roomId\x12\"\n" +
-	"\acontent\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x04R\acontent\x12\x14\n" +
-	"\x05color\x18\x03 \x01(\tR\x05color\x12\x14\n" +
-	"\x05level\x18\x04 \x01(\x05R\x05level\"\xbd\x01\n" +
-	"\bLiveGift\x12!\n" +
-	"\aroom_id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\x06roomId\x12!\n" +
-	"\agift_id\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\x06giftId\x12\x1b\n" +
-	"\tgift_name\x18\x03 \x01(\tR\bgiftName\x12\x14\n" +
-	"\x05count\x18\x04 \x01(\x05R\x05count\x12\x1d\n" +
-	"\n" +
-	"total_cost\x18\x05 \x01(\x03R\ttotalCost\x12\x19\n" +
-	"\bcombo_id\x18\x06 \x01(\tR\acomboId\"j\n" +
-	"\n" +
-	"LiveSignal\x12!\n" +
-	"\aroom_id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\x06roomId\x12\x1f\n" +
-	"\vsignal_type\x18\x02 \x01(\tR\n" +
-	"signalType\x12\x18\n" +
-	"\apayload\x18\x03 \x01(\fR\apayload\"\x86\x01\n" +
-	"\tLiveState\x12!\n" +
-	"\aroom_id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\x06roomId\x12\x14\n" +
-	"\x05state\x18\x02 \x01(\tR\x05state\x12!\n" +
-	"\fviewer_count\x18\x03 \x01(\x03R\vviewerCount\x12\x1d\n" +
-	"\n" +
-	"like_count\x18\x04 \x01(\x03R\tlikeCount\"\xe4\x01\n" +
-	"\tCallOffer\x12!\n" +
-	"\acall_id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\x06callId\x12\x1b\n" +
-	"\tcallee_id\x18\x02 \x01(\tR\bcalleeId\x12\x1b\n" +
-	"\tcall_type\x18\x03 \x01(\tR\bcallType\x12\x10\n" +
-	"\x03sdp\x18\x04 \x01(\fR\x03sdp\x120\n" +
-	"\x03ext\x18\x05 \x03(\v2\x1e.gateway.v1.CallOffer.ExtEntryR\x03ext\x1a6\n" +
-	"\bExtEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"u\n" +
-	"\n" +
-	"CallAnswer\x12!\n" +
-	"\acall_id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\x06callId\x12\x1a\n" +
-	"\baccepted\x18\x02 \x01(\bR\baccepted\x12\x16\n" +
-	"\x06reason\x18\x03 \x01(\tR\x06reason\x12\x10\n" +
-	"\x03sdp\x18\x04 \x01(\fR\x03sdp\"\x8b\x01\n" +
-	"\aCallICE\x12!\n" +
-	"\acall_id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\x06callId\x12\x1c\n" +
-	"\tcandidate\x18\x02 \x01(\tR\tcandidate\x12\x17\n" +
-	"\asdp_mid\x18\x03 \x01(\tR\x06sdpMid\x12&\n" +
-	"\x0fsdp_mline_index\x18\x04 \x01(\x05R\rsdpMlineIndex\"h\n" +
-	"\n" +
-	"CallHangup\x12!\n" +
-	"\acall_id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\x06callId\x12\x16\n" +
-	"\x06reason\x18\x02 \x01(\tR\x06reason\x12\x1f\n" +
-	"\vduration_ms\x18\x03 \x01(\x03R\n" +
-	"durationMs\"a\n" +
-	"\n" +
-	"CallModify\x12!\n" +
-	"\acall_id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\x06callId\x12\x16\n" +
-	"\x06action\x18\x02 \x01(\tR\x06action\x12\x18\n" +
-	"\aenabled\x18\x03 \x01(\bR\aenabledBHZFgithub.com/vadam-zhan/long-gw/common-protocol/gen/gateway/v1;gatewayv1b\x06proto3"
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01*\xf7\x03\n" +
+	"\x0fClientErrorCode\x12!\n" +
+	"\x1dCLIENT_ERROR_CODE_UNSPECIFIED\x10\x00\x12\x1f\n" +
+	"\x19CLIENT_VERSION_DEPRECATED\x10ь\x01\x12 \n" +
+	"\x1aCLIENT_VERSION_UNSUPPORTED\x10Ҍ\x01\x12\x1e\n" +
+	"\x18CLIENT_PROTOCOL_MISMATCH\x10ӌ\x01\x12\x1d\n" +
+	"\x17CLIENT_SDK_INCOMPATIBLE\x10Ԍ\x01\x12\x1b\n" +
+	"\x15CLIENT_REGION_BLOCKED\x10\xe0\x8c\x01\x12\x17\n" +
+	"\x11CLIENT_IP_BLOCKED\x10\xe1\x8c\x01\x12\x1e\n" +
+	"\x18CLIENT_NETWORK_UNTRUSTED\x10\xe2\x8c\x01\x12\x19\n" +
+	"\x13CLIENT_RATE_LIMITED\x10\xef\x8c\x01\x12 \n" +
+	"\x1aCLIENT_CONN_LIMIT_EXCEEDED\x10\xf0\x8c\x01\x12 \n" +
+	"\x1aCLIENT_GLOBAL_RATE_LIMITED\x10\xf1\x8c\x01\x12\x15\n" +
+	"\x0fCLIENT_DEGRADED\x10\xf2\x8c\x01\x12\x18\n" +
+	"\x12CLIENT_MAINTENANCE\x10\xfe\x8c\x01\x12\x17\n" +
+	"\x11CLIENT_ADMIN_KICK\x10\xff\x8c\x01\x12\x1f\n" +
+	"\x19CLIENT_VIOLATION_DETECTED\x10\x80\x8d\x01\x12\x1f\n" +
+	"\x19CLIENT_RESOURCE_EXHAUSTED\x10\x81\x8d\x01BHZFgithub.com/vadam-zhan/long-gw/common-protocol/gen/gateway/v1;gatewayv1b\x06proto3"
 
 var (
 	file_gateway_v1_client_proto_rawDescOnce sync.Once
@@ -3993,113 +432,28 @@ func file_gateway_v1_client_proto_rawDescGZIP() []byte {
 }
 
 var file_gateway_v1_client_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_gateway_v1_client_proto_msgTypes = make([]protoimpl.MessageInfo, 56)
+var file_gateway_v1_client_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_gateway_v1_client_proto_goTypes = []any{
-	(PresenceUpdate_PresenceState)(0),    // 0: gateway.v1.PresenceUpdate.PresenceState
-	(*HandshakeRequest)(nil),             // 1: gateway.v1.HandshakeRequest
-	(*HandshakeResponse)(nil),            // 2: gateway.v1.HandshakeResponse
-	(*AuthRefreshRequest)(nil),           // 3: gateway.v1.AuthRefreshRequest
-	(*AuthRefreshResponse)(nil),          // 4: gateway.v1.AuthRefreshResponse
-	(*ResumeRequest)(nil),                // 5: gateway.v1.ResumeRequest
-	(*ResumeResponse)(nil),               // 6: gateway.v1.ResumeResponse
-	(*KickRequest)(nil),                  // 7: gateway.v1.KickRequest
-	(*ErrorPayload)(nil),                 // 8: gateway.v1.ErrorPayload
-	(*AckPayload)(nil),                   // 9: gateway.v1.AckPayload
-	(*BatchAckPayload)(nil),              // 10: gateway.v1.BatchAckPayload
-	(*ReplayRequestPayload)(nil),         // 11: gateway.v1.ReplayRequestPayload
-	(*ReplayResponsePayload)(nil),        // 12: gateway.v1.ReplayResponsePayload
-	(*CloseRequest)(nil),                 // 13: gateway.v1.CloseRequest
-	(*CloseResponse)(nil),                // 14: gateway.v1.CloseResponse
-	(*PingPayload)(nil),                  // 15: gateway.v1.PingPayload
-	(*PongPayload)(nil),                  // 16: gateway.v1.PongPayload
-	(*DeliveryAckPayload)(nil),           // 17: gateway.v1.DeliveryAckPayload
-	(*ReadReceiptPayload)(nil),           // 18: gateway.v1.ReadReceiptPayload
-	(*RateLimitedPayload)(nil),           // 19: gateway.v1.RateLimitedPayload
-	(*SystemBroadcastPayload)(nil),       // 20: gateway.v1.SystemBroadcastPayload
-	(*AdminNoticePayload)(nil),           // 21: gateway.v1.AdminNoticePayload
-	(*PresenceUpdate)(nil),               // 22: gateway.v1.PresenceUpdate
-	(*PresenceSubscribeRequest)(nil),     // 23: gateway.v1.PresenceSubscribeRequest
-	(*PresenceSubscribeResponse)(nil),    // 24: gateway.v1.PresenceSubscribeResponse
-	(*SubscribeRequest)(nil),             // 25: gateway.v1.SubscribeRequest
-	(*SubscribeResponse)(nil),            // 26: gateway.v1.SubscribeResponse
-	(*UnsubscribeRequest)(nil),           // 27: gateway.v1.UnsubscribeRequest
-	(*UnsubscribeResponse)(nil),          // 28: gateway.v1.UnsubscribeResponse
-	(*WellKnownPayload)(nil),             // 29: gateway.v1.WellKnownPayload
-	(*IMChat)(nil),                       // 30: gateway.v1.IMChat
-	(*IMReceipt)(nil),                    // 31: gateway.v1.IMReceipt
-	(*IMRevoke)(nil),                     // 32: gateway.v1.IMRevoke
-	(*IMTyping)(nil),                     // 33: gateway.v1.IMTyping
-	(*IMReaction)(nil),                   // 34: gateway.v1.IMReaction
-	(*IMPin)(nil),                        // 35: gateway.v1.IMPin
-	(*PushNotify)(nil),                   // 36: gateway.v1.PushNotify
-	(*LiveComment)(nil),                  // 37: gateway.v1.LiveComment
-	(*LiveGift)(nil),                     // 38: gateway.v1.LiveGift
-	(*LiveSignal)(nil),                   // 39: gateway.v1.LiveSignal
-	(*LiveState)(nil),                    // 40: gateway.v1.LiveState
-	(*CallOffer)(nil),                    // 41: gateway.v1.CallOffer
-	(*CallAnswer)(nil),                   // 42: gateway.v1.CallAnswer
-	(*CallICE)(nil),                      // 43: gateway.v1.CallICE
-	(*CallHangup)(nil),                   // 44: gateway.v1.CallHangup
-	(*CallModify)(nil),                   // 45: gateway.v1.CallModify
-	nil,                                  // 46: gateway.v1.ErrorPayload.DetailsEntry
-	nil,                                  // 47: gateway.v1.RateLimitedPayload.DetailsEntry
-	nil,                                  // 48: gateway.v1.SystemBroadcastPayload.ExtEntry
-	nil,                                  // 49: gateway.v1.AdminNoticePayload.ActionsEntry
-	nil,                                  // 50: gateway.v1.PresenceUpdate.ExtEntry
-	(*SubscribeRequest_RoomTarget)(nil),  // 51: gateway.v1.SubscribeRequest.RoomTarget
-	(*SubscribeRequest_TopicTarget)(nil), // 52: gateway.v1.SubscribeRequest.TopicTarget
-	(*SubscribeRequest_GroupTarget)(nil), // 53: gateway.v1.SubscribeRequest.GroupTarget
-	nil,                                  // 54: gateway.v1.IMChat.ExtEntry
-	nil,                                  // 55: gateway.v1.PushNotify.DataEntry
-	nil,                                  // 56: gateway.v1.CallOffer.ExtEntry
-	(ErrorCode)(0),                       // 57: gateway.v1.ErrorCode
+	(ClientErrorCode)(0),    // 0: gateway.v1.ClientErrorCode
+	(*RateLimited)(nil),     // 1: gateway.v1.RateLimited
+	(*SystemBroadcast)(nil), // 2: gateway.v1.SystemBroadcast
+	(*AdminNotice)(nil),     // 3: gateway.v1.AdminNotice
+	nil,                     // 4: gateway.v1.RateLimited.DetailsEntry
+	nil,                     // 5: gateway.v1.SystemBroadcast.ExtEntry
+	nil,                     // 6: gateway.v1.AdminNotice.ActionsEntry
+	(ErrorCode)(0),          // 7: gateway.v1.ErrorCode
 }
 var file_gateway_v1_client_proto_depIdxs = []int32{
-	57, // 0: gateway.v1.AuthRefreshResponse.error_code:type_name -> gateway.v1.ErrorCode
-	57, // 1: gateway.v1.ResumeResponse.error_code:type_name -> gateway.v1.ErrorCode
-	57, // 2: gateway.v1.KickRequest.code:type_name -> gateway.v1.ErrorCode
-	57, // 3: gateway.v1.ErrorPayload.code:type_name -> gateway.v1.ErrorCode
-	46, // 4: gateway.v1.ErrorPayload.details:type_name -> gateway.v1.ErrorPayload.DetailsEntry
-	57, // 5: gateway.v1.RateLimitedPayload.code:type_name -> gateway.v1.ErrorCode
-	47, // 6: gateway.v1.RateLimitedPayload.details:type_name -> gateway.v1.RateLimitedPayload.DetailsEntry
-	48, // 7: gateway.v1.SystemBroadcastPayload.ext:type_name -> gateway.v1.SystemBroadcastPayload.ExtEntry
-	57, // 8: gateway.v1.AdminNoticePayload.code:type_name -> gateway.v1.ErrorCode
-	49, // 9: gateway.v1.AdminNoticePayload.actions:type_name -> gateway.v1.AdminNoticePayload.ActionsEntry
-	0,  // 10: gateway.v1.PresenceUpdate.state:type_name -> gateway.v1.PresenceUpdate.PresenceState
-	50, // 11: gateway.v1.PresenceUpdate.ext:type_name -> gateway.v1.PresenceUpdate.ExtEntry
-	57, // 12: gateway.v1.PresenceSubscribeResponse.error_code:type_name -> gateway.v1.ErrorCode
-	51, // 13: gateway.v1.SubscribeRequest.room:type_name -> gateway.v1.SubscribeRequest.RoomTarget
-	52, // 14: gateway.v1.SubscribeRequest.topic:type_name -> gateway.v1.SubscribeRequest.TopicTarget
-	53, // 15: gateway.v1.SubscribeRequest.group:type_name -> gateway.v1.SubscribeRequest.GroupTarget
-	57, // 16: gateway.v1.SubscribeResponse.error_code:type_name -> gateway.v1.ErrorCode
-	51, // 17: gateway.v1.UnsubscribeRequest.room:type_name -> gateway.v1.SubscribeRequest.RoomTarget
-	52, // 18: gateway.v1.UnsubscribeRequest.topic:type_name -> gateway.v1.SubscribeRequest.TopicTarget
-	53, // 19: gateway.v1.UnsubscribeRequest.group:type_name -> gateway.v1.SubscribeRequest.GroupTarget
-	57, // 20: gateway.v1.UnsubscribeResponse.error_code:type_name -> gateway.v1.ErrorCode
-	30, // 21: gateway.v1.WellKnownPayload.im_chat:type_name -> gateway.v1.IMChat
-	31, // 22: gateway.v1.WellKnownPayload.im_receipt:type_name -> gateway.v1.IMReceipt
-	32, // 23: gateway.v1.WellKnownPayload.im_revoke:type_name -> gateway.v1.IMRevoke
-	33, // 24: gateway.v1.WellKnownPayload.im_typing:type_name -> gateway.v1.IMTyping
-	34, // 25: gateway.v1.WellKnownPayload.im_reaction:type_name -> gateway.v1.IMReaction
-	35, // 26: gateway.v1.WellKnownPayload.im_pin:type_name -> gateway.v1.IMPin
-	36, // 27: gateway.v1.WellKnownPayload.push_notify:type_name -> gateway.v1.PushNotify
-	37, // 28: gateway.v1.WellKnownPayload.live_comment:type_name -> gateway.v1.LiveComment
-	38, // 29: gateway.v1.WellKnownPayload.live_gift:type_name -> gateway.v1.LiveGift
-	39, // 30: gateway.v1.WellKnownPayload.live_signal:type_name -> gateway.v1.LiveSignal
-	40, // 31: gateway.v1.WellKnownPayload.live_state:type_name -> gateway.v1.LiveState
-	41, // 32: gateway.v1.WellKnownPayload.call_offer:type_name -> gateway.v1.CallOffer
-	42, // 33: gateway.v1.WellKnownPayload.call_answer:type_name -> gateway.v1.CallAnswer
-	43, // 34: gateway.v1.WellKnownPayload.call_ice:type_name -> gateway.v1.CallICE
-	44, // 35: gateway.v1.WellKnownPayload.call_hangup:type_name -> gateway.v1.CallHangup
-	45, // 36: gateway.v1.WellKnownPayload.call_modify:type_name -> gateway.v1.CallModify
-	54, // 37: gateway.v1.IMChat.ext:type_name -> gateway.v1.IMChat.ExtEntry
-	55, // 38: gateway.v1.PushNotify.data:type_name -> gateway.v1.PushNotify.DataEntry
-	56, // 39: gateway.v1.CallOffer.ext:type_name -> gateway.v1.CallOffer.ExtEntry
-	40, // [40:40] is the sub-list for method output_type
-	40, // [40:40] is the sub-list for method input_type
-	40, // [40:40] is the sub-list for extension type_name
-	40, // [40:40] is the sub-list for extension extendee
-	0,  // [0:40] is the sub-list for field type_name
+	7, // 0: gateway.v1.RateLimited.code:type_name -> gateway.v1.ErrorCode
+	4, // 1: gateway.v1.RateLimited.details:type_name -> gateway.v1.RateLimited.DetailsEntry
+	5, // 2: gateway.v1.SystemBroadcast.ext:type_name -> gateway.v1.SystemBroadcast.ExtEntry
+	7, // 3: gateway.v1.AdminNotice.code:type_name -> gateway.v1.ErrorCode
+	6, // 4: gateway.v1.AdminNotice.actions:type_name -> gateway.v1.AdminNotice.ActionsEntry
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_gateway_v1_client_proto_init() }
@@ -4108,42 +462,13 @@ func file_gateway_v1_client_proto_init() {
 		return
 	}
 	file_gateway_v1_common_proto_init()
-	file_gateway_v1_client_proto_msgTypes[24].OneofWrappers = []any{
-		(*SubscribeRequest_Room)(nil),
-		(*SubscribeRequest_Topic)(nil),
-		(*SubscribeRequest_Group)(nil),
-	}
-	file_gateway_v1_client_proto_msgTypes[26].OneofWrappers = []any{
-		(*UnsubscribeRequest_Room)(nil),
-		(*UnsubscribeRequest_Topic)(nil),
-		(*UnsubscribeRequest_Group)(nil),
-	}
-	file_gateway_v1_client_proto_msgTypes[28].OneofWrappers = []any{
-		(*WellKnownPayload_ImChat)(nil),
-		(*WellKnownPayload_ImReceipt)(nil),
-		(*WellKnownPayload_ImRevoke)(nil),
-		(*WellKnownPayload_ImTyping)(nil),
-		(*WellKnownPayload_ImReaction)(nil),
-		(*WellKnownPayload_ImPin)(nil),
-		(*WellKnownPayload_PushNotify)(nil),
-		(*WellKnownPayload_LiveComment)(nil),
-		(*WellKnownPayload_LiveGift)(nil),
-		(*WellKnownPayload_LiveSignal)(nil),
-		(*WellKnownPayload_LiveState)(nil),
-		(*WellKnownPayload_CallOffer)(nil),
-		(*WellKnownPayload_CallAnswer)(nil),
-		(*WellKnownPayload_CallIce)(nil),
-		(*WellKnownPayload_CallHangup)(nil),
-		(*WellKnownPayload_CallModify)(nil),
-		(*WellKnownPayload_Raw)(nil),
-	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gateway_v1_client_proto_rawDesc), len(file_gateway_v1_client_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   56,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

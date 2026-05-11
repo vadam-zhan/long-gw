@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package gateway.v1;
+
+option go_package = "github.com/vadam-zhan/long-gw/common-protocol/gen/gateway/v1;gatewayv1";
+
+import "gateway/v1/common.proto";
+import "validate/validate.proto";
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 批量业务事件（业务面辅助结构）
+//
+// 设计说明：
+//   1. 本结构属于业务面，不走控制面 OpCode
+//   2. 传输方式：序列化为 bytes 后写入 DispatchContext.payload
+//   3. 路由标识：DispatchContext.event_type = "batch.dispatch"
+//   4. 网关完全不感知本结构，只做字节透传
+//
+// 使用场景：
+//   服务端向同一用户连续发送多条消息时，可合并为一次网络写入
+//   减少高并发场景下的协议头开销和系统调用次数
+//
+// 与单条 DISPATCH 的区别：
+//   - 单条：GatewayFrame → DispatchContext → 业务 payload
+//   - 批量：GatewayFrame → DispatchContext → BatchDispatch → 多条业务 payload
+// ═════════════════════════════════════════════════════════════════════════════
+
+message BatchDispatch {
+    // shared: 批量消息共享的元数据（避免每条重复携带）
+    message SharedMeta {
+        RouteTarget from = 1;
+        string biz_code = 2;
+        string event_type = 3;       // 批量内所有消息共享同一 event_type
+        TraceContext trace = 4;
+        Delivery delivery = 5;
+        map<string, string> metadata = 6;
+    }
+    SharedMeta shared = 1;
+
+    // items: 批量消息项，每条只包含差异化字段
+    message Item {
+        string msg_id = 1;
+        int64 seq_id = 2;
+        RouteTarget to = 3;
+        bytes payload = 4;           // 单条业务的 protobuf bytes
+        int64 expire_at = 5;
+    }
+    repeated Item items = 2 [(validate.rules).repeated = {min_items: 1, max_items: 100}];
+}

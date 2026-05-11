@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package message.v1;
+
+option go_package = "github.com/vadam-zhan/long-gw/common-protocol/gen/message/v1;messagev1";
+
+import "validate/validate.proto";
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Push / 通知域业务错误码（范围：13001-13099）
+// ═════════════════════════════════════════════════════════════════════════════
+enum PushErrorCode {
+    PUSH_ERROR_CODE_UNSPECIFIED = 0;
+
+    PUSH_DEVICE_NOT_REGISTERED = 13001; // 设备未注册推送
+    PUSH_DEVICE_INVALID        = 13002; // 设备标识无效
+    PUSH_CHANNEL_BLOCKED       = 13003; // 推送渠道被屏蔽
+    PUSH_CHANNEL_NOT_FOUND     = 13004; // 推送渠道不存在
+    PUSH_RATE_LIMITED          = 13005; // 推送频率受限
+    PUSH_INVALID_TOKEN         = 13006; // 推送 Token 无效
+    PUSH_TOKEN_EXPIRED         = 13007; // 推送 Token 过期
+    PUSH_NOTIFICATION_MUTED    = 13008; // 用户关闭通知
+    PUSH_TEMPLATE_NOT_FOUND    = 13009; // 通知模板不存在
+    PUSH_PAYLOAD_TOO_LARGE     = 13010; // 推送 payload 超限
+    PUSH_PROVIDER_ERROR        = 13011; // 第三方推送服务商错误
+    PUSH_SCHEDULE_INVALID      = 13012; // 定时推送时间无效
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// Push / 通知域业务事件
+//
+// 传输方式：序列化为 bytes 后写入 gateway.v1.DispatchContext.payload
+// 路由标识：gateway.v1.DispatchContext.event_type = "push.{action}"
+//
+// 事件类型映射：
+//   "push.notify" → PushNotify
+// ═════════════════════════════════════════════════════════════════════════════
+
+message PushNotify {
+    string title        = 1 [(validate.rules).string = {max_len: 256}];
+    string body         = 2 [(validate.rules).string = {max_len: 1024}];
+    string sound        = 3;
+    int32  badge        = 4;
+    map<string, string> data = 5;
+    string priority     = 6;
+    string collapse_key = 7;
+    string channel_id   = 8;
+}

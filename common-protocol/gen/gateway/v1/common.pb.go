@@ -22,379 +22,114 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type FrameType int32
+// ─────────────────────────────────────────────────────────────────────────────
+// OpCode：操作码
+// ─────────────────────────────────────────────────────────────────────────────
+type OpCode int32
 
 const (
-	FrameType_FrameType_UNSPECIFIED FrameType = 0
-	// ═══════════════════════════════════════════════════════════════════════
-	// 控制面：生命周期（1–9）
-	// ═══════════════════════════════════════════════════════════════════════
-	FrameType_HANDSHAKE        FrameType = 1 // Client → Gateway  初始认证握手
-	FrameType_HANDSHAKE_ACK    FrameType = 2 // Gateway → Client  握手结果
-	FrameType_AUTH_REFRESH     FrameType = 3 // Client → Gateway  Token 续期
-	FrameType_AUTH_REFRESH_ACK FrameType = 4 // Gateway → Client  续期结果
-	FrameType_RESUME           FrameType = 5 // Client → Gateway  断线后恢复会话
-	FrameType_RESUME_ACK       FrameType = 6 // Gateway → Client  恢复结果（含离线消息摘要）
-	FrameType_CLOSE            FrameType = 7 // Client → Gateway  主动关闭连接
-	FrameType_CLOSE_ACK        FrameType = 8 // Gateway → Client  关闭确认
-	// ═══════════════════════════════════════════════════════════════════════
-	// 控制面：心跳（10–11）
-	// ═══════════════════════════════════════════════════════════════════════
-	FrameType_PING FrameType = 10 // Client → Gateway  心跳探针（含可选负载：客户端 RTT 样本）
-	FrameType_PONG FrameType = 11 // Gateway → Client  心跳回应（含服务端时间戳，用于时钟校准）
-	// ═══════════════════════════════════════════════════════════════════════
-	// 可靠性：错误与确认（20–29）
-	// ═══════════════════════════════════════════════════════════════════════
-	FrameType_ERROR           FrameType = 20 // Gateway ↔ Client  通用错误通知（含 ErrorCode）
-	FrameType_MSG_ACK         FrameType = 21 // Client → Gateway  单条消息 QoS-1 确认
-	FrameType_BATCH_ACK       FrameType = 22 // Client → Gateway  批量确认（一次确认 N 条，降低上行流量）
-	FrameType_DELIVERY_ACK    FrameType = 23 // Gateway → Client  服务端投递成功确认（用于 QoS-2 Exactly-Once）
-	FrameType_READ_RECEIPT    FrameType = 24 // Client → Gateway  已读回执（区别于传输层 ACK）
-	FrameType_REPLAY_REQUEST  FrameType = 25 // Client → Gateway  请求补发离线消息
-	FrameType_REPLAY_RESPONSE FrameType = 26 // Gateway → Client  离线消息补发响应
-	// ═══════════════════════════════════════════════════════════════════════
-	// 治理：服务端主动控制（30–39）
-	// ═══════════════════════════════════════════════════════════════════════
-	FrameType_KICK             FrameType = 30 // Gateway → Client  强制断连（含 reason code + 建议重连时间）
-	FrameType_RATE_LIMITED     FrameType = 31 // Gateway → Client  限流/背压通知
-	FrameType_SYSTEM_BROADCAST FrameType = 32 // Gateway → Client  系统级广播（运维公告、全局配置变更）
-	FrameType_ADMIN_NOTICE     FrameType = 33 // Gateway → Client  管理通知（踢人原因、权限变更）
-	// ═══════════════════════════════════════════════════════════════════════
-	// Presence & 订阅管理（40–59）
-	// ═══════════════════════════════════════════════════════════════════════
-	// 说明：Presence 帧由网关直接处理，负责状态扩散和订阅索引维护
-	FrameType_PRESENCE_UPDATE        FrameType = 40 // Client → Gateway  用户在线状态变更（在线/离开/隐身/忙碌）
-	FrameType_PRESENCE_SUBSCRIBE     FrameType = 41 // Client → Gateway  订阅某用户/房间的状态
-	FrameType_PRESENCE_SUBSCRIBE_ACK FrameType = 42 // Gateway → Client  订阅结果
-	FrameType_PRESENCE_UNSUBSCRIBE   FrameType = 43 // Client → Gateway  取消状态订阅
-	FrameType_SUBSCRIBE              FrameType = 50 // Client → Gateway  订阅房间/Topic/群组
-	FrameType_SUBSCRIBE_ACK          FrameType = 51 // Gateway → Client  订阅结果（含房间成员数、Topic 最新消息 seq）
-	FrameType_UNSUBSCRIBE            FrameType = 52 // Client → Gateway  取消订阅
-	FrameType_UNSUBSCRIBE_ACK        FrameType = 53 // Gateway → Client  取消结果
-	// ═══════════════════════════════════════════════════════════════════════
-	// 业务面通用（100–101）
-	// ═══════════════════════════════════════════════════════════════════════
-	// 说明：网关只按 biz_code + to 路由，不解析 Body.payload
-	FrameType_BUSINESS       FrameType = 100 // 单条业务消息
-	FrameType_BUSINESS_BATCH FrameType = 101 // 批量业务消息（Body 内包含多条 Message 的序列化数组）
-	// ═══════════════════════════════════════════════════════════════════════
-	// IM 域（110–119）
-	// ═══════════════════════════════════════════════════════════════════════
-	FrameType_IM_CHAT     FrameType = 110 // 单聊 / 群聊消息
-	FrameType_IM_RECEIPT  FrameType = 111 // 投递 / 已读回执（客户端发送）
-	FrameType_IM_REVOKE   FrameType = 112 // 消息撤回
-	FrameType_IM_TYPING   FrameType = 113 // 正在输入指示（高频低优，需单独限流）
-	FrameType_IM_REACTION FrameType = 114 // 消息表情回应
-	FrameType_IM_PIN      FrameType = 115 // 消息置顶
-	// ═══════════════════════════════════════════════════════════════════════
-	// Push 域（120–129）
-	// ═══════════════════════════════════════════════════════════════════════
-	FrameType_PUSH_NOTIFY FrameType = 120 // 服务端主动推送
-	FrameType_PUSH_ACK    FrameType = 121 // 客户端推送确认
-	// ═══════════════════════════════════════════════════════════════════════
-	// Live 域（130–139）
-	// ═══════════════════════════════════════════════════════════════════════
-	FrameType_LIVE_COMMENT FrameType = 130 // 直播弹幕
-	FrameType_LIVE_GIFT    FrameType = 131 // 直播礼物
-	FrameType_LIVE_SIGNAL  FrameType = 132 // 直播音视频信令（连麦、PK、低延迟控制）
-	FrameType_LIVE_JOIN    FrameType = 133 // 进入直播间
-	FrameType_LIVE_LEAVE   FrameType = 134 // 离开直播间
-	FrameType_LIVE_STATE   FrameType = 135 // 直播间状态变更（开始/结束/禁言/全员静音）
-	// ═══════════════════════════════════════════════════════════════════════
-	// 音视频通话域（140–149）
-	// ═══════════════════════════════════════════════════════════════════════
-	FrameType_CALL_OFFER  FrameType = 140 // 呼叫请求
-	FrameType_CALL_ANSWER FrameType = 141 // 呼叫应答
-	FrameType_CALL_ICE    FrameType = 142 // ICE candidate
-	FrameType_CALL_HANGUP FrameType = 143 // 挂断
-	FrameType_CALL_MODIFY FrameType = 144 // 通话中修改（切换摄像头、静音等）
+	OpCode_OP_CODE_UNSPECIFIED OpCode = 0
+	// 1: Dispatch — 业务事件（上/下行都走这个 opcode）
+	//
+	//	客户端发送时：op=DISPATCH, t="im.chat", d=IMChat bytes
+	//	服务端发送时：op=DISPATCH, t="im.chat", d=IMChat bytes
+	OpCode_DISPATCH OpCode = 1
+	// 2: Hello — 连接问候（Gateway → Client，连接建立后立即发送）
+	OpCode_HELLO OpCode = 2
+	// 3: Handshake — 握手认证（Client → Gateway）
+	OpCode_HANDSHAKE OpCode = 3
+	// 4: Ready — 准备就绪（Gateway → Client）
+	OpCode_READY OpCode = 4
+	// 5: Heartbeat — 心跳请求（Client → Gateway）
+	OpCode_HEARTBEAT OpCode = 5
+	// 6: HeartbeatAck — 心跳确认（Gateway → Client）
+	OpCode_HEARTBEAT_ACK OpCode = 6
+	// 7: Resume — 断线恢复（Client → Gateway）
+	OpCode_RESUME OpCode = 7
+	// 8: Reconnect — 服务端要求重连（Gateway → Client）
+	OpCode_RECONNECT OpCode = 8
+	// 9: Ack — 消息确认（Client → Gateway，QoS-1）
+	OpCode_ACK OpCode = 9
+	// 10: Error — 错误响应 双向
+	OpCode_ERROR OpCode = 10
+	// 11: KICK — 服务端强制断开连接（Gateway → Client）
+	OpCode_KICK OpCode = 11
+	// 12: AuthReFresh — 认证刷新（Client → Gateway）
+	OpCode_AUTH_REFRESH OpCode = 12
+	// 13: AuthRefreshAck — 认证刷新确认（Gateway → Client）
+	OpCode_AUTH_REFRESH_ACK OpCode = 13
 )
 
-// Enum value maps for FrameType.
+// Enum value maps for OpCode.
 var (
-	FrameType_name = map[int32]string{
-		0:   "FrameType_UNSPECIFIED",
-		1:   "HANDSHAKE",
-		2:   "HANDSHAKE_ACK",
-		3:   "AUTH_REFRESH",
-		4:   "AUTH_REFRESH_ACK",
-		5:   "RESUME",
-		6:   "RESUME_ACK",
-		7:   "CLOSE",
-		8:   "CLOSE_ACK",
-		10:  "PING",
-		11:  "PONG",
-		20:  "ERROR",
-		21:  "MSG_ACK",
-		22:  "BATCH_ACK",
-		23:  "DELIVERY_ACK",
-		24:  "READ_RECEIPT",
-		25:  "REPLAY_REQUEST",
-		26:  "REPLAY_RESPONSE",
-		30:  "KICK",
-		31:  "RATE_LIMITED",
-		32:  "SYSTEM_BROADCAST",
-		33:  "ADMIN_NOTICE",
-		40:  "PRESENCE_UPDATE",
-		41:  "PRESENCE_SUBSCRIBE",
-		42:  "PRESENCE_SUBSCRIBE_ACK",
-		43:  "PRESENCE_UNSUBSCRIBE",
-		50:  "SUBSCRIBE",
-		51:  "SUBSCRIBE_ACK",
-		52:  "UNSUBSCRIBE",
-		53:  "UNSUBSCRIBE_ACK",
-		100: "BUSINESS",
-		101: "BUSINESS_BATCH",
-		110: "IM_CHAT",
-		111: "IM_RECEIPT",
-		112: "IM_REVOKE",
-		113: "IM_TYPING",
-		114: "IM_REACTION",
-		115: "IM_PIN",
-		120: "PUSH_NOTIFY",
-		121: "PUSH_ACK",
-		130: "LIVE_COMMENT",
-		131: "LIVE_GIFT",
-		132: "LIVE_SIGNAL",
-		133: "LIVE_JOIN",
-		134: "LIVE_LEAVE",
-		135: "LIVE_STATE",
-		140: "CALL_OFFER",
-		141: "CALL_ANSWER",
-		142: "CALL_ICE",
-		143: "CALL_HANGUP",
-		144: "CALL_MODIFY",
+	OpCode_name = map[int32]string{
+		0:  "OP_CODE_UNSPECIFIED",
+		1:  "DISPATCH",
+		2:  "HELLO",
+		3:  "HANDSHAKE",
+		4:  "READY",
+		5:  "HEARTBEAT",
+		6:  "HEARTBEAT_ACK",
+		7:  "RESUME",
+		8:  "RECONNECT",
+		9:  "ACK",
+		10: "ERROR",
+		11: "KICK",
+		12: "AUTH_REFRESH",
+		13: "AUTH_REFRESH_ACK",
 	}
-	FrameType_value = map[string]int32{
-		"FrameType_UNSPECIFIED":  0,
-		"HANDSHAKE":              1,
-		"HANDSHAKE_ACK":          2,
-		"AUTH_REFRESH":           3,
-		"AUTH_REFRESH_ACK":       4,
-		"RESUME":                 5,
-		"RESUME_ACK":             6,
-		"CLOSE":                  7,
-		"CLOSE_ACK":              8,
-		"PING":                   10,
-		"PONG":                   11,
-		"ERROR":                  20,
-		"MSG_ACK":                21,
-		"BATCH_ACK":              22,
-		"DELIVERY_ACK":           23,
-		"READ_RECEIPT":           24,
-		"REPLAY_REQUEST":         25,
-		"REPLAY_RESPONSE":        26,
-		"KICK":                   30,
-		"RATE_LIMITED":           31,
-		"SYSTEM_BROADCAST":       32,
-		"ADMIN_NOTICE":           33,
-		"PRESENCE_UPDATE":        40,
-		"PRESENCE_SUBSCRIBE":     41,
-		"PRESENCE_SUBSCRIBE_ACK": 42,
-		"PRESENCE_UNSUBSCRIBE":   43,
-		"SUBSCRIBE":              50,
-		"SUBSCRIBE_ACK":          51,
-		"UNSUBSCRIBE":            52,
-		"UNSUBSCRIBE_ACK":        53,
-		"BUSINESS":               100,
-		"BUSINESS_BATCH":         101,
-		"IM_CHAT":                110,
-		"IM_RECEIPT":             111,
-		"IM_REVOKE":              112,
-		"IM_TYPING":              113,
-		"IM_REACTION":            114,
-		"IM_PIN":                 115,
-		"PUSH_NOTIFY":            120,
-		"PUSH_ACK":               121,
-		"LIVE_COMMENT":           130,
-		"LIVE_GIFT":              131,
-		"LIVE_SIGNAL":            132,
-		"LIVE_JOIN":              133,
-		"LIVE_LEAVE":             134,
-		"LIVE_STATE":             135,
-		"CALL_OFFER":             140,
-		"CALL_ANSWER":            141,
-		"CALL_ICE":               142,
-		"CALL_HANGUP":            143,
-		"CALL_MODIFY":            144,
+	OpCode_value = map[string]int32{
+		"OP_CODE_UNSPECIFIED": 0,
+		"DISPATCH":            1,
+		"HELLO":               2,
+		"HANDSHAKE":           3,
+		"READY":               4,
+		"HEARTBEAT":           5,
+		"HEARTBEAT_ACK":       6,
+		"RESUME":              7,
+		"RECONNECT":           8,
+		"ACK":                 9,
+		"ERROR":               10,
+		"KICK":                11,
+		"AUTH_REFRESH":        12,
+		"AUTH_REFRESH_ACK":    13,
 	}
 )
 
-func (x FrameType) Enum() *FrameType {
-	p := new(FrameType)
+func (x OpCode) Enum() *OpCode {
+	p := new(OpCode)
 	*p = x
 	return p
 }
 
-func (x FrameType) String() string {
+func (x OpCode) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (FrameType) Descriptor() protoreflect.EnumDescriptor {
+func (OpCode) Descriptor() protoreflect.EnumDescriptor {
 	return file_gateway_v1_common_proto_enumTypes[0].Descriptor()
 }
 
-func (FrameType) Type() protoreflect.EnumType {
+func (OpCode) Type() protoreflect.EnumType {
 	return &file_gateway_v1_common_proto_enumTypes[0]
 }
 
-func (x FrameType) Number() protoreflect.EnumNumber {
+func (x OpCode) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use FrameType.Descriptor instead.
-func (FrameType) EnumDescriptor() ([]byte, []int) {
+// Deprecated: Use OpCode.Descriptor instead.
+func (OpCode) EnumDescriptor() ([]byte, []int) {
 	return file_gateway_v1_common_proto_rawDescGZIP(), []int{0}
 }
 
-type ErrorCode int32
-
-const (
-	ErrorCode_ERROR_CODE_UNSPECIFIED ErrorCode = 0
-	// ── 连接层（1xxx）────────────────────────────────────────────────────────
-	ErrorCode_ERR_HEARTBEAT_TIMEOUT     ErrorCode = 1001 // 心跳超时，连接将被关闭
-	ErrorCode_ERR_HANDSHAKE_FAILED      ErrorCode = 1002 // 握手失败（Token 无效/过期/格式错误）
-	ErrorCode_ERR_AUTH_EXPIRED          ErrorCode = 1003 // 认证过期，需要重新握手或刷新 Token
-	ErrorCode_ERR_REPLACED_BY_NEW_LOGIN ErrorCode = 1004 // 同设备被新连接踢下线
-	ErrorCode_ERR_SESSION_SUSPENDED     ErrorCode = 1005 // Session 进入 Suspended，等待重连
-	ErrorCode_ERR_SESSION_CLOSED        ErrorCode = 1006 // Session 已永久关闭
-	ErrorCode_ERR_PROTOCOL_VERSION      ErrorCode = 1007 // 协议版本不兼容
-	ErrorCode_ERR_CONN_RATE_LIMITED     ErrorCode = 1008 // 连接建立速率超限（防 CC 攻击）
-	// ── 认证层（2xxx）────────────────────────────────────────────────────────
-	ErrorCode_ERR_TOKEN_INVALID     ErrorCode = 2001 // Token 签名无效
-	ErrorCode_ERR_TOKEN_EXPIRED     ErrorCode = 2002 // Token 已过期
-	ErrorCode_ERR_PERMISSION_DENIED ErrorCode = 2003 // 权限不足（如尝试发送未授权业务）
-	ErrorCode_ERR_DEVICE_BLOCKED    ErrorCode = 2004 // 设备被拉黑
-	ErrorCode_ERR_IP_BLOCKED        ErrorCode = 2005 // IP 被拉黑
-	// ── 消息层（3xxx）────────────────────────────────────────────────────────
-	ErrorCode_ERR_MESSAGE_TOO_LARGE  ErrorCode = 3001 // 消息体超过 max_body_size
-	ErrorCode_ERR_INVALID_FRAME_TYPE ErrorCode = 3002 // 不支持的帧类型
-	ErrorCode_ERR_MESSAGE_MALFORMED  ErrorCode = 3003 // 消息格式错误（protobuf 反序列化失败）
-	ErrorCode_ERR_MESSAGE_EXPIRED    ErrorCode = 3004 // 消息已过期
-	ErrorCode_ERR_RATE_LIMITED       ErrorCode = 3005 // 单用户/单设备消息速率超限
-	ErrorCode_ERR_BAD_REQUEST        ErrorCode = 3006 // 业务参数校验失败
-	// ── 投递层（4xxx）────────────────────────────────────────────────────────
-	ErrorCode_ERR_UPSTREAM_SEND_FAILED ErrorCode = 4001 // 上行发送到 Kafka/后端失败
-	ErrorCode_ERR_OFFLINE_STORE_FAILED ErrorCode = 4002 // 离线存储失败
-	ErrorCode_ERR_MAX_RETRY_EXCEEDED   ErrorCode = 4003 // QoS-1 重试耗尽
-	ErrorCode_ERR_ROUTE_NOT_FOUND      ErrorCode = 4004 // 目标路由不存在（用户离线且无离线存储）
-	ErrorCode_ERR_TARGET_UNAVAILABLE   ErrorCode = 4005 // 目标用户不在线且不允许离线存储
-	ErrorCode_ERR_DELIVERY_TIMEOUT     ErrorCode = 4006 // 投递超时
-	// ── 订阅层（5xxx）────────────────────────────────────────────────────────
-	ErrorCode_ERR_ROOM_NOT_FOUND     ErrorCode = 5001 // 房间不存在
-	ErrorCode_ERR_TOPIC_NOT_FOUND    ErrorCode = 5002 // Topic 不存在
-	ErrorCode_ERR_ALREADY_SUBSCRIBED ErrorCode = 5003 // 重复订阅
-	ErrorCode_ERR_NOT_SUBSCRIBED     ErrorCode = 5004 // 未订阅就取消
-	ErrorCode_ERR_ROOM_FULL          ErrorCode = 5005 // 房间人数已达上限
-)
-
-// Enum value maps for ErrorCode.
-var (
-	ErrorCode_name = map[int32]string{
-		0:    "ERROR_CODE_UNSPECIFIED",
-		1001: "ERR_HEARTBEAT_TIMEOUT",
-		1002: "ERR_HANDSHAKE_FAILED",
-		1003: "ERR_AUTH_EXPIRED",
-		1004: "ERR_REPLACED_BY_NEW_LOGIN",
-		1005: "ERR_SESSION_SUSPENDED",
-		1006: "ERR_SESSION_CLOSED",
-		1007: "ERR_PROTOCOL_VERSION",
-		1008: "ERR_CONN_RATE_LIMITED",
-		2001: "ERR_TOKEN_INVALID",
-		2002: "ERR_TOKEN_EXPIRED",
-		2003: "ERR_PERMISSION_DENIED",
-		2004: "ERR_DEVICE_BLOCKED",
-		2005: "ERR_IP_BLOCKED",
-		3001: "ERR_MESSAGE_TOO_LARGE",
-		3002: "ERR_INVALID_FRAME_TYPE",
-		3003: "ERR_MESSAGE_MALFORMED",
-		3004: "ERR_MESSAGE_EXPIRED",
-		3005: "ERR_RATE_LIMITED",
-		3006: "ERR_BAD_REQUEST",
-		4001: "ERR_UPSTREAM_SEND_FAILED",
-		4002: "ERR_OFFLINE_STORE_FAILED",
-		4003: "ERR_MAX_RETRY_EXCEEDED",
-		4004: "ERR_ROUTE_NOT_FOUND",
-		4005: "ERR_TARGET_UNAVAILABLE",
-		4006: "ERR_DELIVERY_TIMEOUT",
-		5001: "ERR_ROOM_NOT_FOUND",
-		5002: "ERR_TOPIC_NOT_FOUND",
-		5003: "ERR_ALREADY_SUBSCRIBED",
-		5004: "ERR_NOT_SUBSCRIBED",
-		5005: "ERR_ROOM_FULL",
-	}
-	ErrorCode_value = map[string]int32{
-		"ERROR_CODE_UNSPECIFIED":    0,
-		"ERR_HEARTBEAT_TIMEOUT":     1001,
-		"ERR_HANDSHAKE_FAILED":      1002,
-		"ERR_AUTH_EXPIRED":          1003,
-		"ERR_REPLACED_BY_NEW_LOGIN": 1004,
-		"ERR_SESSION_SUSPENDED":     1005,
-		"ERR_SESSION_CLOSED":        1006,
-		"ERR_PROTOCOL_VERSION":      1007,
-		"ERR_CONN_RATE_LIMITED":     1008,
-		"ERR_TOKEN_INVALID":         2001,
-		"ERR_TOKEN_EXPIRED":         2002,
-		"ERR_PERMISSION_DENIED":     2003,
-		"ERR_DEVICE_BLOCKED":        2004,
-		"ERR_IP_BLOCKED":            2005,
-		"ERR_MESSAGE_TOO_LARGE":     3001,
-		"ERR_INVALID_FRAME_TYPE":    3002,
-		"ERR_MESSAGE_MALFORMED":     3003,
-		"ERR_MESSAGE_EXPIRED":       3004,
-		"ERR_RATE_LIMITED":          3005,
-		"ERR_BAD_REQUEST":           3006,
-		"ERR_UPSTREAM_SEND_FAILED":  4001,
-		"ERR_OFFLINE_STORE_FAILED":  4002,
-		"ERR_MAX_RETRY_EXCEEDED":    4003,
-		"ERR_ROUTE_NOT_FOUND":       4004,
-		"ERR_TARGET_UNAVAILABLE":    4005,
-		"ERR_DELIVERY_TIMEOUT":      4006,
-		"ERR_ROOM_NOT_FOUND":        5001,
-		"ERR_TOPIC_NOT_FOUND":       5002,
-		"ERR_ALREADY_SUBSCRIBED":    5003,
-		"ERR_NOT_SUBSCRIBED":        5004,
-		"ERR_ROOM_FULL":             5005,
-	}
-)
-
-func (x ErrorCode) Enum() *ErrorCode {
-	p := new(ErrorCode)
-	*p = x
-	return p
-}
-
-func (x ErrorCode) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (ErrorCode) Descriptor() protoreflect.EnumDescriptor {
-	return file_gateway_v1_common_proto_enumTypes[1].Descriptor()
-}
-
-func (ErrorCode) Type() protoreflect.EnumType {
-	return &file_gateway_v1_common_proto_enumTypes[1]
-}
-
-func (x ErrorCode) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use ErrorCode.Descriptor instead.
-func (ErrorCode) EnumDescriptor() ([]byte, []int) {
-	return file_gateway_v1_common_proto_rawDescGZIP(), []int{1}
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// QosClass：消息 QoS 等级
-// ─────────────────────────────────────────────────────────────────────────────
+// ── QoS ──
 type QosClass int32
 
 const (
 	QosClass_QOS_CLASS_UNSPECIFIED QosClass = 0
-	QosClass_AT_MOST_ONCE          QosClass = 1 // 最多一次：发完即忘，无 ACK（弹幕、位置、心跳）
-	QosClass_AT_LEAST_ONCE         QosClass = 2 // 至少一次：SDK 重试直到收到 ACK，可能重复（IM 消息）
-	QosClass_EXACTLY_ONCE          QosClass = 3 // 精确一次：需要 DELIVERY_ACK + 服务端幂等（金融交易、支付）
+	QosClass_AT_MOST_ONCE          QosClass = 1
+	QosClass_AT_LEAST_ONCE         QosClass = 2
 )
 
 // Enum value maps for QosClass.
@@ -403,13 +138,11 @@ var (
 		0: "QOS_CLASS_UNSPECIFIED",
 		1: "AT_MOST_ONCE",
 		2: "AT_LEAST_ONCE",
-		3: "EXACTLY_ONCE",
 	}
 	QosClass_value = map[string]int32{
 		"QOS_CLASS_UNSPECIFIED": 0,
 		"AT_MOST_ONCE":          1,
 		"AT_LEAST_ONCE":         2,
-		"EXACTLY_ONCE":          3,
 	}
 )
 
@@ -424,11 +157,11 @@ func (x QosClass) String() string {
 }
 
 func (QosClass) Descriptor() protoreflect.EnumDescriptor {
-	return file_gateway_v1_common_proto_enumTypes[2].Descriptor()
+	return file_gateway_v1_common_proto_enumTypes[1].Descriptor()
 }
 
 func (QosClass) Type() protoreflect.EnumType {
-	return &file_gateway_v1_common_proto_enumTypes[2]
+	return &file_gateway_v1_common_proto_enumTypes[1]
 }
 
 func (x QosClass) Number() protoreflect.EnumNumber {
@@ -437,19 +170,17 @@ func (x QosClass) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use QosClass.Descriptor instead.
 func (QosClass) EnumDescriptor() ([]byte, []int) {
-	return file_gateway_v1_common_proto_rawDescGZIP(), []int{2}
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{1}
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Codec：业务载荷编码格式
-// ─────────────────────────────────────────────────────────────────────────────
+// ── 编码 ──
 type Codec int32
 
 const (
 	Codec_CODEC_UNSPECIFIED Codec = 0
-	Codec_JSON              Codec = 1 // JSON 编码（Web/动态语言首选）
-	Codec_PROTOBUF          Codec = 2 // Protobuf（生产首选，紧凑高效）
-	Codec_MSGPACK           Codec = 3 // MessagePack（动态语言场景）
+	Codec_JSON              Codec = 1
+	Codec_PROTOBUF          Codec = 2
+	Codec_MSGPACK           Codec = 3
 )
 
 // Enum value maps for Codec.
@@ -479,11 +210,11 @@ func (x Codec) String() string {
 }
 
 func (Codec) Descriptor() protoreflect.EnumDescriptor {
-	return file_gateway_v1_common_proto_enumTypes[3].Descriptor()
+	return file_gateway_v1_common_proto_enumTypes[2].Descriptor()
 }
 
 func (Codec) Type() protoreflect.EnumType {
-	return &file_gateway_v1_common_proto_enumTypes[3]
+	return &file_gateway_v1_common_proto_enumTypes[2]
 }
 
 func (x Codec) Number() protoreflect.EnumNumber {
@@ -492,20 +223,18 @@ func (x Codec) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Codec.Descriptor instead.
 func (Codec) EnumDescriptor() ([]byte, []int) {
-	return file_gateway_v1_common_proto_rawDescGZIP(), []int{3}
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{2}
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CompressAlgo：业务载荷压缩算法
-// ─────────────────────────────────────────────────────────────────────────────
+// ── 压缩 ──
 type CompressAlgo int32
 
 const (
 	CompressAlgo_COMPRESS_ALGO_UNSPECIFIED CompressAlgo = 0
-	CompressAlgo_NONE                      CompressAlgo = 1 // 不压缩（小消息或高频低延迟场景）
-	CompressAlgo_GZIP                      CompressAlgo = 2 // GZIP（通用兼容）
-	CompressAlgo_ZSTD                      CompressAlgo = 3 // Zstandard（推荐：压缩比与速度最优）
-	CompressAlgo_SNAPPY                    CompressAlgo = 4 // Snappy（极低延迟，适合直播弹幕）
+	CompressAlgo_NONE                      CompressAlgo = 1
+	CompressAlgo_GZIP                      CompressAlgo = 2
+	CompressAlgo_ZSTD                      CompressAlgo = 3
+	CompressAlgo_SNAPPY                    CompressAlgo = 4
 )
 
 // Enum value maps for CompressAlgo.
@@ -537,11 +266,11 @@ func (x CompressAlgo) String() string {
 }
 
 func (CompressAlgo) Descriptor() protoreflect.EnumDescriptor {
-	return file_gateway_v1_common_proto_enumTypes[4].Descriptor()
+	return file_gateway_v1_common_proto_enumTypes[3].Descriptor()
 }
 
 func (CompressAlgo) Type() protoreflect.EnumType {
-	return &file_gateway_v1_common_proto_enumTypes[4]
+	return &file_gateway_v1_common_proto_enumTypes[3]
 }
 
 func (x CompressAlgo) Number() protoreflect.EnumNumber {
@@ -550,25 +279,22 @@ func (x CompressAlgo) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use CompressAlgo.Descriptor instead.
 func (CompressAlgo) EnumDescriptor() ([]byte, []int) {
-	return file_gateway_v1_common_proto_rawDescGZIP(), []int{4}
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{3}
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// RouteTargetType：路由目标类型
-// ─────────────────────────────────────────────────────────────────────────────
+// ── 路由 ──
 type RouteTargetType int32
 
 const (
 	RouteTargetType_ROUTE_TARGET_TYPE_UNSPECIFIED RouteTargetType = 0
-	RouteTargetType_USER                          RouteTargetType = 1 // 用户 → 全设备扇出
-	RouteTargetType_DEVICE                        RouteTargetType = 2 // 设备 → 单设备
-	RouteTargetType_SESSION                       RouteTargetType = 3 // 会话 → 单 Session
-	RouteTargetType_CONNECTION                    RouteTargetType = 4 // 连接 → 原始连接 ID（内部路由/调试）
-	RouteTargetType_ROOM                          RouteTargetType = 5 // 房间 → 房间广播（直播弹幕）
-	RouteTargetType_TOPIC                         RouteTargetType = 6 // 主题 → Pub/Sub Topic
-	RouteTargetType_GROUP                         RouteTargetType = 7 // 群组 → 网关侧解析成员列表后扇出
-	RouteTargetType_NODE                          RouteTargetType = 8 // 节点 → 跨节点内部路由
-	RouteTargetType_BROADCAST                     RouteTargetType = 9 // 广播 → 全量在线用户
+	RouteTargetType_USER                          RouteTargetType = 1
+	RouteTargetType_DEVICE                        RouteTargetType = 2
+	RouteTargetType_SESSION                       RouteTargetType = 3
+	RouteTargetType_ROOM                          RouteTargetType = 4 // 直播间广播
+	RouteTargetType_TOPIC                         RouteTargetType = 5 // Pub/Sub
+	RouteTargetType_GROUP                         RouteTargetType = 6 // IM 群组
+	RouteTargetType_NODE                          RouteTargetType = 7 // 节点广播
+	RouteTargetType_BROADCAST                     RouteTargetType = 8 // 全局广播
 )
 
 // Enum value maps for RouteTargetType.
@@ -578,24 +304,22 @@ var (
 		1: "USER",
 		2: "DEVICE",
 		3: "SESSION",
-		4: "CONNECTION",
-		5: "ROOM",
-		6: "TOPIC",
-		7: "GROUP",
-		8: "NODE",
-		9: "BROADCAST",
+		4: "ROOM",
+		5: "TOPIC",
+		6: "GROUP",
+		7: "NODE",
+		8: "BROADCAST",
 	}
 	RouteTargetType_value = map[string]int32{
 		"ROUTE_TARGET_TYPE_UNSPECIFIED": 0,
 		"USER":                          1,
 		"DEVICE":                        2,
 		"SESSION":                       3,
-		"CONNECTION":                    4,
-		"ROOM":                          5,
-		"TOPIC":                         6,
-		"GROUP":                         7,
-		"NODE":                          8,
-		"BROADCAST":                     9,
+		"ROOM":                          4,
+		"TOPIC":                         5,
+		"GROUP":                         6,
+		"NODE":                          7,
+		"BROADCAST":                     8,
 	}
 )
 
@@ -610,11 +334,11 @@ func (x RouteTargetType) String() string {
 }
 
 func (RouteTargetType) Descriptor() protoreflect.EnumDescriptor {
-	return file_gateway_v1_common_proto_enumTypes[5].Descriptor()
+	return file_gateway_v1_common_proto_enumTypes[4].Descriptor()
 }
 
 func (RouteTargetType) Type() protoreflect.EnumType {
-	return &file_gateway_v1_common_proto_enumTypes[5]
+	return &file_gateway_v1_common_proto_enumTypes[4]
 }
 
 func (x RouteTargetType) Number() protoreflect.EnumNumber {
@@ -623,35 +347,522 @@ func (x RouteTargetType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use RouteTargetType.Descriptor instead.
 func (RouteTargetType) EnumDescriptor() ([]byte, []int) {
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{4}
+}
+
+type MessageOrigin int32
+
+const (
+	MessageOrigin_ORIGIN_UNSPECIFIED MessageOrigin = 0
+	MessageOrigin_CLIENT             MessageOrigin = 1
+	MessageOrigin_RETRY              MessageOrigin = 2
+	MessageOrigin_REPLAY             MessageOrigin = 3
+	MessageOrigin_ORIGIN_BROADCAST   MessageOrigin = 4
+	MessageOrigin_PUSHAPI            MessageOrigin = 5
+	MessageOrigin_SYSTEM             MessageOrigin = 6
+)
+
+// Enum value maps for MessageOrigin.
+var (
+	MessageOrigin_name = map[int32]string{
+		0: "ORIGIN_UNSPECIFIED",
+		1: "CLIENT",
+		2: "RETRY",
+		3: "REPLAY",
+		4: "ORIGIN_BROADCAST",
+		5: "PUSHAPI",
+		6: "SYSTEM",
+	}
+	MessageOrigin_value = map[string]int32{
+		"ORIGIN_UNSPECIFIED": 0,
+		"CLIENT":             1,
+		"RETRY":              2,
+		"REPLAY":             3,
+		"ORIGIN_BROADCAST":   4,
+		"PUSHAPI":            5,
+		"SYSTEM":             6,
+	}
+)
+
+func (x MessageOrigin) Enum() *MessageOrigin {
+	p := new(MessageOrigin)
+	*p = x
+	return p
+}
+
+func (x MessageOrigin) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (MessageOrigin) Descriptor() protoreflect.EnumDescriptor {
+	return file_gateway_v1_common_proto_enumTypes[5].Descriptor()
+}
+
+func (MessageOrigin) Type() protoreflect.EnumType {
+	return &file_gateway_v1_common_proto_enumTypes[5]
+}
+
+func (x MessageOrigin) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use MessageOrigin.Descriptor instead.
+func (MessageOrigin) EnumDescriptor() ([]byte, []int) {
 	return file_gateway_v1_common_proto_rawDescGZIP(), []int{5}
+}
+
+type HeartbeatBufferLevel int32
+
+const (
+	HeartbeatBufferLevel_BUFFER_LEVEL_UNSPECIFIED HeartbeatBufferLevel = 0
+	HeartbeatBufferLevel_NORMAL                   HeartbeatBufferLevel = 1
+	HeartbeatBufferLevel_WARNING                  HeartbeatBufferLevel = 2
+	HeartbeatBufferLevel_FULL                     HeartbeatBufferLevel = 3
+)
+
+// Enum value maps for HeartbeatBufferLevel.
+var (
+	HeartbeatBufferLevel_name = map[int32]string{
+		0: "BUFFER_LEVEL_UNSPECIFIED",
+		1: "NORMAL",
+		2: "WARNING",
+		3: "FULL",
+	}
+	HeartbeatBufferLevel_value = map[string]int32{
+		"BUFFER_LEVEL_UNSPECIFIED": 0,
+		"NORMAL":                   1,
+		"WARNING":                  2,
+		"FULL":                     3,
+	}
+)
+
+func (x HeartbeatBufferLevel) Enum() *HeartbeatBufferLevel {
+	p := new(HeartbeatBufferLevel)
+	*p = x
+	return p
+}
+
+func (x HeartbeatBufferLevel) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (HeartbeatBufferLevel) Descriptor() protoreflect.EnumDescriptor {
+	return file_gateway_v1_common_proto_enumTypes[6].Descriptor()
+}
+
+func (HeartbeatBufferLevel) Type() protoreflect.EnumType {
+	return &file_gateway_v1_common_proto_enumTypes[6]
+}
+
+func (x HeartbeatBufferLevel) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use HeartbeatBufferLevel.Descriptor instead.
+func (HeartbeatBufferLevel) EnumDescriptor() ([]byte, []int) {
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{6}
+}
+
+// ── 错误码 ──
+type ErrorCode int32
+
+const (
+	ErrorCode_ERROR_CODE_UNSPECIFIED    ErrorCode = 0
+	ErrorCode_ERR_HEARTBEAT_TIMEOUT     ErrorCode = 1001
+	ErrorCode_ERR_HANDSHAKE_FAILED      ErrorCode = 1002
+	ErrorCode_ERR_AUTH_EXPIRED          ErrorCode = 1003
+	ErrorCode_ERR_REPLACED_BY_NEW_LOGIN ErrorCode = 1004
+	ErrorCode_ERR_SESSION_SUSPENDED     ErrorCode = 1005
+	ErrorCode_ERR_SESSION_CLOSED        ErrorCode = 1006
+	ErrorCode_ERR_PROTOCOL_VERSION      ErrorCode = 1007
+	ErrorCode_ERR_CONN_RATE_LIMITED     ErrorCode = 1008
+	ErrorCode_ERR_RESUME_FAILED         ErrorCode = 1009 // op=RESUME 恢复失败（session_id 无效或过期）
+	ErrorCode_ERR_TOKEN_INVALID         ErrorCode = 2001
+	ErrorCode_ERR_TOKEN_EXPIRED         ErrorCode = 2002
+	ErrorCode_ERR_PERMISSION_DENIED     ErrorCode = 2003
+	ErrorCode_ERR_DEVICE_BLOCKED        ErrorCode = 2004
+	ErrorCode_ERR_IP_BLOCKED            ErrorCode = 2005
+	ErrorCode_ERR_APP_ID_INVALID        ErrorCode = 2006 // app_id 无效或不存在
+	ErrorCode_ERR_MESSAGE_TOO_LARGE     ErrorCode = 3001
+	ErrorCode_ERR_INVALID_OPCODE        ErrorCode = 3002
+	ErrorCode_ERR_MESSAGE_MALFORMED     ErrorCode = 3003
+	ErrorCode_ERR_MESSAGE_EXPIRED       ErrorCode = 3004
+	ErrorCode_ERR_RATE_LIMITED          ErrorCode = 3005
+	ErrorCode_ERR_BAD_REQUEST           ErrorCode = 3006
+	ErrorCode_ERR_OPCODE_UNEXPECTED     ErrorCode = 3007 // 当前状态不允许该 OpCode（如未 HANDSHAKE 就发 DISPATCH）
+	ErrorCode_ERR_UPSTREAM_SEND_FAILED  ErrorCode = 4001
+	ErrorCode_ERR_OFFLINE_STORE_FAILED  ErrorCode = 4002
+	ErrorCode_ERR_MAX_RETRY_EXCEEDED    ErrorCode = 4003
+	ErrorCode_ERR_ROUTE_NOT_FOUND       ErrorCode = 4004
+	ErrorCode_ERR_TARGET_UNAVAILABLE    ErrorCode = 4005
+	ErrorCode_ERR_DELIVERY_TIMEOUT      ErrorCode = 4006
+	// ── 订阅层（5xxx）──
+	ErrorCode_ERR_ROOM_NOT_FOUND     ErrorCode = 5001
+	ErrorCode_ERR_TOPIC_NOT_FOUND    ErrorCode = 5002
+	ErrorCode_ERR_ALREADY_SUBSCRIBED ErrorCode = 5003
+	ErrorCode_ERR_NOT_SUBSCRIBED     ErrorCode = 5004
+	ErrorCode_ERR_ROOM_FULL          ErrorCode = 5005
+)
+
+// Enum value maps for ErrorCode.
+var (
+	ErrorCode_name = map[int32]string{
+		0:    "ERROR_CODE_UNSPECIFIED",
+		1001: "ERR_HEARTBEAT_TIMEOUT",
+		1002: "ERR_HANDSHAKE_FAILED",
+		1003: "ERR_AUTH_EXPIRED",
+		1004: "ERR_REPLACED_BY_NEW_LOGIN",
+		1005: "ERR_SESSION_SUSPENDED",
+		1006: "ERR_SESSION_CLOSED",
+		1007: "ERR_PROTOCOL_VERSION",
+		1008: "ERR_CONN_RATE_LIMITED",
+		1009: "ERR_RESUME_FAILED",
+		2001: "ERR_TOKEN_INVALID",
+		2002: "ERR_TOKEN_EXPIRED",
+		2003: "ERR_PERMISSION_DENIED",
+		2004: "ERR_DEVICE_BLOCKED",
+		2005: "ERR_IP_BLOCKED",
+		2006: "ERR_APP_ID_INVALID",
+		3001: "ERR_MESSAGE_TOO_LARGE",
+		3002: "ERR_INVALID_OPCODE",
+		3003: "ERR_MESSAGE_MALFORMED",
+		3004: "ERR_MESSAGE_EXPIRED",
+		3005: "ERR_RATE_LIMITED",
+		3006: "ERR_BAD_REQUEST",
+		3007: "ERR_OPCODE_UNEXPECTED",
+		4001: "ERR_UPSTREAM_SEND_FAILED",
+		4002: "ERR_OFFLINE_STORE_FAILED",
+		4003: "ERR_MAX_RETRY_EXCEEDED",
+		4004: "ERR_ROUTE_NOT_FOUND",
+		4005: "ERR_TARGET_UNAVAILABLE",
+		4006: "ERR_DELIVERY_TIMEOUT",
+		5001: "ERR_ROOM_NOT_FOUND",
+		5002: "ERR_TOPIC_NOT_FOUND",
+		5003: "ERR_ALREADY_SUBSCRIBED",
+		5004: "ERR_NOT_SUBSCRIBED",
+		5005: "ERR_ROOM_FULL",
+	}
+	ErrorCode_value = map[string]int32{
+		"ERROR_CODE_UNSPECIFIED":    0,
+		"ERR_HEARTBEAT_TIMEOUT":     1001,
+		"ERR_HANDSHAKE_FAILED":      1002,
+		"ERR_AUTH_EXPIRED":          1003,
+		"ERR_REPLACED_BY_NEW_LOGIN": 1004,
+		"ERR_SESSION_SUSPENDED":     1005,
+		"ERR_SESSION_CLOSED":        1006,
+		"ERR_PROTOCOL_VERSION":      1007,
+		"ERR_CONN_RATE_LIMITED":     1008,
+		"ERR_RESUME_FAILED":         1009,
+		"ERR_TOKEN_INVALID":         2001,
+		"ERR_TOKEN_EXPIRED":         2002,
+		"ERR_PERMISSION_DENIED":     2003,
+		"ERR_DEVICE_BLOCKED":        2004,
+		"ERR_IP_BLOCKED":            2005,
+		"ERR_APP_ID_INVALID":        2006,
+		"ERR_MESSAGE_TOO_LARGE":     3001,
+		"ERR_INVALID_OPCODE":        3002,
+		"ERR_MESSAGE_MALFORMED":     3003,
+		"ERR_MESSAGE_EXPIRED":       3004,
+		"ERR_RATE_LIMITED":          3005,
+		"ERR_BAD_REQUEST":           3006,
+		"ERR_OPCODE_UNEXPECTED":     3007,
+		"ERR_UPSTREAM_SEND_FAILED":  4001,
+		"ERR_OFFLINE_STORE_FAILED":  4002,
+		"ERR_MAX_RETRY_EXCEEDED":    4003,
+		"ERR_ROUTE_NOT_FOUND":       4004,
+		"ERR_TARGET_UNAVAILABLE":    4005,
+		"ERR_DELIVERY_TIMEOUT":      4006,
+		"ERR_ROOM_NOT_FOUND":        5001,
+		"ERR_TOPIC_NOT_FOUND":       5002,
+		"ERR_ALREADY_SUBSCRIBED":    5003,
+		"ERR_NOT_SUBSCRIBED":        5004,
+		"ERR_ROOM_FULL":             5005,
+	}
+)
+
+func (x ErrorCode) Enum() *ErrorCode {
+	p := new(ErrorCode)
+	*p = x
+	return p
+}
+
+func (x ErrorCode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ErrorCode) Descriptor() protoreflect.EnumDescriptor {
+	return file_gateway_v1_common_proto_enumTypes[7].Descriptor()
+}
+
+func (ErrorCode) Type() protoreflect.EnumType {
+	return &file_gateway_v1_common_proto_enumTypes[7]
+}
+
+func (x ErrorCode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ErrorCode.Descriptor instead.
+func (ErrorCode) EnumDescriptor() ([]byte, []int) {
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{7}
+}
+
+// GatewayFrame 所有消息（控制面 + 业务面）都用这个结构。
+type GatewayFrame struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// op: 操作码，决定消息的语义类别
+	Op OpCode `protobuf:"varint,1,opt,name=op,proto3,enum=gateway.v1.OpCode" json:"op,omitempty"`
+	// oneof data {
+	// Dispatch dispatch = 2;
+	// Hello hello = 3;
+	// Handshake handshake = 4;
+	// Ready ready = 5;
+	// Error error = 6;
+	// Resume resume = 7;
+	// Heartbeat heartbeat = 8;
+	// HeartbeatAck heartbeat_ack = 9;
+	// AuthRefresh auth_refresh = 10;
+	// Reconnect reconnect = 11;
+	// Kick kick = 12;
+	// Ack ack = 13;
+	// AuthRefreshAck auth_refresh_ack = 14;
+	// }
+	Data          []byte `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GatewayFrame) Reset() {
+	*x = GatewayFrame{}
+	mi := &file_gateway_v1_common_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GatewayFrame) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GatewayFrame) ProtoMessage() {}
+
+func (x *GatewayFrame) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_common_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GatewayFrame.ProtoReflect.Descriptor instead.
+func (*GatewayFrame) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *GatewayFrame) GetOp() OpCode {
+	if x != nil {
+		return x.Op
+	}
+	return OpCode_OP_CODE_UNSPECIFIED
+}
+
+func (x *GatewayFrame) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+type Dispatch struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// payload: 事件数据（protobuf 编码后的字节）
+	Payload []byte `protobuf:"bytes,1,opt,name=payload,proto3" json:"payload,omitempty"`
+	// seq_id: 序列号
+	//
+	//	规则：
+	//	  - 服务端发送的 DISPATCH 必须带递增 seq_id
+	//	  - 客户端发送的 ACK 带被确认消息的 seq_id
+	SeqId uint64 `protobuf:"varint,2,opt,name=seq_id,json=seqId,proto3" json:"seq_id,omitempty"`
+	// msg_id: 全局唯一消息 ID（用于 ACK 关联、幂等去重）
+	MsgId string `protobuf:"bytes,3,opt,name=msg_id,json=msgId,proto3" json:"msg_id,omitempty"`
+	// biz_code: 业务代码 e.g. "im", "live", "call".
+	BizCode string `protobuf:"bytes,4,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
+	// event_type: 事件类型
+	//
+	//	格式："{domain}.{action}"，例如："presence.update", "voice.signal"
+	//	  "im.chat", "im.receipt", "live.comment", "call.offer"
+	//	设计原则：新增业务事件无需修改 OpCode，零改动网关
+	//	event_type: 事件类型，用于区分不同的业务事件
+	//	例如："im.chat", "im.login", "im.logout"
+	EventType string `protobuf:"bytes,5,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
+	// 绝对过期时间戳 Unix 毫秒，0=永不过期
+	ExpireAt int64 `protobuf:"varint,6,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
+	// from / to: 寻址信息
+	From *RouteTarget `protobuf:"bytes,10,opt,name=from,proto3" json:"from,omitempty"`
+	To   *RouteTarget `protobuf:"bytes,11,opt,name=to,proto3" json:"to,omitempty"`
+	// delivery: 投递控制（QoS、优先级、离线存储）
+	Delivery *Delivery `protobuf:"bytes,12,opt,name=delivery,proto3" json:"delivery,omitempty"`
+	// trace: 分布式追踪上下文
+	Trace *TraceContext `protobuf:"bytes,13,opt,name=trace,proto3" json:"trace,omitempty"`
+	// timestamp: 发送方时间戳（Unix 毫秒）
+	Timestamp int64 `protobuf:"varint,14,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	// origin: 消息来源（网关填充，客户端只读）
+	Origin MessageOrigin `protobuf:"varint,15,opt,name=origin,proto3,enum=gateway.v1.MessageOrigin" json:"origin,omitempty"`
+	// recv_at: 网关收到时间（Unix 毫秒）
+	RecvAt int64 `protobuf:"varint,16,opt,name=recv_at,json=recvAt,proto3" json:"recv_at,omitempty"`
+	// metadata: 扩展 K-V 元数据
+	//
+	//	网关保留键（x-gw- 前缀）：x-gw-recv-ts, x-gw-node, x-gw-retry
+	//	业务键（x-biz- 前缀）：网关透传不处理
+	Metadata      map[string]string `protobuf:"bytes,99,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Dispatch) Reset() {
+	*x = Dispatch{}
+	mi := &file_gateway_v1_common_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Dispatch) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Dispatch) ProtoMessage() {}
+
+func (x *Dispatch) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_common_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Dispatch.ProtoReflect.Descriptor instead.
+func (*Dispatch) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *Dispatch) GetPayload() []byte {
+	if x != nil {
+		return x.Payload
+	}
+	return nil
+}
+
+func (x *Dispatch) GetSeqId() uint64 {
+	if x != nil {
+		return x.SeqId
+	}
+	return 0
+}
+
+func (x *Dispatch) GetMsgId() string {
+	if x != nil {
+		return x.MsgId
+	}
+	return ""
+}
+
+func (x *Dispatch) GetBizCode() string {
+	if x != nil {
+		return x.BizCode
+	}
+	return ""
+}
+
+func (x *Dispatch) GetEventType() string {
+	if x != nil {
+		return x.EventType
+	}
+	return ""
+}
+
+func (x *Dispatch) GetExpireAt() int64 {
+	if x != nil {
+		return x.ExpireAt
+	}
+	return 0
+}
+
+func (x *Dispatch) GetFrom() *RouteTarget {
+	if x != nil {
+		return x.From
+	}
+	return nil
+}
+
+func (x *Dispatch) GetTo() *RouteTarget {
+	if x != nil {
+		return x.To
+	}
+	return nil
+}
+
+func (x *Dispatch) GetDelivery() *Delivery {
+	if x != nil {
+		return x.Delivery
+	}
+	return nil
+}
+
+func (x *Dispatch) GetTrace() *TraceContext {
+	if x != nil {
+		return x.Trace
+	}
+	return nil
+}
+
+func (x *Dispatch) GetTimestamp() int64 {
+	if x != nil {
+		return x.Timestamp
+	}
+	return 0
+}
+
+func (x *Dispatch) GetOrigin() MessageOrigin {
+	if x != nil {
+		return x.Origin
+	}
+	return MessageOrigin_ORIGIN_UNSPECIFIED
+}
+
+func (x *Dispatch) GetRecvAt() int64 {
+	if x != nil {
+		return x.RecvAt
+	}
+	return 0
+}
+
+func (x *Dispatch) GetMetadata() map[string]string {
+	if x != nil {
+		return x.Metadata
+	}
+	return nil
 }
 
 type RouteTarget struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Type  RouteTargetType        `protobuf:"varint,1,opt,name=type,proto3,enum=gateway.v1.RouteTargetType" json:"type,omitempty"`
-	// key 根据 type 取值：
-	//
-	//	USER:       uid
-	//	DEVICE:     device_id
-	//	SESSION:    session_id
-	//	ROOM:       room_id
-	//	TOPIC:      topic_name
-	//	GROUP:      group_id
-	//	NODE:       node_id
-	//	BROADCAST:  "*" 或空
-	Key string `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	// 可选限定符
-	DeviceId      string            `protobuf:"bytes,3,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`                                                       // 当 type=USER 时，指定只发给某设备
-	NodeId        string            `protobuf:"bytes,4,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`                                                             // 当 type=NODE 时，指定目标节点
-	ShardKey      string            `protobuf:"bytes,5,opt,name=shard_key,json=shardKey,proto3" json:"shard_key,omitempty"`                                                       // 分片键（用于一致性哈希路由）
-	Labels        map[string]string `protobuf:"bytes,6,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // 标签匹配（用于高级路由策略）
+	// 目标用户ID、设备ID、会话ID、房间ID、主题或群组ID
+	Target        string            `protobuf:"bytes,2,opt,name=target,proto3" json:"target,omitempty"`
+	Labels        map[string]string `protobuf:"bytes,3,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RouteTarget) Reset() {
 	*x = RouteTarget{}
-	mi := &file_gateway_v1_common_proto_msgTypes[0]
+	mi := &file_gateway_v1_common_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -663,7 +874,7 @@ func (x *RouteTarget) String() string {
 func (*RouteTarget) ProtoMessage() {}
 
 func (x *RouteTarget) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_common_proto_msgTypes[0]
+	mi := &file_gateway_v1_common_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -676,7 +887,7 @@ func (x *RouteTarget) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RouteTarget.ProtoReflect.Descriptor instead.
 func (*RouteTarget) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_common_proto_rawDescGZIP(), []int{0}
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *RouteTarget) GetType() RouteTargetType {
@@ -686,30 +897,9 @@ func (x *RouteTarget) GetType() RouteTargetType {
 	return RouteTargetType_ROUTE_TARGET_TYPE_UNSPECIFIED
 }
 
-func (x *RouteTarget) GetKey() string {
+func (x *RouteTarget) GetTarget() string {
 	if x != nil {
-		return x.Key
-	}
-	return ""
-}
-
-func (x *RouteTarget) GetDeviceId() string {
-	if x != nil {
-		return x.DeviceId
-	}
-	return ""
-}
-
-func (x *RouteTarget) GetNodeId() string {
-	if x != nil {
-		return x.NodeId
-	}
-	return ""
-}
-
-func (x *RouteTarget) GetShardKey() string {
-	if x != nil {
-		return x.ShardKey
+		return x.Target
 	}
 	return ""
 }
@@ -721,23 +911,21 @@ func (x *RouteTarget) GetLabels() map[string]string {
 	return nil
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// TraceContext：分布式追踪上下文
-// ─────────────────────────────────────────────────────────────────────────────
+// ── 追踪 ──
 type TraceContext struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TraceId       string                 `protobuf:"bytes,1,opt,name=trace_id,json=traceId,proto3" json:"trace_id,omitempty"`
 	SpanId        string                 `protobuf:"bytes,2,opt,name=span_id,json=spanId,proto3" json:"span_id,omitempty"`
 	ParentSpanId  string                 `protobuf:"bytes,3,opt,name=parent_span_id,json=parentSpanId,proto3" json:"parent_span_id,omitempty"`
-	Sampled       bool                   `protobuf:"varint,4,opt,name=sampled,proto3" json:"sampled,omitempty"`                                                                          // 是否采样
-	Baggage       map[string]string      `protobuf:"bytes,5,rep,name=baggage,proto3" json:"baggage,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // 透传 baggage
+	Sampled       bool                   `protobuf:"varint,4,opt,name=sampled,proto3" json:"sampled,omitempty"`
+	Baggage       map[string]string      `protobuf:"bytes,5,rep,name=baggage,proto3" json:"baggage,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *TraceContext) Reset() {
 	*x = TraceContext{}
-	mi := &file_gateway_v1_common_proto_msgTypes[1]
+	mi := &file_gateway_v1_common_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -749,7 +937,7 @@ func (x *TraceContext) String() string {
 func (*TraceContext) ProtoMessage() {}
 
 func (x *TraceContext) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_common_proto_msgTypes[1]
+	mi := &file_gateway_v1_common_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -762,7 +950,7 @@ func (x *TraceContext) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TraceContext.ProtoReflect.Descriptor instead.
 func (*TraceContext) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_common_proto_rawDescGZIP(), []int{1}
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *TraceContext) GetTraceId() string {
@@ -800,37 +988,19 @@ func (x *TraceContext) GetBaggage() map[string]string {
 	return nil
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Delivery：投递控制元数据
-// ─────────────────────────────────────────────────────────────────────────────
+// ── 投递控制 ──
 type Delivery struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	Qos   QosClass               `protobuf:"varint,1,opt,name=qos,proto3,enum=gateway.v1.QosClass" json:"qos,omitempty"`
-	// ack_id: 网关向客户端回 ACK 时填写，值为被确认消息的 msg_id
-	AckId *string `protobuf:"bytes,2,opt,name=ack_id,json=ackId,proto3,oneof" json:"ack_id,omitempty"`
-	// offline: true = 目标离线时持久化，联网后补投
-	Offline bool `protobuf:"varint,3,opt,name=offline,proto3" json:"offline,omitempty"`
-	// max_retry: 最大重试次数，0 表示使用业务默认策略
-	MaxRetry int32 `protobuf:"varint,4,opt,name=max_retry,json=maxRetry,proto3" json:"max_retry,omitempty"`
-	// priority: 投递优先级，数值越小优先级越高
-	//
-	//	0: 系统级（握手响应、KICK）
-	//	1: 高优（IM 消息、Call 信令）
-	//	5: 普通（Push 通知）
-	//	10: 低优（Live 弹幕、Typing）
-	Priority int32 `protobuf:"varint,5,opt,name=priority,proto3" json:"priority,omitempty"`
-	// compress_body: 是否对 Body.data 启用压缩
-	//
-	//	注意：这是投递层的压缩提示，与 Body.compress_algo 独立
-	//	true 时网关会根据消息大小自动选择 ZSTD/SNAPPY
-	CompressBody  bool `protobuf:"varint,6,opt,name=compress_body,json=compressBody,proto3" json:"compress_body,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Qos           QosClass               `protobuf:"varint,1,opt,name=qos,proto3,enum=gateway.v1.QosClass" json:"qos,omitempty"`
+	Offline       bool                   `protobuf:"varint,2,opt,name=offline,proto3" json:"offline,omitempty"`
+	Priority      int32                  `protobuf:"varint,3,opt,name=priority,proto3" json:"priority,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Delivery) Reset() {
 	*x = Delivery{}
-	mi := &file_gateway_v1_common_proto_msgTypes[2]
+	mi := &file_gateway_v1_common_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -842,7 +1012,7 @@ func (x *Delivery) String() string {
 func (*Delivery) ProtoMessage() {}
 
 func (x *Delivery) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_common_proto_msgTypes[2]
+	mi := &file_gateway_v1_common_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -855,7 +1025,7 @@ func (x *Delivery) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Delivery.ProtoReflect.Descriptor instead.
 func (*Delivery) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_common_proto_rawDescGZIP(), []int{2}
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Delivery) GetQos() QosClass {
@@ -865,25 +1035,11 @@ func (x *Delivery) GetQos() QosClass {
 	return QosClass_QOS_CLASS_UNSPECIFIED
 }
 
-func (x *Delivery) GetAckId() string {
-	if x != nil && x.AckId != nil {
-		return *x.AckId
-	}
-	return ""
-}
-
 func (x *Delivery) GetOffline() bool {
 	if x != nil {
 		return x.Offline
 	}
 	return false
-}
-
-func (x *Delivery) GetMaxRetry() int32 {
-	if x != nil {
-		return x.MaxRetry
-	}
-	return 0
 }
 
 func (x *Delivery) GetPriority() int32 {
@@ -893,85 +1049,44 @@ func (x *Delivery) GetPriority() int32 {
 	return 0
 }
 
-func (x *Delivery) GetCompressBody() bool {
-	if x != nil {
-		return x.CompressBody
-	}
-	return false
-}
-
-type Message struct {
+// ── op=2 HELLO（S→C）───────────────────────────────────────────────────────
+//
+//	连接建立后服务端立即发送，告知客户端协议参数
+type Hello struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// ── 帧身份 ──────────────────────────────────────────────────────────────
-	// version: 协议版本，用于平滑升级和兼容性检查
-	//
-	//	当前 = 1，未来版本协商在 Handshake 中完成
-	Version uint32    `protobuf:"varint,1,opt,name=version,proto3" json:"version,omitempty"`
-	Type    FrameType `protobuf:"varint,2,opt,name=type,proto3,enum=gateway.v1.FrameType" json:"type,omitempty"`
-	// msg_id: 发送方生成的全局唯一 ID（建议 UUID v7 或雪花 ID）
-	//
-	//	用途：ACK 关联、幂等去重、日志追踪
-	MsgId string `protobuf:"bytes,3,opt,name=msg_id,json=msgId,proto3" json:"msg_id,omitempty"`
-	// seq_id: 发送方单向单调递增序号（每个连接独立）
-	//
-	//	用途：接收方检测丢包、断线重连时告知"从哪里补发"
-	SeqId uint64 `protobuf:"varint,4,opt,name=seq_id,json=seqId,proto3" json:"seq_id,omitempty"`
-	// timestamp: 发送方时间戳（Unix 毫秒）
-	//
-	//	用途：端到端延迟度量、消息过期检测辅助
-	Timestamp int64 `protobuf:"varint,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	// ── 寻址 ────────────────────────────────────────────────────────────────
-	From *RouteTarget `protobuf:"bytes,6,opt,name=from,proto3" json:"from,omitempty"`
-	To   *RouteTarget `protobuf:"bytes,7,opt,name=to,proto3" json:"to,omitempty"`
-	// ── 投递控制 ─────────────────────────────────────────────────────────────
-	Delivery *Delivery `protobuf:"bytes,8,opt,name=delivery,proto3" json:"delivery,omitempty"`
-	// expire_at: 绝对过期时间戳（Unix 毫秒），0 表示永不过期
-	ExpireAt int64 `protobuf:"varint,9,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
-	// ── 路由提示 ─────────────────────────────────────────────────────────────
-	// biz_code: 业务域标识，用于 WorkerPool 路由和限流策略
-	//
-	//	约定："im" | "live" | "push" | "call" | "custom.{name}"
-	BizCode string `protobuf:"bytes,10,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
-	// trace_context: 分布式追踪上下文
-	TraceContext *TraceContext `protobuf:"bytes,11,opt,name=trace_context,json=traceContext,proto3" json:"trace_context,omitempty"`
-	// ── 扩展 ─────────────────────────────────────────────────────────────────
-	// headers: 中间件 K-V 元数据
-	//
-	//	网关保留头（以 x-gw- 前缀）：
-	//	  x-gw-recv-ts:  网关收到时间戳
-	//	  x-gw-node:     处理节点 ID
-	//	  x-gw-retry:    重试次数
-	//	  x-gw-priority: 优先级覆盖
-	//	业务头（以 x-biz- 前缀）：网关透传但不做特殊处理
-	Headers map[string]string `protobuf:"bytes,12,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// ── 业务载荷 ─────────────────────────────────────────────────────────────
-	Body *Body `protobuf:"bytes,13,opt,name=body,proto3" json:"body,omitempty"`
-	// ── 网关元数据（由网关填充，客户端只读）────────────────────────────────────
-	// origin: 消息来源，用于区分客户端原始发送和服务端生成
-	//
-	//	"client" | "retry" | "replay" | "broadcast" | "pushapi" | "system"
-	Origin string `protobuf:"bytes,14,opt,name=origin,proto3" json:"origin,omitempty"`
-	// recv_at: 网关收到时间（Unix 毫秒），用于计算网关处理延迟
-	RecvAt        int64 `protobuf:"varint,15,opt,name=recv_at,json=recvAt,proto3" json:"recv_at,omitempty"`
+	// 支持的编解码器 - session 进行固定
+	SupportedCodecs []Codec `protobuf:"varint,1,rep,packed,name=supported_codecs,json=supportedCodecs,proto3,enum=gateway.v1.Codec" json:"supported_codecs,omitempty"`
+	// 支持的压缩算法 - session 进行固定
+	SupportedCompress []CompressAlgo `protobuf:"varint,2,rep,packed,name=supported_compress,json=supportedCompress,proto3,enum=gateway.v1.CompressAlgo" json:"supported_compress,omitempty"`
+	// 建议心跳间隔（秒）
+	HeartbeatInterval int32 `protobuf:"varint,3,opt,name=heartbeat_interval,json=heartbeatInterval,proto3" json:"heartbeat_interval,omitempty"`
+	// 允许的最大 payload 字节数
+	MaxBodySize int64 `protobuf:"varint,4,opt,name=max_body_size,json=maxBodySize,proto3" json:"max_body_size,omitempty"`
+	// 协议版本（如 "1"）
+	ProtocolVersion string `protobuf:"bytes,5,opt,name=protocol_version,json=protocolVersion,proto3" json:"protocol_version,omitempty"`
+	// 处理节点 ID
+	NodeId string `protobuf:"bytes,6,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"`
+	// 服务端 Unix 毫秒
+	ServerTime    int64 `protobuf:"varint,7,opt,name=server_time,json=serverTime,proto3" json:"server_time,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *Message) Reset() {
-	*x = Message{}
-	mi := &file_gateway_v1_common_proto_msgTypes[3]
+func (x *Hello) Reset() {
+	*x = Hello{}
+	mi := &file_gateway_v1_common_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *Message) String() string {
+func (x *Hello) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Message) ProtoMessage() {}
+func (*Hello) ProtoMessage() {}
 
-func (x *Message) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_common_proto_msgTypes[3]
+func (x *Hello) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_common_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -982,149 +1097,89 @@ func (x *Message) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Message.ProtoReflect.Descriptor instead.
-func (*Message) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_common_proto_rawDescGZIP(), []int{3}
+// Deprecated: Use Hello.ProtoReflect.Descriptor instead.
+func (*Hello) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{5}
 }
 
-func (x *Message) GetVersion() uint32 {
+func (x *Hello) GetSupportedCodecs() []Codec {
 	if x != nil {
-		return x.Version
+		return x.SupportedCodecs
+	}
+	return nil
+}
+
+func (x *Hello) GetSupportedCompress() []CompressAlgo {
+	if x != nil {
+		return x.SupportedCompress
+	}
+	return nil
+}
+
+func (x *Hello) GetHeartbeatInterval() int32 {
+	if x != nil {
+		return x.HeartbeatInterval
 	}
 	return 0
 }
 
-func (x *Message) GetType() FrameType {
+func (x *Hello) GetMaxBodySize() int64 {
 	if x != nil {
-		return x.Type
+		return x.MaxBodySize
 	}
-	return FrameType_FrameType_UNSPECIFIED
+	return 0
 }
 
-func (x *Message) GetMsgId() string {
+func (x *Hello) GetProtocolVersion() string {
 	if x != nil {
-		return x.MsgId
+		return x.ProtocolVersion
 	}
 	return ""
 }
 
-func (x *Message) GetSeqId() uint64 {
+func (x *Hello) GetNodeId() string {
 	if x != nil {
-		return x.SeqId
-	}
-	return 0
-}
-
-func (x *Message) GetTimestamp() int64 {
-	if x != nil {
-		return x.Timestamp
-	}
-	return 0
-}
-
-func (x *Message) GetFrom() *RouteTarget {
-	if x != nil {
-		return x.From
-	}
-	return nil
-}
-
-func (x *Message) GetTo() *RouteTarget {
-	if x != nil {
-		return x.To
-	}
-	return nil
-}
-
-func (x *Message) GetDelivery() *Delivery {
-	if x != nil {
-		return x.Delivery
-	}
-	return nil
-}
-
-func (x *Message) GetExpireAt() int64 {
-	if x != nil {
-		return x.ExpireAt
-	}
-	return 0
-}
-
-func (x *Message) GetBizCode() string {
-	if x != nil {
-		return x.BizCode
+		return x.NodeId
 	}
 	return ""
 }
 
-func (x *Message) GetTraceContext() *TraceContext {
+func (x *Hello) GetServerTime() int64 {
 	if x != nil {
-		return x.TraceContext
-	}
-	return nil
-}
-
-func (x *Message) GetHeaders() map[string]string {
-	if x != nil {
-		return x.Headers
-	}
-	return nil
-}
-
-func (x *Message) GetBody() *Body {
-	if x != nil {
-		return x.Body
-	}
-	return nil
-}
-
-func (x *Message) GetOrigin() string {
-	if x != nil {
-		return x.Origin
-	}
-	return ""
-}
-
-func (x *Message) GetRecvAt() int64 {
-	if x != nil {
-		return x.RecvAt
+		return x.ServerTime
 	}
 	return 0
 }
 
-type Body struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// codec: 业务载荷的序列化格式
-	//
-	//	接收方按此字段选择反序列化器
-	Codec Codec `protobuf:"varint,1,opt,name=codec,proto3,enum=gateway.v1.Codec" json:"codec,omitempty"`
-	// compress_algo: 业务载荷的压缩算法
-	//
-	//	接收方先解压再解码
-	CompressAlgo CompressAlgo `protobuf:"varint,2,opt,name=compress_algo,json=compressAlgo,proto3,enum=gateway.v1.CompressAlgo" json:"compress_algo,omitempty"`
-	// data: 编码并压缩后的业务 payload
-	//
-	//	最大 4MB（含压缩后），超过则返回 ERR_MESSAGE_TOO_LARGE
-	Data          []byte `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+// ── op=3 HANDSHAKE（C→S）──────────────────────────────────────────────────
+//
+//	客户端收到 HELLO 后发送，完成认证握手
+type Handshake struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Token               string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	DeviceId            string                 `protobuf:"bytes,2,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
+	DeviceType          string                 `protobuf:"bytes,3,opt,name=device_type,json=deviceType,proto3" json:"device_type,omitempty"`
+	SdkVersion          string                 `protobuf:"bytes,4,opt,name=sdk_version,json=sdkVersion,proto3" json:"sdk_version,omitempty"`
+	SupportedExtensions []string               `protobuf:"bytes,5,rep,name=supported_extensions,json=supportedExtensions,proto3" json:"supported_extensions,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
-func (x *Body) Reset() {
-	*x = Body{}
-	mi := &file_gateway_v1_common_proto_msgTypes[4]
+func (x *Handshake) Reset() {
+	*x = Handshake{}
+	mi := &file_gateway_v1_common_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *Body) String() string {
+func (x *Handshake) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Body) ProtoMessage() {}
+func (*Handshake) ProtoMessage() {}
 
-func (x *Body) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_common_proto_msgTypes[4]
+func (x *Handshake) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_common_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1135,190 +1190,185 @@ func (x *Body) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Body.ProtoReflect.Descriptor instead.
-func (*Body) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_common_proto_rawDescGZIP(), []int{4}
+// Deprecated: Use Handshake.ProtoReflect.Descriptor instead.
+func (*Handshake) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *Body) GetCodec() Codec {
+func (x *Handshake) GetToken() string {
 	if x != nil {
-		return x.Codec
+		return x.Token
+	}
+	return ""
+}
+
+func (x *Handshake) GetDeviceId() string {
+	if x != nil {
+		return x.DeviceId
+	}
+	return ""
+}
+
+func (x *Handshake) GetDeviceType() string {
+	if x != nil {
+		return x.DeviceType
+	}
+	return ""
+}
+
+func (x *Handshake) GetSdkVersion() string {
+	if x != nil {
+		return x.SdkVersion
+	}
+	return ""
+}
+
+func (x *Handshake) GetSupportedExtensions() []string {
+	if x != nil {
+		return x.SupportedExtensions
+	}
+	return nil
+}
+
+// ── op=4 READY（S→C）───────────────────────────────────────────────────────
+//
+//	认证成功，连接进入活跃状态
+//	认证失败时发送 op=ERROR（GatewayError，code=ERR_HANDSHAKE_FAILED 等）
+type Ready struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	SessionId  string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	UserId     string                 `protobuf:"bytes,2,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
+	ServerTime int64                  `protobuf:"varint,3,opt,name=server_time,json=serverTime,proto3" json:"server_time,omitempty"`
+	// 服务端最终确认的心跳间隔
+	HeartbeatInterval int32 `protobuf:"varint,4,opt,name=heartbeat_interval,json=heartbeatInterval,proto3" json:"heartbeat_interval,omitempty"`
+	// 从此 Seq 开始补发离线消息
+	ReplayFrom uint64 `protobuf:"varint,5,opt,name=replay_from,json=replayFrom,proto3" json:"replay_from,omitempty"`
+	// 服务端最终确认的编解码器
+	SelectedCodec Codec `protobuf:"varint,6,opt,name=selected_codec,json=selectedCodec,proto3,enum=gateway.v1.Codec" json:"selected_codec,omitempty"`
+	// 服务端最终确认的压缩算法
+	SelectedCompress CompressAlgo `protobuf:"varint,7,opt,name=selected_compress,json=selectedCompress,proto3,enum=gateway.v1.CompressAlgo" json:"selected_compress,omitempty"`
+	// 网关实际启用的扩展列表
+	Extensions    []string `protobuf:"bytes,8,rep,name=extensions,proto3" json:"extensions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Ready) Reset() {
+	*x = Ready{}
+	mi := &file_gateway_v1_common_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Ready) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Ready) ProtoMessage() {}
+
+func (x *Ready) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_common_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Ready.ProtoReflect.Descriptor instead.
+func (*Ready) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *Ready) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *Ready) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+func (x *Ready) GetServerTime() int64 {
+	if x != nil {
+		return x.ServerTime
+	}
+	return 0
+}
+
+func (x *Ready) GetHeartbeatInterval() int32 {
+	if x != nil {
+		return x.HeartbeatInterval
+	}
+	return 0
+}
+
+func (x *Ready) GetReplayFrom() uint64 {
+	if x != nil {
+		return x.ReplayFrom
+	}
+	return 0
+}
+
+func (x *Ready) GetSelectedCodec() Codec {
+	if x != nil {
+		return x.SelectedCodec
 	}
 	return Codec_CODEC_UNSPECIFIED
 }
 
-func (x *Body) GetCompressAlgo() CompressAlgo {
+func (x *Ready) GetSelectedCompress() CompressAlgo {
 	if x != nil {
-		return x.CompressAlgo
+		return x.SelectedCompress
 	}
 	return CompressAlgo_COMPRESS_ALGO_UNSPECIFIED
 }
 
-func (x *Body) GetData() []byte {
+func (x *Ready) GetExtensions() []string {
 	if x != nil {
-		return x.Data
+		return x.Extensions
 	}
 	return nil
 }
 
-type BatchMessage struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Shared        *BatchMessage_SharedMeta `protobuf:"bytes,1,opt,name=shared,proto3" json:"shared,omitempty"`
-	Items         []*BatchMessage_Item     `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *BatchMessage) Reset() {
-	*x = BatchMessage{}
-	mi := &file_gateway_v1_common_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *BatchMessage) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*BatchMessage) ProtoMessage() {}
-
-func (x *BatchMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_common_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use BatchMessage.ProtoReflect.Descriptor instead.
-func (*BatchMessage) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_common_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *BatchMessage) GetShared() *BatchMessage_SharedMeta {
-	if x != nil {
-		return x.Shared
-	}
-	return nil
-}
-
-func (x *BatchMessage) GetItems() []*BatchMessage_Item {
-	if x != nil {
-		return x.Items
-	}
-	return nil
-}
-
-// shared: 批量消息共享的元数据（避免每条消息重复携带）
-type BatchMessage_SharedMeta struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	From          *RouteTarget           `protobuf:"bytes,1,opt,name=from,proto3" json:"from,omitempty"`
-	BizCode       string                 `protobuf:"bytes,2,opt,name=biz_code,json=bizCode,proto3" json:"biz_code,omitempty"`
-	TraceContext  *TraceContext          `protobuf:"bytes,3,opt,name=trace_context,json=traceContext,proto3" json:"trace_context,omitempty"`
-	Delivery      *Delivery              `protobuf:"bytes,4,opt,name=delivery,proto3" json:"delivery,omitempty"`
-	Headers       map[string]string      `protobuf:"bytes,5,rep,name=headers,proto3" json:"headers,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *BatchMessage_SharedMeta) Reset() {
-	*x = BatchMessage_SharedMeta{}
-	mi := &file_gateway_v1_common_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *BatchMessage_SharedMeta) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*BatchMessage_SharedMeta) ProtoMessage() {}
-
-func (x *BatchMessage_SharedMeta) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_common_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use BatchMessage_SharedMeta.ProtoReflect.Descriptor instead.
-func (*BatchMessage_SharedMeta) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_common_proto_rawDescGZIP(), []int{5, 0}
-}
-
-func (x *BatchMessage_SharedMeta) GetFrom() *RouteTarget {
-	if x != nil {
-		return x.From
-	}
-	return nil
-}
-
-func (x *BatchMessage_SharedMeta) GetBizCode() string {
-	if x != nil {
-		return x.BizCode
-	}
-	return ""
-}
-
-func (x *BatchMessage_SharedMeta) GetTraceContext() *TraceContext {
-	if x != nil {
-		return x.TraceContext
-	}
-	return nil
-}
-
-func (x *BatchMessage_SharedMeta) GetDelivery() *Delivery {
-	if x != nil {
-		return x.Delivery
-	}
-	return nil
-}
-
-func (x *BatchMessage_SharedMeta) GetHeaders() map[string]string {
-	if x != nil {
-		return x.Headers
-	}
-	return nil
-}
-
-// items: 批量消息项，每条只包含差异化字段
+// ── op=10 ERROR（S→C，可双向）─────────────────────────────────────────────
 //
-//	如果某字段为空，则使用 shared 中的值
-type BatchMessage_Item struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	MsgId         string                 `protobuf:"bytes,1,opt,name=msg_id,json=msgId,proto3" json:"msg_id,omitempty"`
-	SeqId         uint64                 `protobuf:"varint,2,opt,name=seq_id,json=seqId,proto3" json:"seq_id,omitempty"`
-	To            *RouteTarget           `protobuf:"bytes,3,opt,name=to,proto3" json:"to,omitempty"`
-	ExpireAt      int64                  `protobuf:"varint,4,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
-	Body          *Body                  `protobuf:"bytes,5,opt,name=body,proto3" json:"body,omitempty"`
+//	通用错误通知
+//	认证失败、恢复失败等场景也通过此消息返回错误
+type Error struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Code     ErrorCode              `protobuf:"varint,1,opt,name=code,proto3,enum=gateway.v1.ErrorCode" json:"code,omitempty"`
+	Message  string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	RefMsgId string                 `protobuf:"bytes,3,opt,name=ref_msg_id,json=refMsgId,proto3" json:"ref_msg_id,omitempty"`
+	// 额外上下文（如限流配额、重试建议）
+	Details       map[string]string `protobuf:"bytes,4,rep,name=details,proto3" json:"details,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *BatchMessage_Item) Reset() {
-	*x = BatchMessage_Item{}
-	mi := &file_gateway_v1_common_proto_msgTypes[10]
+func (x *Error) Reset() {
+	*x = Error{}
+	mi := &file_gateway_v1_common_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *BatchMessage_Item) String() string {
+func (x *Error) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*BatchMessage_Item) ProtoMessage() {}
+func (*Error) ProtoMessage() {}
 
-func (x *BatchMessage_Item) ProtoReflect() protoreflect.Message {
-	mi := &file_gateway_v1_common_proto_msgTypes[10]
+func (x *Error) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_common_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1329,44 +1379,517 @@ func (x *BatchMessage_Item) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use BatchMessage_Item.ProtoReflect.Descriptor instead.
-func (*BatchMessage_Item) Descriptor() ([]byte, []int) {
-	return file_gateway_v1_common_proto_rawDescGZIP(), []int{5, 1}
+// Deprecated: Use Error.ProtoReflect.Descriptor instead.
+func (*Error) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{8}
 }
 
-func (x *BatchMessage_Item) GetMsgId() string {
+func (x *Error) GetCode() ErrorCode {
 	if x != nil {
-		return x.MsgId
+		return x.Code
+	}
+	return ErrorCode_ERROR_CODE_UNSPECIFIED
+}
+
+func (x *Error) GetMessage() string {
+	if x != nil {
+		return x.Message
 	}
 	return ""
 }
 
-func (x *BatchMessage_Item) GetSeqId() uint64 {
+func (x *Error) GetRefMsgId() string {
 	if x != nil {
-		return x.SeqId
+		return x.RefMsgId
+	}
+	return ""
+}
+
+func (x *Error) GetDetails() map[string]string {
+	if x != nil {
+		return x.Details
+	}
+	return nil
+}
+
+// ── op=7 RESUME（C→S）─────────────────────────────────────────────────────
+//
+//	断线重连时发送，替代 HANDSHAKE
+type Resume struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	SessionId string                 `protobuf:"bytes,1,opt,name=session_id,json=sessionId,proto3" json:"session_id,omitempty"`
+	// 客户端已收到的最高序列号
+	LastSeq uint64 `protobuf:"varint,2,opt,name=last_seq,json=lastSeq,proto3" json:"last_seq,omitempty"`
+	// 重连时刷新 Token
+	Token         string `protobuf:"bytes,3,opt,name=token,proto3" json:"token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Resume) Reset() {
+	*x = Resume{}
+	mi := &file_gateway_v1_common_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Resume) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Resume) ProtoMessage() {}
+
+func (x *Resume) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_common_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Resume.ProtoReflect.Descriptor instead.
+func (*Resume) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *Resume) GetSessionId() string {
+	if x != nil {
+		return x.SessionId
+	}
+	return ""
+}
+
+func (x *Resume) GetLastSeq() uint64 {
+	if x != nil {
+		return x.LastSeq
 	}
 	return 0
 }
 
-func (x *BatchMessage_Item) GetTo() *RouteTarget {
+func (x *Resume) GetToken() string {
 	if x != nil {
-		return x.To
+		return x.Token
 	}
-	return nil
+	return ""
 }
 
-func (x *BatchMessage_Item) GetExpireAt() int64 {
+// ── op=5 HEARTBEAT（C→S）──────────────────────────────────────────────────
+type Heartbeat struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 客户端发送时间戳（毫秒）
+	ClientTime int64 `protobuf:"varint,1,opt,name=client_time,json=clientTime,proto3" json:"client_time,omitempty"`
+	// 1=正常, 2=警告, 3=满载（服务端应降速）
+	BufferLevel   HeartbeatBufferLevel `protobuf:"varint,2,opt,name=buffer_level,json=bufferLevel,proto3,enum=gateway.v1.HeartbeatBufferLevel" json:"buffer_level,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Heartbeat) Reset() {
+	*x = Heartbeat{}
+	mi := &file_gateway_v1_common_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Heartbeat) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Heartbeat) ProtoMessage() {}
+
+func (x *Heartbeat) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_common_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Heartbeat.ProtoReflect.Descriptor instead.
+func (*Heartbeat) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *Heartbeat) GetClientTime() int64 {
+	if x != nil {
+		return x.ClientTime
+	}
+	return 0
+}
+
+func (x *Heartbeat) GetBufferLevel() HeartbeatBufferLevel {
+	if x != nil {
+		return x.BufferLevel
+	}
+	return HeartbeatBufferLevel_BUFFER_LEVEL_UNSPECIFIED
+}
+
+// ── op=6 HEARTBEAT_ACK（S→C）───────────────────────────────────────────────
+type HeartbeatAck struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 服务端收到心跳的时间
+	ServerTime int64 `protobuf:"varint,1,opt,name=server_time,json=serverTime,proto3" json:"server_time,omitempty"`
+	// 动态调整的心跳间隔（秒）
+	HeartbeatInterval int32 `protobuf:"varint,2,opt,name=heartbeat_interval,json=heartbeatInterval,proto3" json:"heartbeat_interval,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *HeartbeatAck) Reset() {
+	*x = HeartbeatAck{}
+	mi := &file_gateway_v1_common_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HeartbeatAck) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HeartbeatAck) ProtoMessage() {}
+
+func (x *HeartbeatAck) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_common_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HeartbeatAck.ProtoReflect.Descriptor instead.
+func (*HeartbeatAck) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *HeartbeatAck) GetServerTime() int64 {
+	if x != nil {
+		return x.ServerTime
+	}
+	return 0
+}
+
+func (x *HeartbeatAck) GetHeartbeatInterval() int32 {
+	if x != nil {
+		return x.HeartbeatInterval
+	}
+	return 0
+}
+
+// ── op=12 AUTH_REFRESH（C→S）───────────────────────────────────────────────
+//
+//	Token 续期请求
+type AuthRefresh struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Token         string                 `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	DeviceId      string                 `protobuf:"bytes,2,opt,name=device_id,json=deviceId,proto3" json:"device_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuthRefresh) Reset() {
+	*x = AuthRefresh{}
+	mi := &file_gateway_v1_common_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthRefresh) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthRefresh) ProtoMessage() {}
+
+func (x *AuthRefresh) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_common_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuthRefresh.ProtoReflect.Descriptor instead.
+func (*AuthRefresh) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *AuthRefresh) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+func (x *AuthRefresh) GetDeviceId() string {
+	if x != nil {
+		return x.DeviceId
+	}
+	return ""
+}
+
+// ── op = 13 AUTH_REFRESH_ACK（S→C）───────────────────────────────────────────────
+// AuthRefreshAck — 认证刷新确认（Gateway → Client）
+type AuthRefreshAck struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Success bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	// 新 Token 的过期时间（Unix 毫秒）
+	ExpireAt      int64 `protobuf:"varint,2,opt,name=expire_at,json=expireAt,proto3" json:"expire_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuthRefreshAck) Reset() {
+	*x = AuthRefreshAck{}
+	mi := &file_gateway_v1_common_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuthRefreshAck) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuthRefreshAck) ProtoMessage() {}
+
+func (x *AuthRefreshAck) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_common_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuthRefreshAck.ProtoReflect.Descriptor instead.
+func (*AuthRefreshAck) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *AuthRefreshAck) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *AuthRefreshAck) GetExpireAt() int64 {
 	if x != nil {
 		return x.ExpireAt
 	}
 	return 0
 }
 
-func (x *BatchMessage_Item) GetBody() *Body {
+// ── op=8 RECONNECT（S→C）──────────────────────────────────────────────────
+//
+//	服务端要求客户端断开并重连（版本升级、负载均衡等场景）
+type Reconnect struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// 建议等待后重连（毫秒）
+	AfterMs int32 `protobuf:"varint,1,opt,name=after_ms,json=afterMs,proto3" json:"after_ms,omitempty"`
+	// 新的连接地址（负载均衡）
+	ResumeUrl string `protobuf:"bytes,2,opt,name=resume_url,json=resumeUrl,proto3" json:"resume_url,omitempty"`
+	// true = 可以 RESUME，false = 必须 HANDSHAKE
+	CanResume     bool `protobuf:"varint,3,opt,name=can_resume,json=canResume,proto3" json:"can_resume,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Reconnect) Reset() {
+	*x = Reconnect{}
+	mi := &file_gateway_v1_common_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Reconnect) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Reconnect) ProtoMessage() {}
+
+func (x *Reconnect) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_common_proto_msgTypes[14]
 	if x != nil {
-		return x.Body
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Reconnect.ProtoReflect.Descriptor instead.
+func (*Reconnect) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *Reconnect) GetAfterMs() int32 {
+	if x != nil {
+		return x.AfterMs
+	}
+	return 0
+}
+
+func (x *Reconnect) GetResumeUrl() string {
+	if x != nil {
+		return x.ResumeUrl
+	}
+	return ""
+}
+
+func (x *Reconnect) GetCanResume() bool {
+	if x != nil {
+		return x.CanResume
+	}
+	return false
+}
+
+// ── op=11 KICK（S→C）───────────────────────────────────────────────────────
+//
+//	服务端强制断连（被踢下线、封号等）
+type Kick struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Code   ErrorCode              `protobuf:"varint,1,opt,name=code,proto3,enum=gateway.v1.ErrorCode" json:"code,omitempty"`
+	Reason string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	// 建议等待 N 秒后重连
+	ReconnectAfter int32 `protobuf:"varint,3,opt,name=reconnect_after,json=reconnectAfter,proto3" json:"reconnect_after,omitempty"`
+	// true = 禁止自动重连（封号）
+	Permanent     bool `protobuf:"varint,4,opt,name=permanent,proto3" json:"permanent,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Kick) Reset() {
+	*x = Kick{}
+	mi := &file_gateway_v1_common_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Kick) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Kick) ProtoMessage() {}
+
+func (x *Kick) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_common_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Kick.ProtoReflect.Descriptor instead.
+func (*Kick) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *Kick) GetCode() ErrorCode {
+	if x != nil {
+		return x.Code
+	}
+	return ErrorCode_ERROR_CODE_UNSPECIFIED
+}
+
+func (x *Kick) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *Kick) GetReconnectAfter() int32 {
+	if x != nil {
+		return x.ReconnectAfter
+	}
+	return 0
+}
+
+func (x *Kick) GetPermanent() bool {
+	if x != nil {
+		return x.Permanent
+	}
+	return false
+}
+
+// ── op=9 ACK（C→S）─────────────────────────────────────────────────────────
+//
+//	QoS-1 消息确认，支持单条和批量
+type Ack struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	MsgIds []string               `protobuf:"bytes,1,rep,name=msg_ids,json=msgIds,proto3" json:"msg_ids,omitempty"`
+	// 客户端收到时间（Unix 毫秒）
+	RecvTime      int64 `protobuf:"varint,3,opt,name=recv_time,json=recvTime,proto3" json:"recv_time,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Ack) Reset() {
+	*x = Ack{}
+	mi := &file_gateway_v1_common_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Ack) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Ack) ProtoMessage() {}
+
+func (x *Ack) ProtoReflect() protoreflect.Message {
+	mi := &file_gateway_v1_common_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Ack.ProtoReflect.Descriptor instead.
+func (*Ack) Descriptor() ([]byte, []int) {
+	return file_gateway_v1_common_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *Ack) GetMsgIds() []string {
+	if x != nil {
+		return x.MsgIds
 	}
 	return nil
+}
+
+func (x *Ack) GetRecvTime() int64 {
+	if x != nil {
+		return x.RecvTime
+	}
+	return 0
 }
 
 var File_gateway_v1_common_proto protoreflect.FileDescriptor
@@ -1374,181 +1897,174 @@ var File_gateway_v1_common_proto protoreflect.FileDescriptor
 const file_gateway_v1_common_proto_rawDesc = "" +
 	"\n" +
 	"\x17gateway/v1/common.proto\x12\n" +
-	"gateway.v1\x1a\x17validate/validate.proto\"\xb3\x02\n" +
+	"gateway.v1\x1a\x17validate/validate.proto\"R\n" +
+	"\fGatewayFrame\x12.\n" +
+	"\x02op\x18\x01 \x01(\x0e2\x12.gateway.v1.OpCodeB\n" +
+	"\xfaB\a\x82\x01\x04\x10\x01 \x00R\x02op\x12\x12\n" +
+	"\x04data\x18\x02 \x01(\fR\x04data\"\x9d\x05\n" +
+	"\bDispatch\x12\x18\n" +
+	"\apayload\x18\x01 \x01(\fR\apayload\x12\x1e\n" +
+	"\x06seq_id\x18\x02 \x01(\x04B\a\xfaB\x042\x02(\x00R\x05seqId\x12!\n" +
+	"\x06msg_id\x18\x03 \x01(\tB\n" +
+	"\xfaB\ar\x05\x10\x01\x18\x80\x01R\x05msgId\x12%\n" +
+	"\bbiz_code\x18\x04 \x01(\tB\n" +
+	"\xfaB\ar\x05\x10\x01\x18\x80\x01R\abizCode\x12)\n" +
+	"\n" +
+	"event_type\x18\x05 \x01(\tB\n" +
+	"\xfaB\ar\x05\x10\x01\x18\x80\x01R\teventType\x12\x1b\n" +
+	"\texpire_at\x18\x06 \x01(\x03R\bexpireAt\x12+\n" +
+	"\x04from\x18\n" +
+	" \x01(\v2\x17.gateway.v1.RouteTargetR\x04from\x12'\n" +
+	"\x02to\x18\v \x01(\v2\x17.gateway.v1.RouteTargetR\x02to\x120\n" +
+	"\bdelivery\x18\f \x01(\v2\x14.gateway.v1.DeliveryR\bdelivery\x12.\n" +
+	"\x05trace\x18\r \x01(\v2\x18.gateway.v1.TraceContextR\x05trace\x12%\n" +
+	"\ttimestamp\x18\x0e \x01(\x03B\a\xfaB\x04\"\x02(\x00R\ttimestamp\x12=\n" +
+	"\x06origin\x18\x0f \x01(\x0e2\x19.gateway.v1.MessageOriginB\n" +
+	"\xfaB\a\x82\x01\x04\x10\x01 \x00R\x06origin\x12 \n" +
+	"\arecv_at\x18\x10 \x01(\x03B\a\xfaB\x04\"\x02(\x00R\x06recvAt\x12H\n" +
+	"\bmetadata\x18c \x03(\v2\".gateway.v1.Dispatch.MetadataEntryB\b\xfaB\x05\x9a\x01\x02\x10@R\bmetadata\x1a;\n" +
+	"\rMetadataEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xf0\x01\n" +
 	"\vRouteTarget\x12;\n" +
 	"\x04type\x18\x01 \x01(\x0e2\x1b.gateway.v1.RouteTargetTypeB\n" +
-	"\xfaB\a\x82\x01\x04\x10\x01 \x00R\x04type\x12\x1c\n" +
-	"\x03key\x18\x02 \x01(\tB\n" +
-	"\xfaB\ar\x05\x10\x01\x18\x80\x02R\x03key\x12\x1b\n" +
-	"\tdevice_id\x18\x03 \x01(\tR\bdeviceId\x12\x17\n" +
-	"\anode_id\x18\x04 \x01(\tR\x06nodeId\x12\x1b\n" +
-	"\tshard_key\x18\x05 \x01(\tR\bshardKey\x12;\n" +
-	"\x06labels\x18\x06 \x03(\v2#.gateway.v1.RouteTarget.LabelsEntryR\x06labels\x1a9\n" +
+	"\xfaB\a\x82\x01\x04\x10\x01 \x00R\x04type\x12\"\n" +
+	"\x06target\x18\x02 \x01(\tB\n" +
+	"\xfaB\ar\x05\x10\x01\x18\x80\x01R\x06target\x12E\n" +
+	"\x06labels\x18\x03 \x03(\v2#.gateway.v1.RouteTarget.LabelsEntryB\b\xfaB\x05\x9a\x01\x02\x10 R\x06labels\x1a9\n" +
 	"\vLabelsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x9b\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa5\x02\n" +
 	"\fTraceContext\x12#\n" +
 	"\btrace_id\x18\x01 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\atraceId\x12 \n" +
 	"\aspan_id\x18\x02 \x01(\tB\a\xfaB\x04r\x02\x18@R\x06spanId\x12-\n" +
 	"\x0eparent_span_id\x18\x03 \x01(\tB\a\xfaB\x04r\x02\x18@R\fparentSpanId\x12\x18\n" +
-	"\asampled\x18\x04 \x01(\bR\asampled\x12?\n" +
-	"\abaggage\x18\x05 \x03(\v2%.gateway.v1.TraceContext.BaggageEntryR\abaggage\x1a:\n" +
+	"\asampled\x18\x04 \x01(\bR\asampled\x12I\n" +
+	"\abaggage\x18\x05 \x03(\v2%.gateway.v1.TraceContext.BaggageEntryB\b\xfaB\x05\x9a\x01\x02\x10@R\abaggage\x1a:\n" +
 	"\fBaggageEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xd1\x01\n" +
-	"\bDelivery\x12&\n" +
-	"\x03qos\x18\x01 \x01(\x0e2\x14.gateway.v1.QosClassR\x03qos\x12\x1a\n" +
-	"\x06ack_id\x18\x02 \x01(\tH\x00R\x05ackId\x88\x01\x01\x12\x18\n" +
-	"\aoffline\x18\x03 \x01(\bR\aoffline\x12\x1b\n" +
-	"\tmax_retry\x18\x04 \x01(\x05R\bmaxRetry\x12\x1a\n" +
-	"\bpriority\x18\x05 \x01(\x05R\bpriority\x12#\n" +
-	"\rcompress_body\x18\x06 \x01(\bR\fcompressBodyB\t\n" +
-	"\a_ack_id\"\x93\x05\n" +
-	"\aMessage\x12!\n" +
-	"\aversion\x18\x01 \x01(\rB\a\xfaB\x04*\x02(\x01R\aversion\x125\n" +
-	"\x04type\x18\x02 \x01(\x0e2\x15.gateway.v1.FrameTypeB\n" +
-	"\xfaB\a\x82\x01\x04\x10\x01 \x00R\x04type\x12!\n" +
-	"\x06msg_id\x18\x03 \x01(\tB\n" +
-	"\xfaB\ar\x05\x10\x01\x18\x80\x01R\x05msgId\x12\x15\n" +
-	"\x06seq_id\x18\x04 \x01(\x04R\x05seqId\x12\x1c\n" +
-	"\ttimestamp\x18\x05 \x01(\x03R\ttimestamp\x12+\n" +
-	"\x04from\x18\x06 \x01(\v2\x17.gateway.v1.RouteTargetR\x04from\x12'\n" +
-	"\x02to\x18\a \x01(\v2\x17.gateway.v1.RouteTargetR\x02to\x120\n" +
-	"\bdelivery\x18\b \x01(\v2\x14.gateway.v1.DeliveryR\bdelivery\x12\x1b\n" +
-	"\texpire_at\x18\t \x01(\x03R\bexpireAt\x12#\n" +
-	"\bbiz_code\x18\n" +
-	" \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\abizCode\x12=\n" +
-	"\rtrace_context\x18\v \x01(\v2\x18.gateway.v1.TraceContextR\ftraceContext\x12:\n" +
-	"\aheaders\x18\f \x03(\v2 .gateway.v1.Message.HeadersEntryR\aheaders\x12$\n" +
-	"\x04body\x18\r \x01(\v2\x10.gateway.v1.BodyR\x04body\x12\x16\n" +
-	"\x06origin\x18\x0e \x01(\tR\x06origin\x12\x17\n" +
-	"\arecv_at\x18\x0f \x01(\x03R\x06recvAt\x1a:\n" +
-	"\fHeadersEntry\x12\x10\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x7f\n" +
+	"\bDelivery\x122\n" +
+	"\x03qos\x18\x01 \x01(\x0e2\x14.gateway.v1.QosClassB\n" +
+	"\xfaB\a\x82\x01\x04\x10\x01 \x00R\x03qos\x12\x18\n" +
+	"\aoffline\x18\x02 \x01(\bR\aoffline\x12%\n" +
+	"\bpriority\x18\x03 \x01(\x05B\t\xfaB\x06\x1a\x04\x18\t(\x00R\bpriority\"\x8f\x03\n" +
+	"\x05Hello\x12F\n" +
+	"\x10supported_codecs\x18\x01 \x03(\x0e2\x11.gateway.v1.CodecB\b\xfaB\x05\x92\x01\x02\b\x01R\x0fsupportedCodecs\x12Q\n" +
+	"\x12supported_compress\x18\x02 \x03(\x0e2\x18.gateway.v1.CompressAlgoB\b\xfaB\x05\x92\x01\x02\b\x01R\x11supportedCompress\x129\n" +
+	"\x12heartbeat_interval\x18\x03 \x01(\x05B\n" +
+	"\xfaB\a\x1a\x05\x18\x90\x1c(\x01R\x11heartbeatInterval\x12+\n" +
+	"\rmax_body_size\x18\x04 \x01(\x03B\a\xfaB\x04\"\x02(\x01R\vmaxBodySize\x124\n" +
+	"\x10protocol_version\x18\x05 \x01(\tB\t\xfaB\x06r\x04\x10\x01\x18 R\x0fprotocolVersion\x12#\n" +
+	"\anode_id\x18\x06 \x01(\tB\n" +
+	"\xfaB\ar\x05\x10\x01\x18\x80\x01R\x06nodeId\x12(\n" +
+	"\vserver_time\x18\a \x01(\x03B\a\xfaB\x04\"\x02(\x00R\n" +
+	"serverTime\"\xed\x01\n" +
+	"\tHandshake\x12 \n" +
+	"\x05token\x18\x01 \x01(\tB\n" +
+	"\xfaB\ar\x05\x10\x01\x18\x80 R\x05token\x12'\n" +
+	"\tdevice_id\x18\x02 \x01(\tB\n" +
+	"\xfaB\ar\x05\x10\x01\x18\x80\x01R\bdeviceId\x12+\n" +
+	"\vdevice_type\x18\x03 \x01(\tB\n" +
+	"\xfaB\ar\x05\x10\x01\x18\x80\x01R\n" +
+	"deviceType\x12+\n" +
+	"\vsdk_version\x18\x04 \x01(\tB\n" +
+	"\xfaB\ar\x05\x10\x01\x18\x80\x01R\n" +
+	"sdkVersion\x12;\n" +
+	"\x14supported_extensions\x18\x05 \x03(\tB\b\xfaB\x05\x92\x01\x02\x10@R\x13supportedExtensions\"\xa9\x03\n" +
+	"\x05Ready\x12)\n" +
+	"\n" +
+	"session_id\x18\x01 \x01(\tB\n" +
+	"\xfaB\ar\x05\x10\x01\x18\x80\x01R\tsessionId\x12#\n" +
+	"\auser_id\x18\x02 \x01(\tB\n" +
+	"\xfaB\ar\x05\x10\x01\x18\x80\x01R\x06userId\x12(\n" +
+	"\vserver_time\x18\x03 \x01(\x03B\a\xfaB\x04\"\x02(\x00R\n" +
+	"serverTime\x129\n" +
+	"\x12heartbeat_interval\x18\x04 \x01(\x05B\n" +
+	"\xfaB\a\x1a\x05\x18\x90\x1c(\x01R\x11heartbeatInterval\x12(\n" +
+	"\vreplay_from\x18\x05 \x01(\x04B\a\xfaB\x042\x02(\x00R\n" +
+	"replayFrom\x12D\n" +
+	"\x0eselected_codec\x18\x06 \x01(\x0e2\x11.gateway.v1.CodecB\n" +
+	"\xfaB\a\x82\x01\x04\x10\x01 \x00R\rselectedCodec\x12Q\n" +
+	"\x11selected_compress\x18\a \x01(\x0e2\x18.gateway.v1.CompressAlgoB\n" +
+	"\xfaB\a\x82\x01\x04\x10\x01 \x00R\x10selectedCompress\x12(\n" +
+	"\n" +
+	"extensions\x18\b \x03(\tB\b\xfaB\x05\x92\x01\x02\x10@R\n" +
+	"extensions\"\x8c\x02\n" +
+	"\x05Error\x125\n" +
+	"\x04code\x18\x01 \x01(\x0e2\x15.gateway.v1.ErrorCodeB\n" +
+	"\xfaB\a\x82\x01\x04\x10\x01 \x00R\x04code\x12$\n" +
+	"\amessage\x18\x02 \x01(\tB\n" +
+	"\xfaB\ar\x05\x10\x01\x18\x80\bR\amessage\x12&\n" +
+	"\n" +
+	"ref_msg_id\x18\x03 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x01R\brefMsgId\x12B\n" +
+	"\adetails\x18\x04 \x03(\v2\x1e.gateway.v1.Error.DetailsEntryB\b\xfaB\x05\x9a\x01\x02\x10@R\adetails\x1a:\n" +
+	"\fDetailsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa8\x01\n" +
-	"\x04Body\x123\n" +
-	"\x05codec\x18\x01 \x01(\x0e2\x11.gateway.v1.CodecB\n" +
-	"\xfaB\a\x82\x01\x04\x10\x01 \x00R\x05codec\x12I\n" +
-	"\rcompress_algo\x18\x02 \x01(\x0e2\x18.gateway.v1.CompressAlgoB\n" +
-	"\xfaB\a\x82\x01\x04\x10\x01 \x00R\fcompressAlgo\x12 \n" +
-	"\x04data\x18\x03 \x01(\fB\f\xfaB\tz\a\x10\x01\x18\x80\x80\x80\x02R\x04data\"\xff\x04\n" +
-	"\fBatchMessage\x12;\n" +
-	"\x06shared\x18\x01 \x01(\v2#.gateway.v1.BatchMessage.SharedMetaR\x06shared\x12?\n" +
-	"\x05items\x18\x02 \x03(\v2\x1d.gateway.v1.BatchMessage.ItemB\n" +
-	"\xfaB\a\x92\x01\x04\b\x01\x10dR\x05items\x1a\xcd\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"y\n" +
+	"\x06Resume\x12)\n" +
 	"\n" +
-	"SharedMeta\x12+\n" +
-	"\x04from\x18\x01 \x01(\v2\x17.gateway.v1.RouteTargetR\x04from\x12\x19\n" +
-	"\bbiz_code\x18\x02 \x01(\tR\abizCode\x12=\n" +
-	"\rtrace_context\x18\x03 \x01(\v2\x18.gateway.v1.TraceContextR\ftraceContext\x120\n" +
-	"\bdelivery\x18\x04 \x01(\v2\x14.gateway.v1.DeliveryR\bdelivery\x12J\n" +
-	"\aheaders\x18\x05 \x03(\v20.gateway.v1.BatchMessage.SharedMeta.HeadersEntryR\aheaders\x1a:\n" +
-	"\fHeadersEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a\xa0\x01\n" +
-	"\x04Item\x12\x15\n" +
-	"\x06msg_id\x18\x01 \x01(\tR\x05msgId\x12\x15\n" +
-	"\x06seq_id\x18\x02 \x01(\x04R\x05seqId\x12'\n" +
-	"\x02to\x18\x03 \x01(\v2\x17.gateway.v1.RouteTargetR\x02to\x12\x1b\n" +
-	"\texpire_at\x18\x04 \x01(\x03R\bexpireAt\x12$\n" +
-	"\x04body\x18\x05 \x01(\v2\x10.gateway.v1.BodyR\x04body*\xf3\x06\n" +
-	"\tFrameType\x12\x19\n" +
-	"\x15FrameType_UNSPECIFIED\x10\x00\x12\r\n" +
-	"\tHANDSHAKE\x10\x01\x12\x11\n" +
-	"\rHANDSHAKE_ACK\x10\x02\x12\x10\n" +
-	"\fAUTH_REFRESH\x10\x03\x12\x14\n" +
-	"\x10AUTH_REFRESH_ACK\x10\x04\x12\n" +
+	"session_id\x18\x01 \x01(\tB\n" +
+	"\xfaB\ar\x05\x10\x01\x18\x80\x01R\tsessionId\x12\"\n" +
+	"\blast_seq\x18\x02 \x01(\x04B\a\xfaB\x042\x02(\x00R\alastSeq\x12 \n" +
+	"\x05token\x18\x03 \x01(\tB\n" +
+	"\xfaB\ar\x05\x10\x01\x18\x80 R\x05token\"\x86\x01\n" +
+	"\tHeartbeat\x12(\n" +
+	"\vclient_time\x18\x01 \x01(\x03B\a\xfaB\x04\"\x02(\x00R\n" +
+	"clientTime\x12O\n" +
+	"\fbuffer_level\x18\x02 \x01(\x0e2 .gateway.v1.HeartbeatBufferLevelB\n" +
+	"\xfaB\a\x82\x01\x04\x10\x01 \x00R\vbufferLevel\"s\n" +
+	"\fHeartbeatAck\x12(\n" +
+	"\vserver_time\x18\x01 \x01(\x03B\a\xfaB\x04\"\x02(\x00R\n" +
+	"serverTime\x129\n" +
+	"\x12heartbeat_interval\x18\x02 \x01(\x05B\n" +
+	"\xfaB\a\x1a\x05\x18\x90\x1c(\x01R\x11heartbeatInterval\"X\n" +
+	"\vAuthRefresh\x12 \n" +
+	"\x05token\x18\x01 \x01(\tB\n" +
+	"\xfaB\ar\x05\x10\x01\x18\x80 R\x05token\x12'\n" +
+	"\tdevice_id\x18\x02 \x01(\tB\n" +
+	"\xfaB\ar\x05\x10\x01\x18\x80\x01R\bdeviceId\"G\n" +
+	"\x0eAuthRefreshAck\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x1b\n" +
+	"\texpire_at\x18\x02 \x01(\x03R\bexpireAt\"{\n" +
+	"\tReconnect\x12&\n" +
+	"\bafter_ms\x18\x01 \x01(\x05B\v\xfaB\b\x1a\x06\x18\xc0\xcf$(\x00R\aafterMs\x12'\n" +
 	"\n" +
-	"\x06RESUME\x10\x05\x12\x0e\n" +
+	"resume_url\x18\x02 \x01(\tB\b\xfaB\x05r\x03\x18\x80\x10R\tresumeUrl\x12\x1d\n" +
 	"\n" +
-	"RESUME_ACK\x10\x06\x12\t\n" +
-	"\x05CLOSE\x10\a\x12\r\n" +
-	"\tCLOSE_ACK\x10\b\x12\b\n" +
-	"\x04PING\x10\n" +
+	"can_resume\x18\x03 \x01(\bR\tcanResume\"\xb5\x01\n" +
+	"\x04Kick\x125\n" +
+	"\x04code\x18\x01 \x01(\x0e2\x15.gateway.v1.ErrorCodeB\n" +
+	"\xfaB\a\x82\x01\x04\x10\x01 \x00R\x04code\x12\"\n" +
+	"\x06reason\x18\x02 \x01(\tB\n" +
+	"\xfaB\ar\x05\x10\x01\x18\x80\bR\x06reason\x124\n" +
+	"\x0freconnect_after\x18\x03 \x01(\x05B\v\xfaB\b\x1a\x06\x18\xc0\xcf$(\x00R\x0ereconnectAfter\x12\x1c\n" +
+	"\tpermanent\x18\x04 \x01(\bR\tpermanent\"P\n" +
+	"\x03Ack\x12#\n" +
+	"\amsg_ids\x18\x01 \x03(\tB\n" +
+	"\xfaB\a\x92\x01\x04\b\x01\x10dR\x06msgIds\x12$\n" +
+	"\trecv_time\x18\x03 \x01(\x03B\a\xfaB\x04\"\x02(\x00R\brecvTime*\xd7\x01\n" +
+	"\x06OpCode\x12\x17\n" +
+	"\x13OP_CODE_UNSPECIFIED\x10\x00\x12\f\n" +
+	"\bDISPATCH\x10\x01\x12\t\n" +
+	"\x05HELLO\x10\x02\x12\r\n" +
+	"\tHANDSHAKE\x10\x03\x12\t\n" +
+	"\x05READY\x10\x04\x12\r\n" +
+	"\tHEARTBEAT\x10\x05\x12\x11\n" +
+	"\rHEARTBEAT_ACK\x10\x06\x12\n" +
+	"\n" +
+	"\x06RESUME\x10\a\x12\r\n" +
+	"\tRECONNECT\x10\b\x12\a\n" +
+	"\x03ACK\x10\t\x12\t\n" +
+	"\x05ERROR\x10\n" +
 	"\x12\b\n" +
-	"\x04PONG\x10\v\x12\t\n" +
-	"\x05ERROR\x10\x14\x12\v\n" +
-	"\aMSG_ACK\x10\x15\x12\r\n" +
-	"\tBATCH_ACK\x10\x16\x12\x10\n" +
-	"\fDELIVERY_ACK\x10\x17\x12\x10\n" +
-	"\fREAD_RECEIPT\x10\x18\x12\x12\n" +
-	"\x0eREPLAY_REQUEST\x10\x19\x12\x13\n" +
-	"\x0fREPLAY_RESPONSE\x10\x1a\x12\b\n" +
-	"\x04KICK\x10\x1e\x12\x10\n" +
-	"\fRATE_LIMITED\x10\x1f\x12\x14\n" +
-	"\x10SYSTEM_BROADCAST\x10 \x12\x10\n" +
-	"\fADMIN_NOTICE\x10!\x12\x13\n" +
-	"\x0fPRESENCE_UPDATE\x10(\x12\x16\n" +
-	"\x12PRESENCE_SUBSCRIBE\x10)\x12\x1a\n" +
-	"\x16PRESENCE_SUBSCRIBE_ACK\x10*\x12\x18\n" +
-	"\x14PRESENCE_UNSUBSCRIBE\x10+\x12\r\n" +
-	"\tSUBSCRIBE\x102\x12\x11\n" +
-	"\rSUBSCRIBE_ACK\x103\x12\x0f\n" +
-	"\vUNSUBSCRIBE\x104\x12\x13\n" +
-	"\x0fUNSUBSCRIBE_ACK\x105\x12\f\n" +
-	"\bBUSINESS\x10d\x12\x12\n" +
-	"\x0eBUSINESS_BATCH\x10e\x12\v\n" +
-	"\aIM_CHAT\x10n\x12\x0e\n" +
-	"\n" +
-	"IM_RECEIPT\x10o\x12\r\n" +
-	"\tIM_REVOKE\x10p\x12\r\n" +
-	"\tIM_TYPING\x10q\x12\x0f\n" +
-	"\vIM_REACTION\x10r\x12\n" +
-	"\n" +
-	"\x06IM_PIN\x10s\x12\x0f\n" +
-	"\vPUSH_NOTIFY\x10x\x12\f\n" +
-	"\bPUSH_ACK\x10y\x12\x11\n" +
-	"\fLIVE_COMMENT\x10\x82\x01\x12\x0e\n" +
-	"\tLIVE_GIFT\x10\x83\x01\x12\x10\n" +
-	"\vLIVE_SIGNAL\x10\x84\x01\x12\x0e\n" +
-	"\tLIVE_JOIN\x10\x85\x01\x12\x0f\n" +
-	"\n" +
-	"LIVE_LEAVE\x10\x86\x01\x12\x0f\n" +
-	"\n" +
-	"LIVE_STATE\x10\x87\x01\x12\x0f\n" +
-	"\n" +
-	"CALL_OFFER\x10\x8c\x01\x12\x10\n" +
-	"\vCALL_ANSWER\x10\x8d\x01\x12\r\n" +
-	"\bCALL_ICE\x10\x8e\x01\x12\x10\n" +
-	"\vCALL_HANGUP\x10\x8f\x01\x12\x10\n" +
-	"\vCALL_MODIFY\x10\x90\x01*\xc1\x06\n" +
-	"\tErrorCode\x12\x1a\n" +
-	"\x16ERROR_CODE_UNSPECIFIED\x10\x00\x12\x1a\n" +
-	"\x15ERR_HEARTBEAT_TIMEOUT\x10\xe9\a\x12\x19\n" +
-	"\x14ERR_HANDSHAKE_FAILED\x10\xea\a\x12\x15\n" +
-	"\x10ERR_AUTH_EXPIRED\x10\xeb\a\x12\x1e\n" +
-	"\x19ERR_REPLACED_BY_NEW_LOGIN\x10\xec\a\x12\x1a\n" +
-	"\x15ERR_SESSION_SUSPENDED\x10\xed\a\x12\x17\n" +
-	"\x12ERR_SESSION_CLOSED\x10\xee\a\x12\x19\n" +
-	"\x14ERR_PROTOCOL_VERSION\x10\xef\a\x12\x1a\n" +
-	"\x15ERR_CONN_RATE_LIMITED\x10\xf0\a\x12\x16\n" +
-	"\x11ERR_TOKEN_INVALID\x10\xd1\x0f\x12\x16\n" +
-	"\x11ERR_TOKEN_EXPIRED\x10\xd2\x0f\x12\x1a\n" +
-	"\x15ERR_PERMISSION_DENIED\x10\xd3\x0f\x12\x17\n" +
-	"\x12ERR_DEVICE_BLOCKED\x10\xd4\x0f\x12\x13\n" +
-	"\x0eERR_IP_BLOCKED\x10\xd5\x0f\x12\x1a\n" +
-	"\x15ERR_MESSAGE_TOO_LARGE\x10\xb9\x17\x12\x1b\n" +
-	"\x16ERR_INVALID_FRAME_TYPE\x10\xba\x17\x12\x1a\n" +
-	"\x15ERR_MESSAGE_MALFORMED\x10\xbb\x17\x12\x18\n" +
-	"\x13ERR_MESSAGE_EXPIRED\x10\xbc\x17\x12\x15\n" +
-	"\x10ERR_RATE_LIMITED\x10\xbd\x17\x12\x14\n" +
-	"\x0fERR_BAD_REQUEST\x10\xbe\x17\x12\x1d\n" +
-	"\x18ERR_UPSTREAM_SEND_FAILED\x10\xa1\x1f\x12\x1d\n" +
-	"\x18ERR_OFFLINE_STORE_FAILED\x10\xa2\x1f\x12\x1b\n" +
-	"\x16ERR_MAX_RETRY_EXCEEDED\x10\xa3\x1f\x12\x18\n" +
-	"\x13ERR_ROUTE_NOT_FOUND\x10\xa4\x1f\x12\x1b\n" +
-	"\x16ERR_TARGET_UNAVAILABLE\x10\xa5\x1f\x12\x19\n" +
-	"\x14ERR_DELIVERY_TIMEOUT\x10\xa6\x1f\x12\x17\n" +
-	"\x12ERR_ROOM_NOT_FOUND\x10\x89'\x12\x18\n" +
-	"\x13ERR_TOPIC_NOT_FOUND\x10\x8a'\x12\x1b\n" +
-	"\x16ERR_ALREADY_SUBSCRIBED\x10\x8b'\x12\x17\n" +
-	"\x12ERR_NOT_SUBSCRIBED\x10\x8c'\x12\x12\n" +
-	"\rERR_ROOM_FULL\x10\x8d'*\\\n" +
+	"\x04KICK\x10\v\x12\x10\n" +
+	"\fAUTH_REFRESH\x10\f\x12\x14\n" +
+	"\x10AUTH_REFRESH_ACK\x10\r*J\n" +
 	"\bQosClass\x12\x19\n" +
 	"\x15QOS_CLASS_UNSPECIFIED\x10\x00\x12\x10\n" +
 	"\fAT_MOST_ONCE\x10\x01\x12\x11\n" +
-	"\rAT_LEAST_ONCE\x10\x02\x12\x10\n" +
-	"\fEXACTLY_ONCE\x10\x03*C\n" +
+	"\rAT_LEAST_ONCE\x10\x02*C\n" +
 	"\x05Codec\x12\x15\n" +
 	"\x11CODEC_UNSPECIFIED\x10\x00\x12\b\n" +
 	"\x04JSON\x10\x01\x12\f\n" +
@@ -1560,20 +2076,70 @@ const file_gateway_v1_common_proto_rawDesc = "" +
 	"\x04GZIP\x10\x02\x12\b\n" +
 	"\x04ZSTD\x10\x03\x12\n" +
 	"\n" +
-	"\x06SNAPPY\x10\x04*\xa0\x01\n" +
+	"\x06SNAPPY\x10\x04*\x90\x01\n" +
 	"\x0fRouteTargetType\x12!\n" +
 	"\x1dROUTE_TARGET_TYPE_UNSPECIFIED\x10\x00\x12\b\n" +
 	"\x04USER\x10\x01\x12\n" +
 	"\n" +
 	"\x06DEVICE\x10\x02\x12\v\n" +
-	"\aSESSION\x10\x03\x12\x0e\n" +
+	"\aSESSION\x10\x03\x12\b\n" +
+	"\x04ROOM\x10\x04\x12\t\n" +
+	"\x05TOPIC\x10\x05\x12\t\n" +
+	"\x05GROUP\x10\x06\x12\b\n" +
+	"\x04NODE\x10\a\x12\r\n" +
+	"\tBROADCAST\x10\b*y\n" +
+	"\rMessageOrigin\x12\x16\n" +
+	"\x12ORIGIN_UNSPECIFIED\x10\x00\x12\n" +
 	"\n" +
-	"CONNECTION\x10\x04\x12\b\n" +
-	"\x04ROOM\x10\x05\x12\t\n" +
-	"\x05TOPIC\x10\x06\x12\t\n" +
-	"\x05GROUP\x10\a\x12\b\n" +
-	"\x04NODE\x10\b\x12\r\n" +
-	"\tBROADCAST\x10\tBHZFgithub.com/vadam-zhan/long-gw/common-protocol/gen/gateway/v1;gatewayv1b\x06proto3"
+	"\x06CLIENT\x10\x01\x12\t\n" +
+	"\x05RETRY\x10\x02\x12\n" +
+	"\n" +
+	"\x06REPLAY\x10\x03\x12\x14\n" +
+	"\x10ORIGIN_BROADCAST\x10\x04\x12\v\n" +
+	"\aPUSHAPI\x10\x05\x12\n" +
+	"\n" +
+	"\x06SYSTEM\x10\x06*W\n" +
+	"\x14HeartbeatBufferLevel\x12\x1c\n" +
+	"\x18BUFFER_LEVEL_UNSPECIFIED\x10\x00\x12\n" +
+	"\n" +
+	"\x06NORMAL\x10\x01\x12\v\n" +
+	"\aWARNING\x10\x02\x12\b\n" +
+	"\x04FULL\x10\x03*\x8a\a\n" +
+	"\tErrorCode\x12\x1a\n" +
+	"\x16ERROR_CODE_UNSPECIFIED\x10\x00\x12\x1a\n" +
+	"\x15ERR_HEARTBEAT_TIMEOUT\x10\xe9\a\x12\x19\n" +
+	"\x14ERR_HANDSHAKE_FAILED\x10\xea\a\x12\x15\n" +
+	"\x10ERR_AUTH_EXPIRED\x10\xeb\a\x12\x1e\n" +
+	"\x19ERR_REPLACED_BY_NEW_LOGIN\x10\xec\a\x12\x1a\n" +
+	"\x15ERR_SESSION_SUSPENDED\x10\xed\a\x12\x17\n" +
+	"\x12ERR_SESSION_CLOSED\x10\xee\a\x12\x19\n" +
+	"\x14ERR_PROTOCOL_VERSION\x10\xef\a\x12\x1a\n" +
+	"\x15ERR_CONN_RATE_LIMITED\x10\xf0\a\x12\x16\n" +
+	"\x11ERR_RESUME_FAILED\x10\xf1\a\x12\x16\n" +
+	"\x11ERR_TOKEN_INVALID\x10\xd1\x0f\x12\x16\n" +
+	"\x11ERR_TOKEN_EXPIRED\x10\xd2\x0f\x12\x1a\n" +
+	"\x15ERR_PERMISSION_DENIED\x10\xd3\x0f\x12\x17\n" +
+	"\x12ERR_DEVICE_BLOCKED\x10\xd4\x0f\x12\x13\n" +
+	"\x0eERR_IP_BLOCKED\x10\xd5\x0f\x12\x17\n" +
+	"\x12ERR_APP_ID_INVALID\x10\xd6\x0f\x12\x1a\n" +
+	"\x15ERR_MESSAGE_TOO_LARGE\x10\xb9\x17\x12\x17\n" +
+	"\x12ERR_INVALID_OPCODE\x10\xba\x17\x12\x1a\n" +
+	"\x15ERR_MESSAGE_MALFORMED\x10\xbb\x17\x12\x18\n" +
+	"\x13ERR_MESSAGE_EXPIRED\x10\xbc\x17\x12\x15\n" +
+	"\x10ERR_RATE_LIMITED\x10\xbd\x17\x12\x14\n" +
+	"\x0fERR_BAD_REQUEST\x10\xbe\x17\x12\x1a\n" +
+	"\x15ERR_OPCODE_UNEXPECTED\x10\xbf\x17\x12\x1d\n" +
+	"\x18ERR_UPSTREAM_SEND_FAILED\x10\xa1\x1f\x12\x1d\n" +
+	"\x18ERR_OFFLINE_STORE_FAILED\x10\xa2\x1f\x12\x1b\n" +
+	"\x16ERR_MAX_RETRY_EXCEEDED\x10\xa3\x1f\x12\x18\n" +
+	"\x13ERR_ROUTE_NOT_FOUND\x10\xa4\x1f\x12\x1b\n" +
+	"\x16ERR_TARGET_UNAVAILABLE\x10\xa5\x1f\x12\x19\n" +
+	"\x14ERR_DELIVERY_TIMEOUT\x10\xa6\x1f\x12\x17\n" +
+	"\x12ERR_ROOM_NOT_FOUND\x10\x89'\x12\x18\n" +
+	"\x13ERR_TOPIC_NOT_FOUND\x10\x8a'\x12\x1b\n" +
+	"\x16ERR_ALREADY_SUBSCRIBED\x10\x8b'\x12\x17\n" +
+	"\x12ERR_NOT_SUBSCRIBED\x10\x8c'\x12\x12\n" +
+	"\rERR_ROOM_FULL\x10\x8d'BHZFgithub.com/vadam-zhan/long-gw/common-protocol/gen/gateway/v1;gatewayv1b\x06proto3"
 
 var (
 	file_gateway_v1_common_proto_rawDescOnce sync.Once
@@ -1587,55 +2153,64 @@ func file_gateway_v1_common_proto_rawDescGZIP() []byte {
 	return file_gateway_v1_common_proto_rawDescData
 }
 
-var file_gateway_v1_common_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
-var file_gateway_v1_common_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_gateway_v1_common_proto_enumTypes = make([]protoimpl.EnumInfo, 8)
+var file_gateway_v1_common_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_gateway_v1_common_proto_goTypes = []any{
-	(FrameType)(0),                  // 0: gateway.v1.FrameType
-	(ErrorCode)(0),                  // 1: gateway.v1.ErrorCode
-	(QosClass)(0),                   // 2: gateway.v1.QosClass
-	(Codec)(0),                      // 3: gateway.v1.Codec
-	(CompressAlgo)(0),               // 4: gateway.v1.CompressAlgo
-	(RouteTargetType)(0),            // 5: gateway.v1.RouteTargetType
-	(*RouteTarget)(nil),             // 6: gateway.v1.RouteTarget
-	(*TraceContext)(nil),            // 7: gateway.v1.TraceContext
-	(*Delivery)(nil),                // 8: gateway.v1.Delivery
-	(*Message)(nil),                 // 9: gateway.v1.Message
-	(*Body)(nil),                    // 10: gateway.v1.Body
-	(*BatchMessage)(nil),            // 11: gateway.v1.BatchMessage
-	nil,                             // 12: gateway.v1.RouteTarget.LabelsEntry
-	nil,                             // 13: gateway.v1.TraceContext.BaggageEntry
-	nil,                             // 14: gateway.v1.Message.HeadersEntry
-	(*BatchMessage_SharedMeta)(nil), // 15: gateway.v1.BatchMessage.SharedMeta
-	(*BatchMessage_Item)(nil),       // 16: gateway.v1.BatchMessage.Item
-	nil,                             // 17: gateway.v1.BatchMessage.SharedMeta.HeadersEntry
+	(OpCode)(0),               // 0: gateway.v1.OpCode
+	(QosClass)(0),             // 1: gateway.v1.QosClass
+	(Codec)(0),                // 2: gateway.v1.Codec
+	(CompressAlgo)(0),         // 3: gateway.v1.CompressAlgo
+	(RouteTargetType)(0),      // 4: gateway.v1.RouteTargetType
+	(MessageOrigin)(0),        // 5: gateway.v1.MessageOrigin
+	(HeartbeatBufferLevel)(0), // 6: gateway.v1.HeartbeatBufferLevel
+	(ErrorCode)(0),            // 7: gateway.v1.ErrorCode
+	(*GatewayFrame)(nil),      // 8: gateway.v1.GatewayFrame
+	(*Dispatch)(nil),          // 9: gateway.v1.Dispatch
+	(*RouteTarget)(nil),       // 10: gateway.v1.RouteTarget
+	(*TraceContext)(nil),      // 11: gateway.v1.TraceContext
+	(*Delivery)(nil),          // 12: gateway.v1.Delivery
+	(*Hello)(nil),             // 13: gateway.v1.Hello
+	(*Handshake)(nil),         // 14: gateway.v1.Handshake
+	(*Ready)(nil),             // 15: gateway.v1.Ready
+	(*Error)(nil),             // 16: gateway.v1.Error
+	(*Resume)(nil),            // 17: gateway.v1.Resume
+	(*Heartbeat)(nil),         // 18: gateway.v1.Heartbeat
+	(*HeartbeatAck)(nil),      // 19: gateway.v1.HeartbeatAck
+	(*AuthRefresh)(nil),       // 20: gateway.v1.AuthRefresh
+	(*AuthRefreshAck)(nil),    // 21: gateway.v1.AuthRefreshAck
+	(*Reconnect)(nil),         // 22: gateway.v1.Reconnect
+	(*Kick)(nil),              // 23: gateway.v1.Kick
+	(*Ack)(nil),               // 24: gateway.v1.Ack
+	nil,                       // 25: gateway.v1.Dispatch.MetadataEntry
+	nil,                       // 26: gateway.v1.RouteTarget.LabelsEntry
+	nil,                       // 27: gateway.v1.TraceContext.BaggageEntry
+	nil,                       // 28: gateway.v1.Error.DetailsEntry
 }
 var file_gateway_v1_common_proto_depIdxs = []int32{
-	5,  // 0: gateway.v1.RouteTarget.type:type_name -> gateway.v1.RouteTargetType
-	12, // 1: gateway.v1.RouteTarget.labels:type_name -> gateway.v1.RouteTarget.LabelsEntry
-	13, // 2: gateway.v1.TraceContext.baggage:type_name -> gateway.v1.TraceContext.BaggageEntry
-	2,  // 3: gateway.v1.Delivery.qos:type_name -> gateway.v1.QosClass
-	0,  // 4: gateway.v1.Message.type:type_name -> gateway.v1.FrameType
-	6,  // 5: gateway.v1.Message.from:type_name -> gateway.v1.RouteTarget
-	6,  // 6: gateway.v1.Message.to:type_name -> gateway.v1.RouteTarget
-	8,  // 7: gateway.v1.Message.delivery:type_name -> gateway.v1.Delivery
-	7,  // 8: gateway.v1.Message.trace_context:type_name -> gateway.v1.TraceContext
-	14, // 9: gateway.v1.Message.headers:type_name -> gateway.v1.Message.HeadersEntry
-	10, // 10: gateway.v1.Message.body:type_name -> gateway.v1.Body
-	3,  // 11: gateway.v1.Body.codec:type_name -> gateway.v1.Codec
-	4,  // 12: gateway.v1.Body.compress_algo:type_name -> gateway.v1.CompressAlgo
-	15, // 13: gateway.v1.BatchMessage.shared:type_name -> gateway.v1.BatchMessage.SharedMeta
-	16, // 14: gateway.v1.BatchMessage.items:type_name -> gateway.v1.BatchMessage.Item
-	6,  // 15: gateway.v1.BatchMessage.SharedMeta.from:type_name -> gateway.v1.RouteTarget
-	7,  // 16: gateway.v1.BatchMessage.SharedMeta.trace_context:type_name -> gateway.v1.TraceContext
-	8,  // 17: gateway.v1.BatchMessage.SharedMeta.delivery:type_name -> gateway.v1.Delivery
-	17, // 18: gateway.v1.BatchMessage.SharedMeta.headers:type_name -> gateway.v1.BatchMessage.SharedMeta.HeadersEntry
-	6,  // 19: gateway.v1.BatchMessage.Item.to:type_name -> gateway.v1.RouteTarget
-	10, // 20: gateway.v1.BatchMessage.Item.body:type_name -> gateway.v1.Body
-	21, // [21:21] is the sub-list for method output_type
-	21, // [21:21] is the sub-list for method input_type
-	21, // [21:21] is the sub-list for extension type_name
-	21, // [21:21] is the sub-list for extension extendee
-	0,  // [0:21] is the sub-list for field type_name
+	0,  // 0: gateway.v1.GatewayFrame.op:type_name -> gateway.v1.OpCode
+	10, // 1: gateway.v1.Dispatch.from:type_name -> gateway.v1.RouteTarget
+	10, // 2: gateway.v1.Dispatch.to:type_name -> gateway.v1.RouteTarget
+	12, // 3: gateway.v1.Dispatch.delivery:type_name -> gateway.v1.Delivery
+	11, // 4: gateway.v1.Dispatch.trace:type_name -> gateway.v1.TraceContext
+	5,  // 5: gateway.v1.Dispatch.origin:type_name -> gateway.v1.MessageOrigin
+	25, // 6: gateway.v1.Dispatch.metadata:type_name -> gateway.v1.Dispatch.MetadataEntry
+	4,  // 7: gateway.v1.RouteTarget.type:type_name -> gateway.v1.RouteTargetType
+	26, // 8: gateway.v1.RouteTarget.labels:type_name -> gateway.v1.RouteTarget.LabelsEntry
+	27, // 9: gateway.v1.TraceContext.baggage:type_name -> gateway.v1.TraceContext.BaggageEntry
+	1,  // 10: gateway.v1.Delivery.qos:type_name -> gateway.v1.QosClass
+	2,  // 11: gateway.v1.Hello.supported_codecs:type_name -> gateway.v1.Codec
+	3,  // 12: gateway.v1.Hello.supported_compress:type_name -> gateway.v1.CompressAlgo
+	2,  // 13: gateway.v1.Ready.selected_codec:type_name -> gateway.v1.Codec
+	3,  // 14: gateway.v1.Ready.selected_compress:type_name -> gateway.v1.CompressAlgo
+	7,  // 15: gateway.v1.Error.code:type_name -> gateway.v1.ErrorCode
+	28, // 16: gateway.v1.Error.details:type_name -> gateway.v1.Error.DetailsEntry
+	6,  // 17: gateway.v1.Heartbeat.buffer_level:type_name -> gateway.v1.HeartbeatBufferLevel
+	7,  // 18: gateway.v1.Kick.code:type_name -> gateway.v1.ErrorCode
+	19, // [19:19] is the sub-list for method output_type
+	19, // [19:19] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_gateway_v1_common_proto_init() }
@@ -1643,14 +2218,13 @@ func file_gateway_v1_common_proto_init() {
 	if File_gateway_v1_common_proto != nil {
 		return
 	}
-	file_gateway_v1_common_proto_msgTypes[2].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gateway_v1_common_proto_rawDesc), len(file_gateway_v1_common_proto_rawDesc)),
-			NumEnums:      6,
-			NumMessages:   12,
+			NumEnums:      8,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

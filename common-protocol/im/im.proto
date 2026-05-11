@@ -1,0 +1,116 @@
+syntax = "proto3";
+
+package im.v1;
+
+option go_package = "github.com/vadam-zhan/long-gw/common-protocol/gen/im/v1;imv1";
+
+import "validate/validate.proto";
+
+// ═════════════════════════════════════════════════════════════════════════════
+// IM 域业务错误码（范围：11001-11099）
+//
+// 使用方式：业务后端在 DispatchContext.payload 中序列化 IM 消息时，
+// 若发送失败，通过 gateway.v1.GatewayError.details["biz_code"] 传递本枚举值。
+// ═════════════════════════════════════════════════════════════════════════════
+enum IMErrorCode {
+    IM_ERROR_CODE_UNSPECIFIED = 0;
+
+    // ── 会话层（11001-11020）──
+    IM_CONVERSATION_NOT_FOUND  = 11001; // 会话不存在
+    IM_NOT_CONV_MEMBER         = 11002; // 非会话成员
+    IM_CONVERSATION_FULL       = 11003; // 会话人数已满
+    IM_CONVERSATION_FROZEN     = 11004; // 会话被冻结
+
+    // ── 用户交互层（11021-11040）──
+    IM_USER_BLOCKED            = 11021; // 被对方拉黑
+    IM_USER_NOT_FOUND          = 11022; // 用户不存在
+    IM_INVALID_MENTION         = 11023; // @提及用户无效
+    IM_GROUP_MUTED             = 11024; // 群聊被禁言
+    IM_USER_MUTED              = 11025; // 用户被禁言
+
+    // ── 消息内容层（11041-11060）──
+    IM_SENSITIVE_CONTENT       = 11041; // 消息含敏感词
+    IM_MESSAGE_TOO_LARGE       = 11042; // 消息体过大
+    IM_FILE_TOO_LARGE          = 11043; // 文件消息过大
+    IM_INVALID_CONTENT_TYPE    = 11044; // 不支持的消息类型
+
+    // ── 消息操作层（11061-11080）──
+    IM_MESSAGE_NOT_FOUND       = 11061; // 消息不存在
+    IM_MESSAGE_ALREADY_REVOKED = 11062; // 消息已被撤回
+    IM_REVOKE_WINDOW_EXPIRED   = 11063; // 撤回超时
+    IM_MESSAGE_TOO_OLD_TO_EDIT = 11064; // 消息过旧无法编辑
+    IM_REACTION_NOT_FOUND      = 11065; // 表情回应不存在
+    IM_REACTION_ALREADY_EXISTS = 11066; // 表情回应已存在
+
+    // ── 限流与系统（11081-11099）──
+    IM_RATE_LIMITED            = 11081; // IM 发送频率受限
+    IM_OFFLINE_STORE_FAILED    = 11082; // 离线存储失败
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// IM 域业务事件
+//
+// 传输方式：序列化为 bytes 后写入 gateway.v1.DispatchContext.payload
+// 路由标识：gateway.v1.DispatchContext.event_type = "im.{action}"
+//
+// 事件类型映射：
+//   "im.chat"     → IMChat
+//   "im.receipt"  → IMReceipt
+//   "im.revoke"   → IMRevoke
+//   "im.edit"     → IMEdit
+//   "im.typing"   → IMTyping
+//   "im.reaction" → IMReaction
+//   "im.pin"      → IMPin
+// ═════════════════════════════════════════════════════════════════════════════
+
+message IMChat {
+    string conv_id      = 1 [(validate.rules).string = {max_len: 256}];
+    string content_type = 2 [(validate.rules).string = {max_len: 64}];
+    bytes  content      = 3;
+    repeated string mentions = 4;
+    string reply_to     = 5 [(validate.rules).string = {max_len: 128}];
+    map<string, string> ext = 6;
+}
+
+message IMReceipt {
+    string conv_id       = 1;
+    string receipt_type  = 2 [(validate.rules).string = {max_len: 32}];  // "delivered" | "read"
+    repeated string msg_ids = 3 [(validate.rules).repeated = {max_items: 100}];
+    uint64 read_seq      = 4;
+}
+
+message IMRevoke {
+    string conv_id = 1;
+    string msg_id  = 2 [(validate.rules).string = {max_len: 128}];
+    string reason  = 3;
+}
+
+// ── event_type=im.edit ──────────────────────────────────────────────────────
+//   消息编辑（支持已发送消息的修改）
+message IMEdit {
+    string conv_id = 1 [(validate.rules).string = {max_len: 256}];
+    string msg_id  = 2 [(validate.rules).string = {max_len: 128}];   // 被编辑的消息 ID
+    bytes  content = 3;                                                // 新内容
+    string content_type = 4 [(validate.rules).string = {max_len: 64}];
+    int64  edit_at = 5;                                                // 编辑时间
+    int64  edit_count = 6;                                             // 累计编辑次数
+}
+
+message IMTyping {
+    string conv_id = 1;
+    string content_type = 2;
+    int32  duration_ms = 3;
+}
+
+message IMReaction {
+    string conv_id   = 1;
+    string msg_id    = 2 [(validate.rules).string = {max_len: 128}];
+    string reaction  = 3;
+    bool   is_add    = 4;
+}
+
+message IMPin {
+    string conv_id = 1;
+    string msg_id  = 2 [(validate.rules).string = {max_len: 128}];
+    bool   is_pin  = 3;
+}

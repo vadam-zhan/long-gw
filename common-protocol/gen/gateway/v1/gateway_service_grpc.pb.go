@@ -32,7 +32,7 @@ type GatewayInternalClient interface {
 	BroadcastToTopic(ctx context.Context, in *BroadcastToTopicReq, opts ...grpc.CallOption) (*BroadcastToTopicResp, error)
 	// ── 全量广播 ────────────────────────────────────────────────────────────
 	BroadcastToAll(ctx context.Context, in *BroadcastToAllReq, opts ...grpc.CallOption) (*BroadcastToAllResp, error)
-	// ── 跨节点投递（消费 Kafka 的节点向目标节点转发）─────────────────────────
+	// ── 跨节点投递 ──────────────────────────────────────────────────────────
 	ForwardToSession(ctx context.Context, in *ForwardToSessionReq, opts ...grpc.CallOption) (*ForwardToSessionResp, error)
 	ForwardToRoom(ctx context.Context, in *ForwardToRoomReq, opts ...grpc.CallOption) (*ForwardToRoomResp, error)
 	// ── 用户管理 ────────────────────────────────────────────────────────────
@@ -246,7 +246,7 @@ type GatewayInternalServer interface {
 	BroadcastToTopic(context.Context, *BroadcastToTopicReq) (*BroadcastToTopicResp, error)
 	// ── 全量广播 ────────────────────────────────────────────────────────────
 	BroadcastToAll(context.Context, *BroadcastToAllReq) (*BroadcastToAllResp, error)
-	// ── 跨节点投递（消费 Kafka 的节点向目标节点转发）─────────────────────────
+	// ── 跨节点投递 ──────────────────────────────────────────────────────────
 	ForwardToSession(context.Context, *ForwardToSessionReq) (*ForwardToSessionResp, error)
 	ForwardToRoom(context.Context, *ForwardToRoomReq) (*ForwardToRoomResp, error)
 	// ── 用户管理 ────────────────────────────────────────────────────────────

@@ -1,0 +1,102 @@
+syntax = "proto3";
+
+package file.v1;
+
+option go_package = "github.com/vadam-zhan/long-gw/common-protocol/gen/file/v1;filev1";
+
+import "validate/validate.proto";
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 文件传输业务错误码（范围：15001-15099）
+// ═════════════════════════════════════════════════════════════════════════════
+enum FileErrorCode {
+    FILE_ERROR_CODE_UNSPECIFIED = 0;
+
+    // ── 文件元数据层（15001-15020）──
+    FILE_NOT_FOUND             = 15001; // 文件不存在
+    FILE_SIZE_EXCEEDED         = 15002; // 文件大小超限
+    FILE_TYPE_NOT_ALLOWED      = 15003; // 文件类型不允许
+    FILE_NAME_INVALID          = 15004; // 文件名无效
+    FILE_EMPTY                 = 15005; // 文件为空
+
+    // ── 传输层（15021-15040）──
+    FILE_CHECKSUM_MISMATCH     = 15021; // 校验和不匹配
+    FILE_UPLOAD_FAILED         = 15022; // 上传失败
+    FILE_DOWNLOAD_FAILED       = 15023; // 下载失败
+    FILE_EXPIRED               = 15024; // 文件链接过期
+    FILE_TRANSFER_CANCELLED    = 15025; // 传输已取消
+    FILE_CHUNK_INVALID         = 15026; // 分片无效
+    FILE_CHUNK_OUT_OF_ORDER    = 15027; // 分片乱序
+    FILE_RESUME_NOT_SUPPORTED  = 15028; // 断点续传不支持
+
+    // ── 安全与配额层（15041-15060）──
+    FILE_VIRUS_DETECTED        = 15041; // 文件含病毒/恶意内容
+    FILE_STORAGE_QUOTA_EXCEEDED= 15042; // 存储配额已满
+    FILE_ENCRYPT_FAILED        = 15043; // 文件加密失败
+    FILE_DECRYPT_FAILED        = 15044; // 文件解密失败
+    FILE_SIGNATURE_INVALID     = 15045; // 数字签名无效
+
+    // ── 系统层（15061-15099）──
+    FILE_RATE_LIMITED          = 15061; // 文件传输频率受限
+    FILE_PROVIDER_ERROR        = 15062; // 对象存储服务商错误
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 文件传输信令
+//
+// 传输方式：序列化为 bytes 后写入 gateway.v1.DispatchContext.payload
+// 路由标识：gateway.v1.DispatchContext.event_type = "file.{action}"
+//
+// 设计说明：
+//   1. 文件本体不走长连接，走对象存储（OSS/S3）
+//   2. 长连接只传输文件元数据信令（上传/下载/进度/完成）
+//
+// 事件类型映射：
+//   "file.offer"   → FileOffer     （发起传输）
+//   "file.accept"  → FileAccept    （接受传输）
+//   "file.chunk"   → FileChunk     （进度通知）
+//   "file.done"    → FileDone      （传输完成）
+//   "file.cancel"  → FileCancel    （取消传输）
+// ═════════════════════════════════════════════════════════════════════════════
+
+// ── event_type=file.offer ──────────────────────────────────────────────────
+message FileOffer {
+    string file_id = 1 [(validate.rules).string = {max_len: 128}];
+    string file_name = 2 [(validate.rules).string = {max_len: 256}];
+    string mime_type = 3;
+    int64  file_size = 4;
+    string checksum = 5;               // MD5/SHA256
+    string upload_url = 6;             // 客户端直接上传的预签 URL
+    string download_url = 7;           // 接收方下载的预签 URL
+    int32  ttl_seconds = 8;            // 链接有效期
+}
+
+// ── event_type=file.accept ─────────────────────────────────────────────────
+message FileAccept {
+    string file_id = 1 [(validate.rules).string = {max_len: 128}];
+    bool   accepted = 2;
+    string reason = 3;                 // 拒绝原因
+}
+
+// ── event_type=file.chunk ──────────────────────────────────────────────────
+//   大文件分片传输进度通知
+message FileChunk {
+    string file_id = 1 [(validate.rules).string = {max_len: 128}];
+    int64  offset = 2;                 // 已传输字节
+    int64  total = 3;                  // 总字节
+    int32  chunk_index = 4;
+    int32  total_chunks = 5;
+}
+
+// ── event_type=file.done ───────────────────────────────────────────────────
+message FileDone {
+    string file_id = 1 [(validate.rules).string = {max_len: 128}];
+    string checksum = 2;               // 服务端校验后的 checksum
+    int64  file_size = 3;              // 实际大小
+}
+
+// ── event_type=file.cancel ─────────────────────────────────────────────────
+message FileCancel {
+    string file_id = 1 [(validate.rules).string = {max_len: 128}];
+    string reason = 2;
+}
